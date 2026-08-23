@@ -1,0 +1,280 @@
+{
+  "profile": {
+    "name": "Vinay Bharti",
+    "role": "Senior Software Engineer",
+    "location": "Pune, India",
+    "available": true,
+    "summary": "I build scalable, high-performance web applications, frontend platforms and AI-powered engineering solutions.",
+    "yearsExperience": "6+",
+    "profileImage": "/images/profile.jpeg",
+    "productsShipped": "15+",
+    "performanceMetric": "4.4s → 2.3s",
+    "lighthouse": "90+",
+    "usersImpacted": "3K+",
+    "socialLinks" : {
+      "github": "https://github.com/iamvn",
+      "linkedin": "https://www.linkedin.com/in/vinaybharti-reactjs/",
+      "instagram": "https://www.instagram.com/okiwillcheck",
+      "email": "mailto:vnbharti56@gmail.com"
+    }
+  },
+
+  "copy": {
+    "header": [
+      "◉ LEVEL 06",
+      "6+ YEARS EXPERIENCE",
+      "XP 6,250 / 10,000",
+      "SERVER-FIRST ENGINEERING"
+    ],
+    "hero": {
+      "greeting": "Hello, I'm",
+      "technologies": [
+        "React",
+        "Next.js",
+        "TypeScript",
+        "Node.js",
+        "AI",
+        "JavaScript",
+        "Angular",
+        "Redis"
+      ],
+      "primaryAction": "VIEW MY WORK",
+      "secondaryAction": "ABOUT ME",
+      "availability": "Available for opportunities",
+      "terminalLines": [
+        "Code. Debug. Deploy.",
+        "Automate.",
+        "Repeat.",
+        "Leveling up, one commit at a time."
+      ]
+    },
+    "statsLabels": [
+      "YEARS EXPERIENCE",
+      "PRODUCTS & PLATFORMS",
+      "PERFORMANCE",
+      "LIGHTHOUSE",
+      "USERS IMPACTED"
+    ],
+    "skills": {
+      "eyebrow": "Engineering Loadout",
+      "title": "TECH STACK",
+      "description": "SERVER-FIRST · CLIENT WHEN NEEDED"
+    },
+    "projects": {
+      "eyebrow": "Featured Missions",
+      "title": "PROJECTS",
+      "enter": "ENTER PROJECT",
+      "github": "GITHUB ↗"
+    },
+    "experience": {
+      "eyebrow": "Career Progression",
+      "title": "EXPERIENCE TIMELINE",
+      "description": "MISSION LOG",
+      "current": "CURRENT"
+    },
+    "contact": {
+      "eyebrow": "BUILD WHAT'S NEXT",
+      "title": "LET'S MAKE AN IMPACT",
+      "description": "Have a product, platform or engineering challenge worth solving?",
+      "action": "PRESS X TO CONTACT"
+    },
+    "footer": "Built with Next.js, Server Components, Client Components and Tailwind CSS · Performance first."
+  },
+
+  "skills": [
+    {
+      "group": "Frontend",
+      "items": [
+        "React",
+        "Next.js",
+        "TypeScript",
+        "JavaScript",
+        "Redux / Zustand",
+        "SWR",
+        "FDC3",
+        "UWR"
+      ]
+    },
+    {
+      "group": "Backend",
+      "items": [
+        "Node.js",
+        "REST APIs",
+        "GraphQL",
+        "BFF",
+        "Express.js"
+      ]
+    },
+    {
+      "group": "Data & Cache",
+      "items": [
+        "Redis",
+        "MongoDB",
+        "SQL",
+        "Vector Databases"
+      ]
+    },
+    {
+      "group": "Cloud & DevOps",
+      "items": [
+        "AWS",
+        "Azure",
+        "Docker",
+        "CI/CD",
+        "Nginx"
+      ]
+    },
+    {
+      "group": "Testing",
+      "items": [
+        "Jest",
+        "React Testing Library",
+        "Cypress",
+        "Puppeteer",
+        "JMeter"
+      ]
+    },
+    {
+      "group": "AI & Automation",
+      "items": [
+        "RAG",
+        "Vector DB",
+        "AI Agents",
+        "OpenAI API",
+        "Semantic Search",
+        "BM25",
+        "Re-ranking",
+        "AI Test Automation"
+      ]
+    }
+  ],
+
+  "experience": [
+    {
+      "role": "Senior Software Engineer",
+      "company": "EPAM Systems (Enterprise Financial Client)",
+      "period": "Jun 2025 — Present",
+      "current": true,
+      "bullets": [
+        "Develop and maintain enterprise-grade applications using React.js, Next.js and TypeScript.",
+        "Implemented FDC3 integration from scratch, establishing the first implementation approach within the team and enabling further FDC3-based functionality.",
+        "Led a major UI revamp and performance enhancement for a trader-facing React application, including UI redevelopment and integration of new APIs.",
+        "Worked on migrating applications from a deprecated internal WebSDK to the newer UWR React component library.",
+        "Established migration approaches and supported teammates during the frontend library migration.",
+        "Worked on frontend architecture, reusable components, API integration, rendering strategies and application performance optimisation.",
+        "Created JMeter performance-testing scripts independently for API performance analysis and bottleneck identification.",
+        "Built AI-powered engineering agents and automation solutions for developer productivity and testing use cases.",
+        "Developed an AI test automation solution that records UI interactions and network calls and generates Puppeteer-based test scripts.",
+        "Explored AI automation capable of analysing commits, feature changes and bug fixes to identify and update relevant test automation.",
+        "Built AI prototypes using RAG, Vector Databases, BM25 keyword search, semantic search and re-ranking.",
+        "Developed a VS Code-based Talk-to-Code AI prototype using RAG, Vector Database and hybrid search techniques.",
+        "Built an AI agent for analysing commit history and engineering changes to make development information easier to consume.",
+        "Demonstrated AI agents and automation prototypes through internal technical forums and knowledge-sharing sessions.",
+        "Contributed to production UI launches and worked toward defect-free releases through development, testing and issue resolution.",
+        "Provided production support by investigating and resolving frontend and application issues across enterprise applications.",
+        "Took ownership of release coordination activities, including release readiness, issue tracking and coordination with team members.",
+        "Shared technical knowledge with teammates around FDC3, frontend migrations, performance optimisation and AI engineering initiatives."
+      ]
+    },
+
+    {
+      "role": "Software Engineer",
+      "company": "Amla Commerce",
+      "period": "Sep 2023 — Jul 2025",
+      "bullets": [
+        "Built and optimized e-commerce SaaS platforms with Next.js and Redux.",
+        "Improved page performance from 4.4s to 2.3s through rendering and caching improvements.",
+        "Implemented SSR, API caching and SEO optimizations.",
+        "Worked with Redis and SWR to improve application performance and data fetching.",
+        "Contributed to frontend architecture, reusable components and scalable application patterns."
+      ]
+    },
+
+    {
+      "role": "React.js Developer",
+      "company": "SimpleCRM",
+      "period": "Mar 2023 — Sep 2023",
+      "bullets": [
+        "Developed CRM applications with React.js and REST APIs.",
+        "Worked on dashboards, reports and real-time data updates.",
+        "Built reusable frontend components and integrated backend services."
+      ]
+    },
+
+    {
+      "role": "Software Engineer",
+      "company": "LocationGuru Solution Pvt Ltd",
+      "period": "Nov 2019 — Mar 2023",
+      "bullets": [
+        "Built responsive web applications with React and JavaScript.",
+        "Collaborated with backend developers and QA to deliver product features.",
+        "Developed reusable UI components and integrated REST APIs.",
+        "Worked on application performance, responsive design and frontend maintainability."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "slug": "ai-resume-builder",
+      "title": "AI Resume Builder & Career Guide",
+      "description": "AI-powered platform to build resumes, check ATS score, get feedback and find relevant jobs.",
+      "stack": [
+        "Next.js",
+        "TypeScript",
+        "MongoDB",
+        "OpenAI"
+      ],
+      "featured": true
+    },
+    {
+      "slug": "ecommerce-saas",
+      "title": "E-commerce SaaS Platform",
+      "description": "Scalable e-commerce platform with SSR, caching, analytics and role management.",
+      "stack": [
+        "Next.js",
+        "Redux",
+        "Redis",
+        "Node.js"
+      ],
+      "featured": true
+    },
+    {
+      "slug": "ai-test-automation",
+      "title": "AI Test Automation Agent",
+      "description": "AI-powered engineering agent that records UI interactions and network calls and generates Puppeteer-based automated test scripts.",
+      "stack": [
+        "Node.js",
+        "TypeScript",
+        "Puppeteer",
+        "OpenAI",
+        "AI Agents"
+      ],
+      "featured": true
+    },
+    {
+      "slug": "talk-to-code",
+      "title": "Talk-to-Code AI",
+      "description": "Developer productivity prototype using RAG, Vector Database and hybrid search to provide contextual code intelligence directly within the development workflow.",
+      "stack": [
+        "RAG",
+        "Vector DB",
+        "Semantic Search",
+        "BM25",
+        "Re-ranking"
+      ],
+      "featured": true
+    },
+    {
+      "slug": "fdc3-integration",
+      "title": "FDC3 Integration",
+      "description": "Implemented FDC3 integration from scratch for an enterprise frontend platform, establishing the team's initial implementation approach.",
+      "stack": [
+        "React",
+        "TypeScript",
+        "FDC3",
+        "Enterprise Frontend"
+      ],
+      "featured": true
+    }
+  ]
+}
