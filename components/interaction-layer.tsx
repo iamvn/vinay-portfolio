@@ -16,10 +16,10 @@ const nav = [
 ] as const;
 
 type SocialLinks = {
-  github?: string;
-  linkedin?: string;
-  instagram?: string;
-  email?: string;
+  github?: string | null;
+  linkedin?: string | null;
+  instagram?: string | null;
+  email?: string | null;
 };
 
 export function InteractionLayer({
@@ -28,7 +28,10 @@ export function InteractionLayer({
   location,
   summary,
   socialLinks,
-  profileImage
+  profileImage,
+  yearsExperience,
+  available,
+  availability
 }: {
   name: string;
   role: string;
@@ -36,6 +39,9 @@ export function InteractionLayer({
   summary: string;
   socialLinks: SocialLinks;
   profileImage: string;
+  yearsExperience: string;
+  available: boolean;
+  availability: string;
 }) {
   const [active, setActive] = useState('home');
   const [contactOpen, setContactOpen] = useState(false);
@@ -338,7 +344,7 @@ export function InteractionLayer({
 
           {/* Resume */}
           <a
-            href="/resume.pdf"
+            href="/api/resume"
             className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-purple-400/50 bg-purple-400/5 py-3 text-xs font-black text-purple-200 transition hover:bg-purple-400/10"
           >
             <Icon
@@ -401,7 +407,7 @@ export function InteractionLayer({
 
             <Info
               label="EXPERIENCE"
-              value="6+ years"
+              value={`${yearsExperience} years`}
             />
 
             <Info
@@ -411,7 +417,7 @@ export function InteractionLayer({
 
             <Info
               label="STATUS"
-              value="Available for opportunities"
+              value={available ? availability : 'Not available right now'}
             />
           </div>
 

@@ -128,3 +128,6 @@ html[data-game-mode='off'] .project-tag { background: #e0ecff !important; color:
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Admin panel: hide the scanline overlay. */
+body:has(.admin-shell)::after { display: none; }
