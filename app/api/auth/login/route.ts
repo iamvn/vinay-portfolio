@@ -1,0 +1,41 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
+import { handleDbError, jsonError, parseBody } from '@/lib/api-utils';
+import { hashPassword, verifyPassword } from '@/lib/auth/password';
+import { clearLoginFailures, loginLockedFor, recordLoginFailure } from '@/lib/auth/rate-limit';
+import { publicUser } from '@/lib/auth/session';
+import { createToken, sessionCookie } from '@/lib/auth/token';
+
+const loginSchema = z.object({ email: z.string().trim().toLowerCase().min(1), password: z.string().min(1) }).strict();
+
+// Used to spend the same time on unknown emails, so response times don't reveal which emails exist.
+let dummyHash: Promise<string> | null = null;
+
+/** Body: { email, password }. Sets the session cookie and also returns a Bearer token for API use. */
+export async function POST(request: Request) {
+  const { data, error } = await parseBody(request, loginSchema);
+  if (error) return error;
+
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
+  const key = `${ip}|${data.email}`;
+  const minutes = loginLockedFor(key);
+  if (minutes) return jsonError(`Too many failed attempts. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`, 429);
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    dummyHash ??= hashPassword('not-a-real-password');
+    const valid = await verifyPassword(data.password, user?.passwordHash ?? (await dummyHash));
+    if (!user || !valid) {
+      recordLoginFailure(key);
+      return jsonError('Incorrect email or password.', 401);
+    }
+    clearLoginFailures(key);
+    const { token, expiresAt } = await createToken(user.id, user.tokenVersion);
+    const response = NextResponse.json({ user: publicUser(user), token, expiresAt: expiresAt.toISOString() });
+    response.cookies.set(sessionCookie(token));
+    return response;
+  } catch (err) {
+    return handleDbError(err);
+  }
+}

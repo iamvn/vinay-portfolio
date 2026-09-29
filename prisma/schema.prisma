@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+// The connection URL lives in prisma.config.ts / lib/prisma.ts (Prisma 7 style).
+datasource db {
+  provider = "sqlite"
+}
+
+model Profile {
+  id                Int     @id
+  name              String
+  role              String
+  location          String
+  available         Boolean @default(true)
+  summary           String
+  yearsExperience   String
+  profileImage      String
+  productsShipped   String
+  performanceMetric String
+  lighthouse        String
+  usersImpacted     String
+  socialLinks       String
+}
+
+model SiteCopy {
+  id      Int    @id
+  content String
+}
+
+model SkillGroup {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  items String
+  order Int    @unique
+}
+
+model Experience {
+  id      Int     @id @default(autoincrement())
+  role    String
+  company String
+  period  String
+  current Boolean @default(false)
+  bullets String
+  order   Int     @unique
+}
+
+model Project {
+  id           Int     @id @default(autoincrement())
+  slug         String  @unique
+  title        String
+  description  String
+  stack        String
+  featured     Boolean @default(false)
+  /// "case-study" (page with sections), "article" (long-form page) or "link" (card opens externalUrl)
+  type         String  @default("case-study")
+  image        String  @default("")
+  liveUrl      String  @default("")
+  repoUrl      String  @default("")
+  externalUrl  String  @default("")
+  objective    String  @default("")
+  approach     String  @default("")
+  architecture String  @default("")
+  result       String  @default("")
+  content      String  @default("")
+}
+
+// Uploaded project images, one per project, keyed by the project's slug.
+model ProjectImage {
+  slug       String @id
+  fileName   String
+  mimeType   String
+  size       Int
+  data       Bytes
+  uploadedAt String
+}
+
+// Single row (id = 1). Stored in the database so uploads work on Vercel.
+
+// Single-row table (id = 1) holding the uploaded resume file.
+model Resume {
+  id         Int    @id
+  fileName   String
+  mimeType   String
+  size       Int
+  data       Bytes
+  uploadedAt String
+}
+
+// Single-row table (id = 1) holding the uploaded profile picture.
+model ProfileImage {
+  id         Int    @id
+  fileName   String
+  mimeType   String
+  size       Int
+  data       Bytes
+  uploadedAt String
+}
+
+// Admin users. Sign-up is not possible: users are created by an existing admin or `npm run admin:create`.
+model User {
+  id           Int    @id @default(autoincrement())
+  email        String @unique
+  name         String @default("")
+  passwordHash String
+  role         String @default("admin")
+  /// Incremented on password change: invalidates every existing session/token for this user.
+  tokenVersion Int    @default(0)
+  createdAt    String
+}

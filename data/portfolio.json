@@ -11,19 +11,18 @@
     "performanceMetric": "4.4s → 2.3s",
     "lighthouse": "90+",
     "usersImpacted": "3K+",
-    "socialLinks" : {
+    "socialLinks": {
       "github": "https://github.com/iamvn",
       "linkedin": "https://www.linkedin.com/in/vinaybharti-reactjs/",
       "instagram": "https://www.instagram.com/okiwillcheck",
       "email": "mailto:vnbharti56@gmail.com"
     }
   },
-
   "copy": {
     "header": [
-      "◉ LEVEL 06",
-      "6+ YEARS EXPERIENCE",
-      "XP 6,250 / 10,000",
+      "◉ LEVEL {level}",
+      "{years} YEARS EXPERIENCE",
+      "XP {xp} / {xpMax}",
       "SERVER-FIRST ENGINEERING"
     ],
     "hero": {
@@ -64,7 +63,11 @@
       "eyebrow": "Featured Missions",
       "title": "PROJECTS",
       "enter": "ENTER PROJECT",
-      "github": "GITHUB ↗"
+      "github": "GITHUB ↗",
+      "readArticle": "READ ARTICLE",
+      "openLink": "OPEN LINK ↗",
+      "live": "LIVE ↗",
+      "featured": "★ FEATURED"
     },
     "experience": {
       "eyebrow": "Career Progression",
@@ -80,7 +83,6 @@
     },
     "footer": "Built with Next.js, Server Components, Client Components and Tailwind CSS · Performance first."
   },
-
   "skills": [
     {
       "group": "Frontend",
@@ -148,7 +150,6 @@
       ]
     }
   ],
-
   "experience": [
     {
       "role": "Senior Software Engineer",
@@ -176,7 +177,6 @@
         "Shared technical knowledge with teammates around FDC3, frontend migrations, performance optimisation and AI engineering initiatives."
       ]
     },
-
     {
       "role": "Software Engineer",
       "company": "Amla Commerce",
@@ -189,7 +189,6 @@
         "Contributed to frontend architecture, reusable components and scalable application patterns."
       ]
     },
-
     {
       "role": "React.js Developer",
       "company": "SimpleCRM",
@@ -200,7 +199,6 @@
         "Built reusable frontend components and integrated backend services."
       ]
     },
-
     {
       "role": "Software Engineer",
       "company": "LocationGuru Solution Pvt Ltd",
@@ -274,7 +272,9 @@
         "FDC3",
         "Enterprise Frontend"
       ],
-      "featured": true
+      "featured": true,
+      "type": "article",
+      "content": "## What I built\nI implemented FDC3 integration from scratch for an enterprise frontend platform at a financial client, establishing the team's first implementation approach.\n\n## Impact\n- Enabled further FDC3-based functionality to be built on the same foundation\n- Shared the approach with teammates through knowledge-sharing sessions"
     }
   ]
 }
