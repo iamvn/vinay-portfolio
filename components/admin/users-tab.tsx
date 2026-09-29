@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api, describeError } from './api';
-import { Button, Card, ConfirmButton, Field, Loading, TextArea, TextInput, type Notify } from './ui';
+import { Button, Card, ConfirmButton, Field, Loading, TextArea, TextInput, inputClass, type Notify } from './ui';
 
 export type AdminUser = { id: number; email: string; name: string; role: string; createdAt?: string };
 
@@ -15,7 +15,7 @@ function PasswordInput({ value, onChange, autoComplete }: { value: string; onCha
       autoComplete={autoComplete}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none focus:border-lime-300/60"
+      className={inputClass}
     />
   );
 }
@@ -54,7 +54,7 @@ function ChangePassword({ notify }: { notify: Notify }) {
       <Field label="Current password"><PasswordInput value={current} onChange={setCurrent} autoComplete="current-password" /></Field>
       <Field label="New password" hint={`At least ${MIN_LENGTH} characters`}><PasswordInput value={next} onChange={setNext} autoComplete="new-password" /></Field>
       <Field label="Repeat new password"><PasswordInput value={repeat} onChange={setRepeat} autoComplete="new-password" /></Field>
-      <div className="md:col-span-3"><Button tone="primary" type="submit" disabled={busy || !current || !next}>{busy ? 'Saving…' : 'Change password'}</Button></div>
+      <div className="md:col-span-3"><Button tone="primary" type="submit" disabled={busy || !current || !next} className="w-full sm:w-auto">{busy ? 'Saving…' : 'Change password'}</Button></div>
     </form>
   );
 }
@@ -117,10 +117,12 @@ function AddAdmin({ onAdded, notify }: { onAdded: () => void; notify: Notify }) 
 
   return (
     <form onSubmit={submit} className="grid gap-4 md:grid-cols-3">
-      <Field label="Email"><TextInput value={email} onChange={setEmail} placeholder="name@example.com" /></Field>
+      <Field label="Email">
+        <input type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
+      </Field>
       <Field label="Name (optional)"><TextInput value={name} onChange={setName} /></Field>
       <Field label="Temporary password" hint={`At least ${MIN_LENGTH} characters`}><TextInput value={password} onChange={setPassword} /></Field>
-      <div className="flex flex-wrap gap-2 md:col-span-3">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap md:col-span-3">
         <Button onClick={() => setPassword(generatePassword())}>Generate password</Button>
         <Button tone="primary" type="submit" disabled={busy || !email || !password}>{busy ? 'Adding…' : 'Add admin'}</Button>
       </div>

@@ -46,24 +46,24 @@ export default async function ProjectPage({ params }: Props) {
   const sections = SECTIONS.filter(({ key }) => project[key]);
   const external = { target: '_blank', rel: 'noopener noreferrer' } as const;
 
-  return <main className="game-grid min-h-screen px-4 py-8 md:px-10">
+  return <main className="game-grid min-h-screen px-4 pb-10 pt-[calc(env(safe-area-inset-top)+1rem)] md:px-10 md:py-8">
     <div className="mx-auto max-w-5xl">
-      <Link href="/#projects" className="text-sm font-bold text-lime-300 hover:text-white">← BACK TO PROJECTS</Link>
+      <Link href="/#projects" className="inline-flex min-h-11 items-center text-sm font-bold text-lime-300 hover:text-white">← BACK TO PROJECTS</Link>
       <article className="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-slate-950/80 shadow-2xl">
         {project.image && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={project.image} alt={`${project.title} cover`} className="aspect-[21/9] w-full border-b border-white/10 object-cover" />
         )}
-        <div className="p-6 md:p-10">
+        <div className="p-5 sm:p-6 md:p-10">
           <p className="font-mono text-xs uppercase tracking-[.3em] text-cyan-300">{isArticle ? 'Field Report / Article' : 'Mission / Project Case Study'}</p>
-          <h1 className="mt-3 text-4xl font-black uppercase tracking-tight md:text-6xl">{project.title}</h1>
+          <h1 className="mt-3 break-words text-3xl font-black uppercase tracking-tight sm:text-4xl md:text-6xl">{project.title}</h1>
           <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-300">{project.description}</p>
           <div className="mt-8 flex flex-wrap gap-2">{project.stack.map((tag) => <span key={tag} className="rounded-full border border-lime-300/20 bg-lime-300/5 px-3 py-1 text-xs text-lime-200">{tag}</span>)}</div>
           {(project.liveUrl || project.repoUrl || project.externalUrl) && (
             <div className="mt-6 flex flex-wrap gap-3">
-              {project.liveUrl && <a href={project.liveUrl} {...external} className="rounded-xl bg-lime-300 px-4 py-2 text-xs font-black text-black">{labels?.live ?? 'LIVE ↗'}</a>}
-              {project.repoUrl && <a href={project.repoUrl} {...external} className="rounded-xl border border-white/20 px-4 py-2 text-xs font-black hover:border-cyan-300">{labels?.github ?? 'GITHUB ↗'}</a>}
-              {project.externalUrl && <a href={project.externalUrl} {...external} className="rounded-xl border border-white/20 px-4 py-2 text-xs font-black hover:border-cyan-300">{labels?.openLink ?? 'OPEN LINK ↗'}</a>}
+              {project.liveUrl && <a href={project.liveUrl} {...external} className="inline-flex min-h-11 items-center rounded-xl bg-lime-300 px-4 py-2 text-xs font-black text-black lg:min-h-0">{labels?.live ?? 'LIVE ↗'}</a>}
+              {project.repoUrl && <a href={project.repoUrl} {...external} className="inline-flex min-h-11 items-center rounded-xl border border-white/20 px-4 py-2 text-xs font-black hover:border-cyan-300 lg:min-h-0">{labels?.github ?? 'GITHUB ↗'}</a>}
+              {project.externalUrl && <a href={project.externalUrl} {...external} className="inline-flex min-h-11 items-center rounded-xl border border-white/20 px-4 py-2 text-xs font-black hover:border-cyan-300 lg:min-h-0">{labels?.openLink ?? 'OPEN LINK ↗'}</a>}
             </div>
           )}
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api, describeError, fromLines, toLines } from './api';
-import { Button, Card, Field, Loading, TextArea, TextInput, type Notify } from './ui';
+import { Card, Field, Loading, SaveBar, TextArea, TextInput, type Notify } from './ui';
 
 type Json = string | string[] | { [key: string]: Json };
 
@@ -48,19 +48,25 @@ function clean(value: Json): Json {
 }
 
 export function CopyTab({ notify }: { notify: Notify }) {
+  const [saved, setSaved] = useState<Record<string, Json> | null>(null);
   const [copy, setCopy] = useState<Record<string, Json> | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api<Record<string, Json>>('GET', '/api/copy').then(setCopy).catch((error) => notify(describeError(error), 'error'));
+    api<Record<string, Json>>('GET', '/api/copy')
+      .then((data) => { setSaved(data); setCopy(data); })
+      .catch((error) => notify(describeError(error), 'error'));
   }, [notify]);
 
-  if (!copy) return <Loading />;
+  if (!copy || !saved) return <Loading />;
+  const dirty = JSON.stringify(copy) !== JSON.stringify(saved);
 
   async function save() {
     setSaving(true);
     try {
-      setCopy(await api<Record<string, Json>>('PATCH', '/api/copy', clean(copy!)));
+      const updated = await api<Record<string, Json>>('PATCH', '/api/copy', clean(copy!));
+      setSaved(updated);
+      setCopy(updated);
       notify('Site text saved.');
     } catch (error) {
       notify(describeError(error), 'error');
@@ -71,7 +77,7 @@ export function CopyTab({ notify }: { notify: Notify }) {
 
   const sections = Object.entries(copy);
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       <p className="rounded-xl border border-cyan-300/20 bg-cyan-300/5 px-4 py-3 text-xs leading-6 text-cyan-100">
         Placeholders are filled in from your profile: <code>{'{years}'}</code> <code>{'{level}'}</code> <code>{'{xp}'}</code> <code>{'{xpMax}'}</code>{' '}
         <code>{'{name}'}</code> <code>{'{role}'}</code> <code>{'{location}'}</code>
@@ -81,9 +87,7 @@ export function CopyTab({ notify }: { notify: Notify }) {
           <CopyEditor name={key} value={value} onChange={(next) => setCopy({ ...copy, [key]: next })} />
         </Card>
       ))}
-      <div className="flex justify-end">
-        <Button tone="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save site text'}</Button>
-      </div>
+      <SaveBar dirty={dirty} busy={saving} onSave={save} onReset={() => setCopy(saved)} saveLabel="Save site text" />
     </div>
   );
 }

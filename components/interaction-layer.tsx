@@ -48,6 +48,15 @@ export function InteractionLayer({
   const [profileOpen, setProfileOpen] = useState(false);
   const [gameMode, setGameMode] = useState(true);
   const [status, setStatus] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false); // phones/tablets: slide-in menu
+
+  // Lock page scrolling behind the open menu.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, [menuOpen]);
 
   useEffect(() => {
     document.documentElement.dataset.gameMode = gameMode ? 'on' : 'off';
@@ -66,6 +75,7 @@ export function InteractionLayer({
       if (e.key === 'Escape' || e.key.toLowerCase() === 'b') {
         setContactOpen(false);
         setProfileOpen(false);
+        setMenuOpen(false);
       }
 
       if (e.key.toLowerCase() === 'y' || e.key === 'Home') {
@@ -173,7 +183,7 @@ export function InteractionLayer({
   return (
     <>
       {/* Game Mode Toggle */}
-      <div className="fixed right-4 top-4 z-50 flex items-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-2 text-[10px] font-bold uppercase tracking-wider backdrop-blur">
+      <div className="fixed right-4 top-4 z-50 hidden items-center gap-2 rounded-full border border-white/10 bg-black/70 px-3 py-2 text-[10px] font-bold uppercase tracking-wider backdrop-blur lg:flex">
         <span className="text-slate-400">
           Game mode{' '}
           <strong
@@ -204,6 +214,102 @@ export function InteractionLayer({
           />
         </button>
       </div>
+
+      {/* Phone/tablet menu button (the sidebar below is desktop-only) */}
+      <button
+        type="button"
+        onClick={() => setMenuOpen(true)}
+        aria-label="Open menu"
+        aria-expanded={menuOpen}
+        className="fixed right-3 top-[calc(env(safe-area-inset-top)+0.375rem)] z-40 flex size-11 items-center justify-center overflow-hidden rounded-full border border-lime-300/40 bg-black/80 text-lime-200 shadow-lg backdrop-blur lg:hidden"
+      >
+        <Icon name="menu" size={20} />
+      </button>
+
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+          <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div className="mobile-menu-panel absolute inset-y-0 right-0 flex w-[86%] max-w-sm flex-col overflow-y-auto border-l border-white/10 bg-[#050b11] px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-slate-100 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <span className="text-2xl font-black italic text-lime-300">VB</span>
+              <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close menu" className="flex size-11 items-center justify-center rounded-full border border-white/10 text-slate-300">
+                <Icon name="close" size={20} />
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center gap-4">
+              <div className="size-16 shrink-0 overflow-hidden rounded-full border-2 border-lime-300 bg-gradient-to-br from-slate-800 to-black">
+                {profileImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profileImage} alt={`${name} profile`} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xl font-black text-white">VB</div>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-lg font-black">{name}</p>
+                <p className="truncate text-xs text-slate-400">{role}</p>
+                <span className="mt-1 inline-flex rounded-full border border-lime-300/30 px-2 py-0.5 text-[9px] font-bold text-lime-300">
+                  ● {available ? (gameMode ? 'ONLINE' : 'OPEN TO WORK') : 'BUSY'}
+                </span>
+              </div>
+            </div>
+
+            <nav className="mt-5 grid gap-1">
+              {nav.map(([id, label]) => (
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  onClick={() => { setActive(id); setMenuOpen(false); }}
+                  className={`flex min-h-12 items-center gap-3 rounded-xl border px-3 text-sm font-bold ${active === id ? 'border-lime-300/50 bg-lime-300/10 text-lime-200' : 'border-transparent text-slate-300 active:bg-white/5'}`}
+                >
+                  <Icon name={iconFor(id)} size={18} />
+                  {label}
+                </a>
+              ))}
+            </nav>
+
+            <div className="mt-6 grid grid-cols-4 gap-3">
+              {socialLinks?.github && (
+                <a href={socialLinks.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="flex min-h-12 items-center justify-center rounded-xl border border-white/10 text-slate-300 active:text-lime-300"><Icon name="github" size={20} /></a>
+              )}
+              {socialLinks?.linkedin && (
+                <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="flex min-h-12 items-center justify-center rounded-xl border border-white/10 text-slate-300 active:text-lime-300"><Icon name="linkedin" size={20} /></a>
+              )}
+              {socialLinks?.instagram && (
+                <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="flex min-h-12 items-center justify-center rounded-xl border border-white/10 text-slate-300 active:text-lime-300"><Icon name="instagram" size={20} /></a>
+              )}
+              {socialLinks?.email && (
+                <a href={socialLinks.email.startsWith('mailto:') ? socialLinks.email : `mailto:${socialLinks.email}`} aria-label="Email" className="flex min-h-12 items-center justify-center rounded-xl border border-white/10 text-slate-300 active:text-lime-300"><Icon name="gmail" size={20} /></a>
+              )}
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              <a href="/api/resume" className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-purple-400/50 bg-purple-400/5 text-xs font-black text-purple-200">
+                <Icon name="download" size={16} /> DOWNLOAD RESUME
+              </a>
+              <button type="button" onClick={() => { setMenuOpen(false); setContactOpen(true); }} className="flex min-h-12 items-center justify-center rounded-xl bg-lime-300 text-xs font-black text-black">
+                CONTACT ME
+              </button>
+            </div>
+
+            {/* pushes the game-mode switch to the bottom, with at least 1.5rem of space above it */}
+            <div className="min-h-6 flex-1" aria-hidden="true" />
+            <label className="flex min-h-14 items-center justify-between gap-3 border-t border-white/10 pt-5 text-xs font-bold uppercase tracking-wider text-slate-400">
+              <span>Game mode <strong className={gameMode ? 'text-lime-300' : 'text-slate-200'}>{gameMode ? 'ON' : 'OFF'}</strong></span>
+              <button
+                type="button"
+                aria-label="Toggle game mode"
+                aria-pressed={gameMode}
+                onClick={() => setGameMode((v) => !v)}
+                className={`h-7 w-12 rounded-full border p-0.5 ${gameMode ? 'border-lime-300 bg-lime-300/20' : 'border-white/20 bg-white/5'}`}
+              >
+                <span className={`block size-5 rounded-full transition ${gameMode ? 'translate-x-5 bg-lime-300' : 'bg-slate-400'}`} />
+              </button>
+            </label>
+          </div>
+        </div>
+      )}
 
       {/* Desktop Sidebar */}
       <aside className="fixed left-0 top-0 z-30 hidden h-screen w-64 border-r border-white/10 bg-[#050b11]/95 p-5 backdrop-blur lg:block">
@@ -441,15 +547,18 @@ export function InteractionLayer({
               name="name"
               required
               placeholder="NAME"
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none focus:border-lime-300"
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-base outline-none focus:border-lime-300 sm:text-sm"
             />
 
             <input
               name="email"
               type="email"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
               required
               placeholder="EMAIL"
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none focus:border-lime-300"
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-base outline-none focus:border-lime-300 sm:text-sm"
             />
 
             <textarea
@@ -457,10 +566,10 @@ export function InteractionLayer({
               required
               placeholder="MESSAGE"
               rows={5}
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none focus:border-lime-300"
+              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-base outline-none focus:border-lime-300 sm:text-sm"
             />
 
-            <button className="w-full rounded-xl bg-lime-300 px-5 py-3 text-xs font-black text-black transition hover:bg-lime-200">
+            <button className="min-h-12 w-full rounded-xl bg-lime-300 px-5 py-3 text-xs font-black text-black transition hover:bg-lime-200">
               SEND TRANSMISSION
             </button>
 
@@ -470,7 +579,7 @@ export function InteractionLayer({
               </p>
             )}
 
-            <p className="text-center text-[10px] text-slate-600">
+            <p className="hidden text-center text-[10px] text-slate-600 lg:block">
               Esc / B = back
             </p>
           </form>
@@ -521,9 +630,10 @@ function Modal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm sm:items-center sm:p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-[#071018] p-6 shadow-2xl">
+      <div className="max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-3xl border border-white/10 bg-[#071018] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl sm:p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-black text-lime-300">
             {title}
@@ -532,7 +642,7 @@ function Modal({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-lg border border-white/10 px-3 py-1"
+            className="flex size-11 items-center justify-center rounded-lg border border-white/10 text-lg sm:size-auto sm:px-3 sm:py-1 sm:text-base"
           >
             ×
           </button>

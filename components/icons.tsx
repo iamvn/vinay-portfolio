@@ -129,6 +129,21 @@ export function Icon({
       />
     ),
 
+    menu: (
+      <>
+        <path d="M4 7h16" />
+        <path d="M4 12h16" />
+        <path d="M4 17h16" />
+      </>
+    ),
+
+    close: (
+      <>
+        <path d="M6 6l12 12" />
+        <path d="M18 6 6 18" />
+      </>
+    ),
+
     gmail: (
       <>
         <path

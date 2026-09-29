@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, describeError } from './api';
-import { Button, Card, ConfirmButton, Loading, type Notify } from './ui';
+import { Button, Card, ConfirmButton, Loading, buttonBase, type Notify } from './ui';
 
 type ResumeMeta = { fileName: string; mimeType: string; size: number; uploadedAt: string };
 
@@ -74,7 +74,7 @@ export function ResumeTab({ notify }: { notify: Notify }) {
         className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-lime-300/40 bg-lime-300/5 px-4 py-10 text-center text-sm text-slate-300 hover:bg-lime-300/10"
       >
         <span className="font-bold text-lime-200">{busy ? 'Uploading…' : meta ? 'Replace resume' : 'Upload resume'}</span>
-        <span className="text-xs text-slate-500">Click or drop a file · .pdf or .docx · max 4 MB</span>
+        <span className="text-xs text-slate-500">Tap to choose · or drop a file · .pdf or .docx · max 4 MB</span>
         <input
           ref={input}
           type="file"
@@ -87,11 +87,11 @@ export function ResumeTab({ notify }: { notify: Notify }) {
 
       {meta && (
         <div className="mt-4 flex gap-2">
-          <a href="/api/resume" className="rounded-lg border border-white/15 px-3.5 py-2 text-xs font-black uppercase tracking-wide text-slate-200 hover:border-cyan-300/60">Download</a>
-          <ConfirmButton onConfirm={remove} disabled={busy}>Delete</ConfirmButton>
+          <a href="/api/resume" className={`${buttonBase} flex-1 border border-white/15 text-slate-200 hover:border-cyan-300/60 sm:flex-none`}>Download</a>
+          <ConfirmButton onConfirm={remove} disabled={busy} className="flex-1 sm:flex-none" confirmLabel="Tap again to delete">Delete</ConfirmButton>
         </div>
       )}
-      {!meta && <div className="mt-4"><Button onClick={() => input.current?.click()} disabled={busy}>Choose file</Button></div>}
+      {!meta && <div className="mt-4"><Button onClick={() => input.current?.click()} disabled={busy} className="w-full sm:w-auto">Choose file</Button></div>}
     </Card>
   );
 }

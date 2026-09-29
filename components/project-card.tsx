@@ -41,12 +41,12 @@ export function ProjectCard({ project, labels }: { project: Project; labels: Lab
       <div className="mt-4 flex flex-wrap gap-2">
         {project.stack.map((tag) => <span key={tag} className="project-tag rounded-full bg-lime-300/5 px-2 py-1 text-[10px] text-lime-200">{tag}</span>)}
       </div>
-      <div className="mt-auto flex flex-wrap items-center gap-4 pt-5">
+      <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-4 lg:pt-5">
         {project.type === 'link'
-          ? <a href={project.externalUrl} {...external} className="inline-flex items-center gap-2 text-xs font-black text-lime-300">{primaryLabel} <FaceButton label="A" /></a>
-          : <Link href={projectHref(project)} className="inline-flex items-center gap-2 text-xs font-black text-lime-300">{primaryLabel} <FaceButton label="A" /></Link>}
-        {project.liveUrl && <a href={project.liveUrl} {...external} className="text-xs font-black text-cyan-300 hover:text-white">{labels.live}</a>}
-        {project.repoUrl && <a href={project.repoUrl} {...external} className="text-xs font-black text-slate-400 hover:text-white">{labels.github}</a>}
+          ? <a href={project.externalUrl} {...external} className="inline-flex min-h-11 items-center gap-2 text-xs font-black text-lime-300 lg:min-h-0">{primaryLabel} <FaceButton label="A" /></a>
+          : <Link href={projectHref(project)} className="inline-flex min-h-11 items-center gap-2 text-xs font-black text-lime-300 lg:min-h-0">{primaryLabel} <FaceButton label="A" /></Link>}
+        {project.liveUrl && <a href={project.liveUrl} {...external} className="inline-flex min-h-11 items-center text-xs font-black text-cyan-300 hover:text-white lg:min-h-0">{labels.live}</a>}
+        {project.repoUrl && <a href={project.repoUrl} {...external} className="inline-flex min-h-11 items-center text-xs font-black text-slate-400 hover:text-white lg:min-h-0">{labels.github}</a>}
       </div>
     </article>
   );
