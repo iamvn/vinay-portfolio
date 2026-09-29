@@ -121,9 +121,20 @@ They are filled in from the profile when the page renders, so updating `yearsExp
 
 ## Deploying to Vercel
 
-Vercel's filesystem is read-only, so the SQLite file cannot be used there. Use a Turso database:
-set `DATABASE_URL=libsql://<db>.turso.io`, `DATABASE_AUTH_TOKEN` and `AUTH_SECRET` in Vercel, then run
-`npm run db:setup` and `npm run admin:create` once locally with those values to create the remote tables, data and your login.
+Vercel's filesystem is read-only, so production uses a hosted SQLite database on Turso.
+
+1. **Database:** connect Turso to the project (Vercel → Storage / Marketplace → Turso), which creates
+   `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`, or create one with the Turso CLI and add `DATABASE_URL` and
+   `DATABASE_AUTH_TOKEN` yourself.
+2. **Environment variables** (Production and Preview):
+   - `AUTH_SECRET`: 32+ random characters, different from your local one
+   - `ADMIN_EMAIL` and `ADMIN_PASSWORD`: used once to create the first admin; remove `ADMIN_PASSWORD` afterwards
+3. **Deploy.** The `vercel-build` script runs `scripts/deploy-setup.ts` before `next build`. It creates or upgrades
+   the tables, loads `data/portfolio.json` into an empty database, and creates the first admin. It is safe on every
+   deploy and never overwrites existing content. The build stops with a clear message if the database or
+   `AUTH_SECRET` is missing.
+
+Uploads are limited to 4 MB (resume) and 2 MB (images) because Vercel functions accept at most 4.5 MB per request.
 
 ## Replace before production
 

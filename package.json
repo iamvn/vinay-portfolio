@@ -12,7 +12,8 @@
     "db:setup": "npm run db:init && npm run db:seed",
     "postinstall": "prisma generate",
     "db:init": "tsx prisma/setup.ts",
-    "admin:create": "tsx scripts/admin-create.ts"
+    "admin:create": "tsx scripts/admin-create.ts",
+    "vercel-build": "tsx scripts/deploy-setup.ts && next build"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

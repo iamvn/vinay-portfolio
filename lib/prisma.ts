@@ -1,16 +1,16 @@
 import { PrismaLibSql } from '@prisma/adapter-libsql';
 import { PrismaClient } from '@/generated/prisma/client';
+import { databaseConfig } from './db-config';
 
 /**
  * DATABASE_URL:
  *   - local:  file:./prisma/dev.db           (plain SQLite file)
  *   - Vercel: libsql://<db>.turso.io          (hosted SQLite on Turso, needs DATABASE_AUTH_TOKEN)
+ * TURSO_DATABASE_URL / TURSO_AUTH_TOKEN (set by Vercel's Turso integration) work too.
  */
 function createClient() {
-  const adapter = new PrismaLibSql({
-    url: process.env.DATABASE_URL ?? 'file:./prisma/dev.db',
-    authToken: process.env.DATABASE_AUTH_TOKEN,
-  });
+  const { url, authToken } = databaseConfig();
+  const adapter = new PrismaLibSql({ url, authToken });
   return new PrismaClient({ adapter });
 }
 
