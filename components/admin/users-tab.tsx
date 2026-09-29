@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api, describeError } from './api';
 import { Button, Card, ConfirmButton, Field, Loading, TextArea, TextInput, type Notify } from './ui';
 
@@ -94,7 +94,7 @@ function ApiToken({ notify }: { notify: Notify }) {
   );
 }
 
-function AddAdmin({ onAdded, notify }: { onAdded: (user: AdminUser) => void; notify: Notify }) {
+function AddAdmin({ onAdded, notify }: { onAdded: () => void; notify: Notify }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -105,7 +105,7 @@ function AddAdmin({ onAdded, notify }: { onAdded: (user: AdminUser) => void; not
     setBusy(true);
     try {
       const user = await api<AdminUser>('POST', '/api/users', { email, name, password });
-      onAdded(user);
+      onAdded();
       setEmail(''); setName(''); setPassword('');
       notify(`Added ${user.email}. Share the password with them privately; they can change it after logging in.`);
     } catch (error) {
@@ -116,7 +116,7 @@ function AddAdmin({ onAdded, notify }: { onAdded: (user: AdminUser) => void; not
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-4 border-t border-white/5 pt-5 md:grid-cols-3">
+    <form onSubmit={submit} className="grid gap-4 md:grid-cols-3">
       <Field label="Email"><TextInput value={email} onChange={setEmail} placeholder="name@example.com" /></Field>
       <Field label="Name (optional)"><TextInput value={name} onChange={setName} /></Field>
       <Field label="Temporary password" hint={`At least ${MIN_LENGTH} characters`}><TextInput value={password} onChange={setPassword} /></Field>
@@ -131,41 +131,55 @@ function AddAdmin({ onAdded, notify }: { onAdded: (user: AdminUser) => void; not
 export function UsersTab({ me, notify }: { me: AdminUser; notify: Notify }) {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     api<AdminUser[]>('GET', '/api/users').then(setUsers).catch((error) => notify(describeError(error), 'error'));
   }, [notify]);
+
+  useEffect(load, [load]);
 
   async function remove(user: AdminUser) {
     try {
       await api('DELETE', `/api/users/${user.id}`);
-      setUsers((current) => (current ?? []).filter((item) => item.id !== user.id));
       notify(`Removed ${user.email}. They are signed out everywhere.`);
     } catch (error) {
       notify(describeError(error), 'error');
+    } finally {
+      load();
     }
   }
+
+  // Your own account is managed under "My account" and can never be removed, so it isn't listed here.
+  const others = users?.filter((user) => user.id !== me.id);
 
   return (
     <div className="space-y-5">
       <Card title={`My account · ${me.email}`}>
+        <p className="mb-4 text-xs text-slate-500">This is the account you are signed in with. It can’t be removed.</p>
         <ChangePassword notify={notify} />
       </Card>
 
-      <Card title="Admins">
-        {!users ? <Loading /> : (
-          <ul className="mb-5 divide-y divide-white/5">
-            {users.map((user) => (
+      <Card title={others ? `Other admins (${others.length})` : 'Other admins'}>
+        {!others ? <Loading /> : others.length === 0 ? (
+          <p className="text-sm text-slate-400">No other admins yet. Add one below.</p>
+        ) : (
+          <ul className="divide-y divide-white/5">
+            {others.map((user) => (
               <li key={user.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div>
-                  <p className="text-sm font-bold text-white">{user.email}{user.id === me.id && <span className="ml-2 rounded-full bg-lime-300/10 px-2 py-0.5 text-[10px] text-lime-200">you</span>}</p>
-                  <p className="text-xs text-slate-500">{user.name || '—'} · {user.role}{user.createdAt ? ` · added ${new Date(user.createdAt).toLocaleDateString()}` : ''}</p>
+                  <p className="text-sm font-bold text-white">{user.email}</p>
+                  <p className="text-xs text-slate-500">
+                    {user.name || 'No name'} · {user.role}{user.createdAt ? ` · added ${new Date(user.createdAt).toLocaleDateString()}` : ''}
+                  </p>
                 </div>
-                {user.id !== me.id && <ConfirmButton onConfirm={() => remove(user)}>Remove</ConfirmButton>}
+                <ConfirmButton onConfirm={() => remove(user)}>Remove</ConfirmButton>
               </li>
             ))}
           </ul>
         )}
-        <AddAdmin notify={notify} onAdded={(user) => setUsers((current) => [...(current ?? []), user])} />
+      </Card>
+
+      <Card title="Add admin">
+        <AddAdmin notify={notify} onAdded={load} />
       </Card>
 
       <Card title="API token">
