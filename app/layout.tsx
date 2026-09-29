@@ -17,7 +17,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-game-mode="on" suppressHydrationWarning>
+      <head>
+        {/* Apply a saved "game mode off" before first paint (portfolio pages only, not the admin panel). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(!/^\\/(admin|login)(\\/|$)/.test(location.pathname)&&localStorage.getItem('portfolio-game-mode')==='off'){document.documentElement.dataset.gameMode='off'}}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="scanlines">{children}</body>
     </html>
   );

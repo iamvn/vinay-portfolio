@@ -2,8 +2,40 @@
 
 import type React from 'react';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Icon } from './icons';
+
+// Game mode on/off is remembered in this browser. app/layout.tsx applies the saved choice
+// before the page paints, so a returning visitor never sees the wrong theme flash.
+const GAME_MODE_KEY = 'portfolio-game-mode';
+const GAME_MODE_EVENT = 'portfolio-game-mode-change';
+
+function readGameMode() {
+  try {
+    return localStorage.getItem(GAME_MODE_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+function writeGameMode(on: boolean) {
+  try {
+    localStorage.setItem(GAME_MODE_KEY, on ? 'on' : 'off');
+  } catch {
+    // storage unavailable (private mode): the switch still works for this page view
+  }
+  document.documentElement.dataset.gameMode = on ? 'on' : 'off';
+  window.dispatchEvent(new Event(GAME_MODE_EVENT));
+}
+
+function subscribeToGameMode(callback: () => void) {
+  window.addEventListener(GAME_MODE_EVENT, callback);
+  window.addEventListener('storage', callback);
+  return () => {
+    window.removeEventListener(GAME_MODE_EVENT, callback);
+    window.removeEventListener('storage', callback);
+  };
+}
 
 const nav = [
   ['home', 'HOME'],
@@ -46,7 +78,8 @@ export function InteractionLayer({
   const [active, setActive] = useState('home');
   const [contactOpen, setContactOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [gameMode, setGameMode] = useState(true);
+  const gameMode = useSyncExternalStore(subscribeToGameMode, readGameMode, () => true);
+  const setGameMode = (update: (current: boolean) => boolean) => writeGameMode(update(gameMode));
   const [status, setStatus] = useState('');
   const [menuOpen, setMenuOpen] = useState(false); // phones/tablets: slide-in menu
 
