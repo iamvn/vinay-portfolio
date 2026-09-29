@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { ArticleBody } from '@/components/article-body';
 import { prisma } from '@/lib/prisma';
 import { parseCopy, toProject } from '@/lib/portfolio-repository';
+import { SITE_URL, absoluteUrl, clip, jsonLd } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,15 +12,27 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const [project, profile] = await Promise.all([
+  const [row, profile] = await Promise.all([
     prisma.project.findUnique({ where: { slug } }),
     prisma.profile.findUnique({ where: { id: 1 } }),
   ]);
-  if (!project) return { title: 'Project not found' };
+  if (!row) return { title: 'Project not found', robots: { index: false, follow: true } };
+  const project = toProject(row);
+  const name = profile?.name ?? 'Portfolio';
+  const title = `${project.title} | ${name}`;
+  const description = clip(project.description);
+  const url = `/projects/${project.slug}`;
+  // Projects without a cover image fall back to the site-wide preview card.
+  const images = project.image
+    ? [{ url: absoluteUrl(project.image), alt: `${project.title} cover` }]
+    : [{ url: '/opengraph-image', width: 1200, height: 630, alt: `${name} — ${profile?.role ?? 'portfolio'}` }];
   return {
-    title: `${project.title} — ${profile?.name ?? 'Portfolio'}`,
-    description: project.description,
-    openGraph: project.image ? { images: [project.image] } : undefined,
+    title,
+    description,
+    keywords: project.stack,
+    alternates: { canonical: url },
+    openGraph: { type: 'article', url, title, description, images, authors: [name] },
+    twitter: { card: 'summary_large_image', title, description, images },
   };
 }
 
@@ -32,9 +45,10 @@ const SECTIONS = [
 
 export default async function ProjectPage({ params }: Props) {
   const { slug } = await params;
-  const [row, copyRow] = await Promise.all([
+  const [row, copyRow, profile] = await Promise.all([
     prisma.project.findUnique({ where: { slug } }),
     prisma.siteCopy.findUnique({ where: { id: 1 } }),
+    prisma.profile.findUnique({ where: { id: 1 }, select: { name: true } }),
   ]);
   if (!row) notFound();
   const project = toProject(row);
@@ -46,7 +60,36 @@ export default async function ProjectPage({ params }: Props) {
   const sections = SECTIONS.filter(({ key }) => project[key]);
   const external = { target: '_blank', rel: 'noopener noreferrer' } as const;
 
-  return <main className="game-grid min-h-screen px-4 pb-10 pt-[calc(env(safe-area-inset-top)+1rem)] md:px-10 md:py-8">
+  // Structured data for search engines (breadcrumbs + the project itself). It renders nothing on the page.
+  const pageUrl = `${SITE_URL}/projects/${project.slug}`;
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
+          { '@type': 'ListItem', position: 2, name: 'Projects', item: `${SITE_URL}/#projects` },
+          { '@type': 'ListItem', position: 3, name: project.title, item: pageUrl },
+        ],
+      },
+      {
+        '@type': isArticle ? 'Article' : 'CreativeWork',
+        '@id': `${pageUrl}#work`,
+        url: pageUrl,
+        ...(isArticle ? { headline: project.title } : { name: project.title }),
+        description: project.description,
+        ...(project.image ? { image: absoluteUrl(project.image) } : {}),
+        ...(project.stack.length ? { keywords: project.stack.join(', ') } : {}),
+        ...(profile?.name ? { author: { '@type': 'Person', '@id': `${SITE_URL}/#person`, name: profile.name, url: `${SITE_URL}/` } } : {}),
+        ...(project.liveUrl || project.repoUrl ? { sameAs: [project.liveUrl, project.repoUrl].filter(Boolean) } : {}),
+      },
+    ],
+  };
+
+  return <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }} />
+    <main className="game-grid min-h-screen px-4 pb-10 pt-[calc(env(safe-area-inset-top)+1rem)] md:px-10 md:py-8">
     <div className="mx-auto max-w-5xl">
       <Link href="/#projects" className="inline-flex min-h-11 items-center text-sm font-bold text-lime-300 hover:text-white">← BACK TO PROJECTS</Link>
       <article className="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-slate-950/80 shadow-2xl">
@@ -86,5 +129,6 @@ export default async function ProjectPage({ params }: Props) {
         </div>
       </article>
     </div>
-  </main>;
+  </main>
+  </>;
 }

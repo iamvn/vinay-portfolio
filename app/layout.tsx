@@ -1,10 +1,19 @@
 import type { Metadata, Viewport } from 'next';
+import { SITE_URL } from '@/lib/seo';
 import './globals.css';
 
+// Site-wide defaults. Pages refine these with their own titles, descriptions and canonical URLs.
 export const metadata: Metadata = {
-  title: 'Vinay Bharti — Software Engineer',
-  description: 'Software Engineer portfolio focused on building scalable, high-performance web applications.',
-  robots: { index: true, follow: true }
+  metadataBase: new URL(SITE_URL),
+  title: 'Vinay Bharti | Senior Software Engineer',
+  description: 'Senior Software Engineer specializing in React, Next.js, TypeScript and AI engineering. Explore Vinay Bharti\'s experience, projects and engineering work.',
+  applicationName: 'Vinay Bharti Portfolio',
+  authors: [{ name: 'Vinay Bharti', url: SITE_URL }],
+  creator: 'Vinay Bharti',
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
+  openGraph: { type: 'website', siteName: 'Vinay Bharti', locale: 'en_US' },
+  twitter: { card: 'summary_large_image' },
+  formatDetection: { telephone: false },
 };
 
 // viewportFit "cover" lets the pages use env(safe-area-inset-*) around the iPhone notch and home bar.
