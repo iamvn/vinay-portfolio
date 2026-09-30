@@ -81,9 +81,16 @@ other errors return `{ "error" }` with 404 (not found), 409 (duplicate), 413 (fi
   Admin → Users & security → API token. Editors get no token and any Bearer request from an editor is refused (403).
 - There is no sign-up. Create the first admin with `npm run admin:create` (also resets a forgotten password
   and makes that account an admin); add more users in Admin → Users & security.
-- Roles: **admin** can edit everything and add/remove users and change their roles; **editor** can edit all
-  portfolio content and their own password in the admin panel, but can't see or manage users or use API tokens (403).
+- Roles: **admin** can use every tab and add/remove users and change their roles; **editor** uses only the tabs an
+  admin gives them (below) plus their own password, and can't see or manage users or use API tokens (403).
   New users are editors unless you pick Admin.
+- **Per-user tab access:** in Admin → Users & security, each editor has an **Access** box with a checkbox per tab
+  (Profile, Experience, Skills, Projects, Site text, Design, Resume, Insights, AI assistant, Backup). Ticking or
+  unticking saves immediately; **Reset to default** goes back to the editor default (Profile, Experience, Skills,
+  Projects, Site text, Resume, Backup). The same checkboxes appear when adding a user. Admins always have every tab,
+  and everyone keeps "My account" (their own password). Access is enforced on the server too: `proxy.ts` returns 403
+  for API calls to a tab the user doesn't have (reading content stays open; saving needs the tab; Design, Insights,
+  AI and Backup are closed entirely), and the design editor page redirects away. Stored in `User.permissions`.
 - The **owner** is the first admin account (created at setup). Nobody, including other admins, can remove the
   owner or change its role. Nobody can change their own role.
 - Changing your password signs out all other sessions and tokens. Removing an admin signs them out immediately.
@@ -96,8 +103,8 @@ other errors return `{ "error" }` with 404 (not found), 409 (duplicate), 413 (fi
 | `GET /api/auth/me` | — |
 | `POST /api/auth/password` | `{ currentPassword, newPassword }` (min 10 characters) |
 | `POST /api/auth/token` | — → a new Bearer token for the logged-in user |
-| `GET /api/users` · `POST /api/users` | admins only · POST: `{ email, name?, password, role? }` (`"editor"` default, or `"admin"`) |
-| `PATCH /api/users/:id` | admins only · `{ role?, name? }` (not your own role, not the owner's role) |
+| `GET /api/users` · `POST /api/users` | admins only · POST: `{ email, name?, password, role?, permissions? }` (`"editor"` default, or `"admin"`; `permissions` = list of tab ids) |
+| `PATCH /api/users/:id` | admins only · `{ role?, name?, permissions? }` (tab ids, or `null` for the default; not your own role/access, not the owner's role) |
 | `DELETE /api/users/:id` | admins only · removes a user (not yourself, not the owner) |
 
 ```bash
@@ -146,7 +153,7 @@ A chat on the homepage that answers questions using only the site's own content 
 profile, experience, skills) plus Admin → Profile → "Ask my resume: extra facts". Answers are generated on the
 server, so API keys never reach the browser. The button is hidden until at least one provider works.
 
-**Set it up in Admin → AI assistant** (admins only; editors don't see the tab):
+**Set it up in Admin → AI assistant** (admins, or editors given the AI assistant tab):
 
 - **Providers:** add as many as you like: Anthropic (Claude), OpenAI, Google Gemini, Groq, OpenRouter, Mistral,
   DeepSeek, or any OpenAI-compatible service (base URL + model + API key). Each one has **Test**, **Edit**,
@@ -204,7 +211,7 @@ Admins can redesign the homepage without code in **Admin → Design**, using the
   versions can be loaded back into the draft.
 - **Stored** as JSON in the `Setting` table (`design.draft`, `design.published`, `design.history`). The server
   accepts known block types only, limits size and nesting, and filters links and image URLs when rendering.
-  Editors (non-admins) can't see the tab, the editor, or the API.
+  Editors only see the tab, the editor and the API when an admin gives them Design access.
 
 API (admin session or token): `GET /api/design`, `PUT /api/design` `{ data }` (save draft),
 `POST /api/design/publish` (`{}` = publish draft, or `{ data }`), `DELETE /api/design/publish` (classic),

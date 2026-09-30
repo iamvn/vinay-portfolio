@@ -1,20 +1,20 @@
 import { NextResponse } from 'next/server';
 import { handleDbError, jsonError, parseBody } from '@/lib/api-utils';
-import { requireAdmin } from '@/lib/auth/roles';
+import { requireTab } from '@/lib/auth/roles';
 import { assistantSettingsSchema, getAssistantSettings, saveAssistantSettings } from '@/lib/ai/settings';
 
 export const dynamic = 'force-dynamic';
 
 /** Assistant settings. Admins only. */
 export async function GET(request: Request) {
-  const { error } = await requireAdmin(request);
+  const { error } = await requireTab(request, 'ai');
   if (error) return error;
   return NextResponse.json(await getAssistantSettings());
 }
 
 /** Partial update: { enabled?, dailyLimit?, visitorLimit?, maxTokens? }. Admins only. */
 export async function PATCH(request: Request) {
-  const { error: denied } = await requireAdmin(request);
+  const { error: denied } = await requireTab(request, 'ai');
   if (denied) return denied;
   const { data, error } = await parseBody(request, assistantSettingsSchema.partial().strict());
   if (error) return error;

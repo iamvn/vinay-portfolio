@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleDbError, jsonError, parseBody, parseId } from '@/lib/api-utils';
-import { requireAdmin } from '@/lib/auth/roles';
+import { requireTab } from '@/lib/auth/roles';
 import { providerPatchSchema, publicProvider, temperatureToColumn } from '@/lib/ai/admin';
 import { encryptSecret, keyHint } from '@/lib/ai/crypto';
 
@@ -10,7 +10,7 @@ const NOT_FOUND = 'Provider not found.';
 
 /** Updates a provider. Send apiKey only to replace the stored key. Admins only. */
 export async function PATCH(request: Request, { params }: Context) {
-  const { error: denied } = await requireAdmin(request);
+  const { error: denied } = await requireTab(request, 'ai');
   if (denied) return denied;
   const id = parseId((await params).id);
   if (!id) return jsonError('id must be a positive integer.', 400);
@@ -40,7 +40,7 @@ export async function PATCH(request: Request, { params }: Context) {
 
 /** Removes a provider and its stored key. Admins only. */
 export async function DELETE(request: Request, { params }: Context) {
-  const { error: denied } = await requireAdmin(request);
+  const { error: denied } = await requireTab(request, 'ai');
   if (denied) return denied;
   const id = parseId((await params).id);
   if (!id) return jsonError('id must be a positive integer.', 400);

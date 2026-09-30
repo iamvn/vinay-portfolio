@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { jsonError, parseId } from '@/lib/api-utils';
-import { requireAdmin } from '@/lib/auth/roles';
+import { requireTab } from '@/lib/auth/roles';
 import { testProvider } from '@/lib/assistant';
 import { decryptSecret } from '@/lib/ai/crypto';
 import type { ProviderKind } from '@/lib/ai/providers';
@@ -10,7 +10,7 @@ type Context = { params: Promise<{ id: string }> };
 
 /** Sends a tiny test prompt with the saved settings and key. Admins only. → { ok, answer?, ms?, error? } */
 export async function POST(request: Request, { params }: Context) {
-  const { error: denied } = await requireAdmin(request);
+  const { error: denied } = await requireTab(request, 'ai');
   if (denied) return denied;
   const id = parseId((await params).id);
   if (!id) return jsonError('id must be a positive integer.', 400);

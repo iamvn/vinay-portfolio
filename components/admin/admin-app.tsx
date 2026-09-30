@@ -28,7 +28,9 @@ const TABS = [
 
 type Tab = (typeof TABS)[number][0];
 /** Tabs only admins see (the API also refuses editors). */
-const ADMIN_ONLY: readonly Tab[] = ['insights', 'design', 'ai'];
+/** Tabs this user can open: admins get all; others get the tabs an admin enabled, plus "My account". */
+const visibleTabs = (user: AdminUser) =>
+  TABS.filter(([id]) => user.role === 'admin' || id === 'users' || (user.tabs ?? []).includes(id as never));
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
 
 function subscribeToHash(callback: () => void) {
@@ -67,8 +69,9 @@ function DatabaseNotice({ database }: { database: DatabaseInfo }) {
 
 export function AdminApp({ user, database }: { user: AdminUser; database?: DatabaseInfo }) {
   const hash = useSyncExternalStore(subscribeToHash, () => window.location.hash.slice(1), () => '');
-  const tabs = TABS.filter(([id]) => user.role === 'admin' || !ADMIN_ONLY.includes(id));
-  const tab: Tab = tabs.some(([id]) => id === hash) ? (hash as Tab) : 'profile';
+  const tabs = visibleTabs(user);
+  const can = (id: Tab) => tabs.some(([tab]) => tab === id);
+  const tab: Tab = tabs.some(([id]) => id === hash) ? (hash as Tab) : tabs[0][0];
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -143,9 +146,9 @@ export function AdminApp({ user, database }: { user: AdminUser; database?: Datab
         {tab === 'projects' && <ListTab config={PROJECTS} notify={notify} />}
         {tab === 'copy' && <CopyTab notify={notify} />}
         {tab === 'resume' && <ResumeTab notify={notify} />}
-        {tab === 'insights' && user.role === 'admin' && <InsightsTab notify={notify} />}
-        {tab === 'ai' && user.role === 'admin' && <AiTab notify={notify} />}
-        {tab === 'design' && user.role === 'admin' && <DesignTab notify={notify} />}
+        {tab === 'insights' && can('insights') && <InsightsTab notify={notify} />}
+        {tab === 'ai' && can('ai') && <AiTab notify={notify} />}
+        {tab === 'design' && can('design') && <DesignTab notify={notify} />}
         {tab === 'backup' && <BackupTab notify={notify} onReplaced={() => setReloadKey((key) => key + 1)} />}
         {tab === 'users' && <UsersTab me={user} notify={notify} />}
         {database && database.persistent && database.kind !== 'file' && (

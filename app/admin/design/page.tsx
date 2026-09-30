@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { currentUser } from '@/lib/auth/server';
-import { isAdmin } from '@/lib/auth/roles';
+import { canUseTab } from '@/lib/auth/permissions';
 import { getDraft, getPublished } from '@/lib/design/store';
 import { DEFAULT_TEMPLATE_ID, templateById } from '@/lib/design/templates';
 import { getPortfolioFromDatabase } from '@/lib/portfolio-repository';
@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: 'Design editor', robots: { index: fal
 export default async function DesignEditorPage() {
   const user = await currentUser();
   if (!user) redirect('/login?next=/admin/design');
-  if (!isAdmin(user)) redirect('/admin');
+  if (!canUseTab(user, 'design')) redirect('/admin');
   const [draft, published, portfolio] = await Promise.all([getDraft(), getPublished(), getPortfolioFromDatabase()]);
   return (
     <DesignEditor

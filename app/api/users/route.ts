@@ -5,6 +5,8 @@ import { handleDbError, jsonError, parseBody } from '@/lib/api-utils';
 import { hashPassword, passwordProblem } from '@/lib/auth/password';
 import { ROLES, ownerId, requireAdmin } from '@/lib/auth/roles';
 import { publicUser } from '@/lib/auth/session';
+import { TAB_IDS } from '@/lib/auth/permissions';
+import { permissionsById, setPermissions } from '@/lib/auth/permissions-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +15,7 @@ const newUserSchema = z.object({
   name: z.string().trim().max(100).optional().default(''),
   password: z.string(),
   role: z.enum(ROLES).optional().default('editor'),
+  permissions: z.array(z.enum(TAB_IDS)).optional(), // tabs a non-admin may use; omit for the default set
 }).strict();
 
 /** Lists all users. Admins only. */
@@ -20,14 +23,14 @@ export async function GET(request: Request) {
   const { error } = await requireAdmin(request);
   if (error) return error;
   try {
-    const [users, owner] = await Promise.all([prisma.user.findMany({ orderBy: { id: 'asc' } }), ownerId()]);
-    return NextResponse.json(users.map((user) => ({ ...publicUser(user), owner: user.id === owner })));
+    const [users, owner, permissions] = await Promise.all([prisma.user.findMany({ orderBy: { id: 'asc' } }), ownerId(), permissionsById()]);
+    return NextResponse.json(users.map((user) => ({ ...publicUser({ ...user, permissions: permissions.get(user.id) ?? '' }), owner: user.id === owner })));
   } catch (err) {
     return handleDbError(err);
   }
 }
 
-/** Adds a user. Admins only. Body: { email, name?, password, role? } — role is "editor" unless "admin" is given. */
+/** Adds a user. Admins only. Body: { email, name?, password, role?, permissions? } — role is "editor" unless "admin" is given. */
 export async function POST(request: Request) {
   const { error: denied } = await requireAdmin(request);
   if (denied) return denied;
@@ -39,7 +42,8 @@ export async function POST(request: Request) {
     const user = await prisma.user.create({
       data: { email: data.email, name: data.name, role: data.role, passwordHash: await hashPassword(data.password), createdAt: new Date().toISOString() },
     });
-    return NextResponse.json(publicUser(user), { status: 201 });
+    const permissions = data.role === 'admin' || !data.permissions ? '' : await setPermissions(user.id, data.permissions);
+    return NextResponse.json(publicUser({ ...user, permissions }), { status: 201 });
   } catch (err) {
     return handleDbError(err);
   }

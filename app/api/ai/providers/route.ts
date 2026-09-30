@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleDbError, parseBody } from '@/lib/api-utils';
-import { requireAdmin } from '@/lib/auth/roles';
+import { requireTab } from '@/lib/auth/roles';
 import { providerCreateSchema, publicProvider, temperatureToColumn } from '@/lib/ai/admin';
 import { encryptSecret, keyHint } from '@/lib/ai/crypto';
 import { PROVIDER_PRESETS } from '@/lib/ai/providers';
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 /** Providers in fallback order, plus presets for the "Add provider" form. Admins only. */
 export async function GET(request: Request) {
-  const { error } = await requireAdmin(request);
+  const { error } = await requireTab(request, 'ai');
   if (error) return error;
   try {
     const rows = await prisma.aiProvider.findMany({ orderBy: [{ order: 'asc' }, { id: 'asc' }] });
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 
 /** Adds a provider at the end of the fallback order. Admins only. */
 export async function POST(request: Request) {
-  const { error: denied } = await requireAdmin(request);
+  const { error: denied } = await requireTab(request, 'ai');
   if (denied) return denied;
   const { data, error } = await parseBody(request, providerCreateSchema);
   if (error) return error;

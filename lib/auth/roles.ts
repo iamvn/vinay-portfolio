@@ -1,6 +1,7 @@
 import { jsonError } from '@/lib/api-utils';
 import { prisma } from '@/lib/prisma';
 import { userFromRequest, type SessionUser } from './session';
+import { TAB_LABELS, canUseTab, type TabId } from './permissions';
 
 /**
  * admin  – everything, including adding, removing and changing the role of users.
@@ -22,6 +23,14 @@ export async function requireAdmin(request: Request): Promise<AdminCheck> {
   const user = await userFromRequest(request);
   if (!user) return { error: jsonError('Not logged in.', 401) };
   if (!isAdmin(user)) return { error: jsonError('Only admins can do this.', 403) };
+  return { user };
+}
+
+/** The signed-in user if they may use this admin tab (admins always can); otherwise a ready 401/403 response. */
+export async function requireTab(request: Request, tab: TabId): Promise<AdminCheck> {
+  const user = await userFromRequest(request);
+  if (!user) return { error: jsonError('Not logged in.', 401) };
+  if (!canUseTab(user, tab)) return { error: jsonError(`You don't have access to ${TAB_LABELS[tab]}. Ask an admin to enable it for you.`, 403) };
   return { user };
 }
 

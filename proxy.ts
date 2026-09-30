@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { userFromToken } from '@/lib/auth/session';
 import { tokenFromRequest } from '@/lib/auth/token';
+import { TAB_LABELS, canUseTab, tabForRequest } from '@/lib/auth/permissions';
 
 /**
  * The single gate in front of the admin panel and the API.
@@ -67,6 +68,14 @@ export async function proxy(request: NextRequest) {
   // API tokens (Authorization: Bearer) are for admins only; editors use the admin panel in the browser.
   if (isApi && !viaCookie && user.role !== 'admin') {
     return NextResponse.json({ error: 'API tokens are only available to admins. Use the admin panel instead.' }, { status: 403 });
+  }
+
+  // Per-user tab access (Users & security → Access): non-admins only reach the tabs an admin enabled.
+  if (isApi && user.role !== 'admin') {
+    const tab = tabForRequest(request.method, pathname);
+    if (tab && !canUseTab(user, tab)) {
+      return NextResponse.json({ error: `You don't have access to ${TAB_LABELS[tab]}. Ask an admin to enable it for you.` }, { status: 403 });
+    }
   }
 
   if (isApi && viaCookie && !['GET', 'HEAD', 'OPTIONS'].includes(request.method) && !sameOrigin(request)) {

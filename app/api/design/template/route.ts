@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { handleDbError, jsonError, parseBody } from '@/lib/api-utils';
-import { requireAdmin } from '@/lib/auth/roles';
+import { requireTab } from '@/lib/auth/roles';
 import { saveDraft } from '@/lib/design/store';
 import { templateById } from '@/lib/design/templates';
 
 /** Replaces the draft with a template (nothing goes live until Publish). Body { id }. Admins only. */
 export async function POST(request: Request) {
-  const { user, error: denied } = await requireAdmin(request);
+  const { user, error: denied } = await requireTab(request, 'design');
   if (denied) return denied;
   const { data, error } = await parseBody(request, z.object({ id: z.string() }).strict());
   if (error) return error;

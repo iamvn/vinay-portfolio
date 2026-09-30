@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { handleDbError, jsonError, parseBody } from '@/lib/api-utils';
-import { requireAdmin } from '@/lib/auth/roles';
+import { requireTab } from '@/lib/auth/roles';
 import { designProblem, discardDraft, getDraft, getHistory, getPublished, saveDraft } from '@/lib/design/store';
 import { TEMPLATES, type DesignData } from '@/lib/design/templates';
 
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 /** Design status for Admin → Design: the draft, what's live, recent versions, templates. Admins only. */
 export async function GET(request: Request) {
-  const { error } = await requireAdmin(request);
+  const { error } = await requireTab(request, 'design');
   if (error) return error;
   try {
     const [draft, published, history] = await Promise.all([getDraft(), getPublished(), getHistory()]);
@@ -30,7 +30,7 @@ const draftSchema = z.object({ data: z.record(z.string(), z.unknown()) }).strict
 
 /** Saves the editor's work as the draft (not live). Body { data }. Admins only. */
 export async function PUT(request: Request) {
-  const { user, error: denied } = await requireAdmin(request);
+  const { user, error: denied } = await requireTab(request, 'design');
   if (denied) return denied;
   const { data, error } = await parseBody(request, draftSchema);
   if (error) return error;
@@ -46,7 +46,7 @@ export async function PUT(request: Request) {
 
 /** "Revert to live": discards draft changes so the draft matches what visitors see. Admins only. */
 export async function DELETE(request: Request) {
-  const { error: denied } = await requireAdmin(request);
+  const { error: denied } = await requireTab(request, 'design');
   if (denied) return denied;
   try {
     const published = await discardDraft();

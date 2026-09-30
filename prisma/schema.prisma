@@ -117,6 +117,8 @@ model User {
   role         String @default("admin")
   /// Incremented on password change: invalidates every existing session/token for this user.
   tokenVersion Int    @default(0)
+  /// Admin tabs a non-admin may use, comma-separated ("" = role default, "-" = none). Admins get all.
+  permissions  String @default("")
   createdAt    String
 }
 

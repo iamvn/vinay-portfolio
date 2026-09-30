@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { handleDbError, jsonError, parseBody } from '@/lib/api-utils';
-import { requireAdmin } from '@/lib/auth/roles';
+import { requireTab } from '@/lib/auth/roles';
 import { designProblem, getDraft, publish, unpublish } from '@/lib/design/store';
 import type { DesignData } from '@/lib/design/templates';
 
@@ -12,7 +12,7 @@ const publishSchema = z.object({ data: z.record(z.string(), z.unknown()).optiona
 
 /** Makes a design live. Body { data } publishes that design; an empty body publishes the saved draft. Admins only. */
 export async function POST(request: Request) {
-  const { user, error: denied } = await requireAdmin(request);
+  const { user, error: denied } = await requireTab(request, 'design');
   if (denied) return denied;
   const { data: body, error } = await parseBody(request, publishSchema);
   if (error) return error;
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
 /** Switches the homepage back to the classic built-in design. The draft is kept. Admins only. */
 export async function DELETE(request: Request) {
-  const { error: denied } = await requireAdmin(request);
+  const { error: denied } = await requireTab(request, 'design');
   if (denied) return denied;
   try {
     await unpublish();

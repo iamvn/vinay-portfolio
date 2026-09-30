@@ -4,6 +4,9 @@ import type { Client } from '@libsql/client';
 
 /** Columns added after the first release, per table: name → definition. */
 const ADDED_COLUMNS: Record<string, Record<string, string>> = {
+  User: {
+    permissions: "TEXT NOT NULL DEFAULT ''",
+  },
   Profile: {
     targetRoles: "TEXT NOT NULL DEFAULT ''",
     workPreference: "TEXT NOT NULL DEFAULT ''",

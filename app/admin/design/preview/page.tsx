@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { currentUser } from '@/lib/auth/server';
-import { isAdmin } from '@/lib/auth/roles';
+import { canUseTab } from '@/lib/auth/permissions';
 import { getDraft } from '@/lib/design/store';
 import { DEFAULT_TEMPLATE_ID, templateById } from '@/lib/design/templates';
 import { getPortfolioFromDatabase } from '@/lib/portfolio-repository';
@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: 'Design preview', robots: { index: fa
 export default async function DesignPreviewPage() {
   const user = await currentUser();
   if (!user) redirect('/login?next=/admin/design/preview');
-  if (!isAdmin(user)) redirect('/admin');
+  if (!canUseTab(user, 'design')) redirect('/admin');
   const [draft, portfolio, assistant] = await Promise.all([getDraft(), getPortfolioFromDatabase(), assistantEnabled()]);
   const data = draft?.data ?? templateById(DEFAULT_TEMPLATE_ID)!.data;
   return (

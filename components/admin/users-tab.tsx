@@ -4,7 +4,24 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api, describeError } from './api';
 import { Button, Card, ConfirmButton, Field, Loading, PasswordInput, TextInput, inputClass, type Notify } from './ui';
 
-export type AdminUser = { id: number; email: string; name: string; role: string; createdAt?: string; owner?: boolean };
+import { EDITOR_DEFAULT_TABS, TAB_IDS, TAB_LABELS, type TabId } from '@/lib/auth/permissions';
+
+export type AdminUser = { id: number; email: string; name: string; role: string; createdAt?: string; owner?: boolean; permissions?: TabId[] | null; tabs?: TabId[] };
+
+/** Checkboxes for the admin tabs a non-admin may use. */
+function AccessPicker({ value, onChange, disabled }: { value: TabId[]; onChange: (tabs: TabId[]) => void; disabled?: boolean }) {
+  const toggle = (tab: TabId) => onChange(value.includes(tab) ? value.filter((item) => item !== tab) : [...value, tab]);
+  return (
+    <div className="grid grid-cols-2 gap-x-3 gap-y-1 sm:grid-cols-3 lg:grid-cols-5">
+      {TAB_IDS.map((tab) => (
+        <label key={tab} className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm text-slate-200 sm:min-h-8">
+          <input type="checkbox" className="size-5 accent-lime-300 sm:size-4" checked={value.includes(tab)} onChange={() => toggle(tab)} disabled={disabled} />
+          {TAB_LABELS[tab]}
+        </label>
+      ))}
+    </div>
+  );
+}
 
 const MIN_LENGTH = 10;
 
@@ -85,7 +102,7 @@ function ApiToken({ notify }: { notify: Notify }) {
 type Role = 'admin' | 'editor';
 
 const ROLE_INFO: Record<Role, { label: string; help: string }> = {
-  editor: { label: 'Editor', help: 'Can edit all portfolio content and their own password. Can’t add or remove users.' },
+  editor: { label: 'Editor', help: 'Uses only the tabs you tick below, plus their own password. Can’t add or remove users.' },
   admin: { label: 'Admin', help: 'Full access, including adding and removing users and changing roles.' },
 };
 
@@ -114,15 +131,16 @@ function AddUser({ onAdded, notify }: { onAdded: () => void; notify: Notify }) {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('editor');
+  const [access, setAccess] = useState<TabId[]>(EDITOR_DEFAULT_TABS);
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     try {
-      const user = await api<AdminUser>('POST', '/api/users', { email, name, password, role });
+      const user = await api<AdminUser>('POST', '/api/users', { email, name, password, role, ...(role === 'editor' ? { permissions: access } : {}) });
       onAdded();
-      setEmail(''); setName(''); setPassword(''); setRole('editor');
+      setEmail(''); setName(''); setPassword(''); setRole('editor'); setAccess(EDITOR_DEFAULT_TABS);
       notify(`Added ${user.email} as ${ROLE_INFO[user.role as Role]?.label ?? user.role}. Share the password with them privately; they can change it after logging in.`);
     } catch (error) {
       notify(describeError(error), 'error');
@@ -143,6 +161,13 @@ function AddUser({ onAdded, notify }: { onAdded: () => void; notify: Notify }) {
           <RolePicker value={role} onChange={setRole} />
         </Field>
       </div>
+      {role === 'editor' && (
+        <div className="md:col-span-3">
+          <Field group label="Tabs this user can use" hint="“My account” (their password) is always available. Admins always see every tab.">
+            <AccessPicker value={access} onChange={setAccess} />
+          </Field>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap md:col-span-3">
         <Button onClick={() => setPassword(generatePassword())}>Generate password</Button>
         <Button tone="primary" type="submit" disabled={busy || !email || !password}>{busy ? 'Adding…' : 'Add user'}</Button>
@@ -161,6 +186,19 @@ function UserRow({ user, onChanged, notify }: { user: AdminUser; onChanged: () =
     try {
       await api('PATCH', `/api/users/${user.id}`, { role: next });
       notify(`${user.email} is now ${ROLE_INFO[next].label === 'Admin' ? 'an Admin' : 'an Editor'}.`);
+    } catch (error) {
+      notify(describeError(error), 'error');
+    } finally {
+      setBusy(false);
+      onChanged();
+    }
+  }
+
+  async function saveAccess(tabs: TabId[] | null) {
+    setBusy(true);
+    try {
+      await api('PATCH', `/api/users/${user.id}`, { permissions: tabs });
+      notify(tabs === null ? `${user.email}: access reset to the default tabs.` : `${user.email} can now use: ${tabs.length ? tabs.map((tab) => TAB_LABELS[tab]).join(', ') : 'only My account'}.`);
     } catch (error) {
       notify(describeError(error), 'error');
     } finally {
@@ -201,6 +239,17 @@ function UserRow({ user, onChanged, notify }: { user: AdminUser; onChanged: () =
           <ConfirmButton onConfirm={remove} disabled={busy} confirmLabel="Tap again to remove">Remove</ConfirmButton>
         </>
       )}
+      <div className="rounded-xl border border-white/10 bg-black/20 p-3 sm:col-span-3">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Access</p>
+          {role === 'editor' && user.permissions && (
+            <button type="button" onClick={() => saveAccess(null)} disabled={busy} className="min-h-9 text-xs font-bold text-cyan-300 hover:text-white disabled:opacity-40">Reset to default</button>
+          )}
+        </div>
+        {role === 'admin'
+          ? <p className="text-xs text-slate-500">Admins can use every tab.</p>
+          : <AccessPicker value={user.tabs ?? EDITOR_DEFAULT_TABS} onChange={(tabs) => saveAccess(tabs)} disabled={busy} />}
+      </div>
     </li>
   );
 }
@@ -228,7 +277,7 @@ export function UsersTab({ me, notify }: { me: AdminUser; notify: Notify }) {
             ? 'Nobody can remove this account or change its role.'
             : admin
               ? 'You can manage users, but not the owner account or your own role.'
-              : 'You can edit portfolio content and your own password. Only admins can manage users or create API tokens.'}
+              : `You can use: ${(me.tabs ?? []).map((tab) => TAB_LABELS[tab]).join(', ') || 'only this page'}. An admin chooses which tabs you can use. Only admins can manage users or create API tokens.`}
         </p>
         <ChangePassword notify={notify} />
       </Card>

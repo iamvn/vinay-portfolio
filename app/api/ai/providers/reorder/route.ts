@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleDbError, jsonError, parseBody } from '@/lib/api-utils';
-import { requireAdmin } from '@/lib/auth/roles';
+import { requireTab } from '@/lib/auth/roles';
 import { publicProvider } from '@/lib/ai/admin';
 import { reorderSchema } from '@/lib/schemas';
 
 /** Body { ids: [...] }: every provider id in the new fallback order (first = tried first). Admins only. */
 export async function PUT(request: Request) {
-  const { error: denied } = await requireAdmin(request);
+  const { error: denied } = await requireTab(request, 'ai');
   if (denied) return denied;
   const { data, error } = await parseBody(request, reorderSchema);
   if (error) return error;
