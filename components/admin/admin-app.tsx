@@ -36,7 +36,28 @@ function subscribeToHash(callback: () => void) {
   return () => window.removeEventListener('hashchange', callback);
 }
 
-export function AdminApp({ user }: { user: AdminUser }) {
+export type DatabaseInfo = { kind: 'file' | 'turso' | 'remote'; label: string; persistent: boolean; onVercel: boolean };
+
+/** Makes it obvious which database is being edited: a local file on this computer, or the live one. */
+function DatabaseNotice({ database }: { database: DatabaseInfo }) {
+  if (!database.persistent) {
+    return (
+      <p role="alert" className="mb-4 rounded-xl border border-red-400/40 bg-red-950/60 px-4 py-3 text-sm text-red-100">
+        <b>Changes here will be lost on the next deploy.</b> This site is using a database file inside the deployment. In Vercel → Settings → Environment Variables, remove the <code>file:</code> DATABASE_URL and connect your Turso database.
+      </p>
+    );
+  }
+  if (database.kind === 'file') {
+    return (
+      <p className="mb-4 rounded-xl border border-cyan-300/30 bg-cyan-300/[.06] px-4 py-3 text-sm text-cyan-100">
+        <b>Local database</b> ({database.label}). Changes here stay on this computer and don&apos;t appear on the live site. To copy them over, use Backup → Download here, then Restore in the live site&apos;s admin.
+      </p>
+    );
+  }
+  return null;
+}
+
+export function AdminApp({ user, database }: { user: AdminUser; database?: DatabaseInfo }) {
   const hash = useSyncExternalStore(subscribeToHash, () => window.location.hash.slice(1), () => '');
   const tabs = TABS.filter(([id]) => user.role === 'admin' || !ADMIN_ONLY.includes(id));
   const tab: Tab = tabs.some(([id]) => id === hash) ? (hash as Tab) : 'profile';
@@ -107,6 +128,7 @@ export function AdminApp({ user }: { user: AdminUser }) {
       </header>
 
       <main key={reloadKey} className="mx-auto max-w-5xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:py-6">
+        {database && <DatabaseNotice database={database} />}
         {tab === 'profile' && <ProfileTab notify={notify} />}
         {tab === 'experience' && <ListTab config={EXPERIENCE} notify={notify} />}
         {tab === 'skills' && <ListTab config={SKILLS} notify={notify} />}
@@ -118,6 +140,9 @@ export function AdminApp({ user }: { user: AdminUser }) {
         {tab === 'design' && user.role === 'admin' && <DesignTab notify={notify} />}
         {tab === 'backup' && <BackupTab notify={notify} onReplaced={() => setReloadKey((key) => key + 1)} />}
         {tab === 'users' && <UsersTab me={user} notify={notify} />}
+        {database && database.persistent && database.kind !== 'file' && (
+          <p className="mt-8 text-center text-[11px] text-slate-600">Database: {database.label}{database.kind === 'turso' ? ' (Turso)' : ''} · changes are saved permanently and survive deploys</p>
+        )}
       </main>
 
       {/* Messages: top of the screen on phones (clear of the bottom save bars), bottom-right on desktop. Tap to dismiss. */}

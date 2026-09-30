@@ -13,7 +13,11 @@ import { prisma } from '../lib/prisma';
 import { portfolioSchema } from '../lib/schemas';
 
 async function main() {
-  const { url, authToken, configured } = databaseConfig();
+  const { url, authToken, configured, persistent } = databaseConfig();
+  if (process.env.VERCEL && !persistent) {
+    // A file database on Vercel is rebuilt from scratch on every deploy: all edits would be lost.
+    throw new Error('DATABASE_URL points to a local file ("file:…"). On Vercel that file is recreated on every deploy, so all your edits would be lost. In Vercel → Settings → Environment Variables, delete DATABASE_URL (if you connected Turso, TURSO_DATABASE_URL is used) or set it to your libsql://… Turso URL plus DATABASE_AUTH_TOKEN, then redeploy.');
+  }
   if (process.env.VERCEL && !configured) {
     throw new Error('No database configured. Add DATABASE_URL + DATABASE_AUTH_TOKEN (or connect Turso so TURSO_DATABASE_URL + TURSO_AUTH_TOKEN exist) in Vercel → Settings → Environment Variables, then redeploy.');
   }
@@ -30,11 +34,16 @@ async function main() {
     db.close();
   }
 
-  if ((await prisma.profile.count()) === 0) {
+  // Default data is only ever loaded into a database that has no profile at all (a brand-new database).
+  // Existing content is never overwritten by a deploy.
+  const [profiles, projects, users] = await Promise.all([prisma.profile.count(), prisma.project.count(), prisma.user.count()]);
+  if (profiles === 0 && projects === 0 && users === 0) {
     await replacePortfolio(portfolioSchema.parse(data));
-    console.log('✓ Empty database: loaded data/portfolio.json');
+    console.log('✓ New, empty database: loaded the starter content from data/portfolio.json');
+  } else if (profiles === 0) {
+    console.warn('⚠ No profile found, but the database has other data, so the starter content was NOT loaded. Restore a backup in Admin → Backup.');
   } else {
-    console.log('✓ Portfolio data already present (left untouched)');
+    console.log(`✓ Existing content kept (${projects} projects, ${users} users). Deploys never overwrite it.`);
   }
 
   if ((await prisma.user.count()) === 0) {
