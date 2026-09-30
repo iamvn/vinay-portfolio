@@ -12,7 +12,7 @@ const loginSchema = z.object({ email: z.string().trim().toLowerCase().min(1), pa
 // Used to spend the same time on unknown emails, so response times don't reveal which emails exist.
 let dummyHash: Promise<string> | null = null;
 
-/** Body: { email, password }. Sets the session cookie and also returns a Bearer token for API use. */
+/** Body: { email, password }. Sets the session cookie; admins also get a Bearer token for API use. */
 export async function POST(request: Request) {
   const { data, error } = await parseBody(request, loginSchema);
   if (error) return error;
@@ -32,7 +32,9 @@ export async function POST(request: Request) {
     }
     clearLoginFailures(key);
     const { token, expiresAt } = await createToken(user.id, user.tokenVersion);
-    const response = NextResponse.json({ user: publicUser(user), token, expiresAt: expiresAt.toISOString() });
+    // Only admins get the token in the body (for curl/scripts); editors use the session cookie only.
+    const apiToken = user.role === 'admin' ? { token, expiresAt: expiresAt.toISOString() } : {};
+    const response = NextResponse.json({ user: publicUser(user), ...apiToken });
     response.cookies.set(sessionCookie(token));
     return response;
   } catch (err) {

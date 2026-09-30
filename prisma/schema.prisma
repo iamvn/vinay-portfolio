@@ -104,6 +104,7 @@ model User {
   email        String @unique
   name         String @default("")
   passwordHash String
+  /// "admin" (can manage users) or "editor" (content only). Always set explicitly by the code.
   role         String @default("admin")
   /// Incremented on password change: invalidates every existing session/token for this user.
   tokenVersion Int    @default(0)

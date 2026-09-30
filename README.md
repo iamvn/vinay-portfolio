@@ -77,9 +77,15 @@ other errors return `{ "error" }` with 404 (not found), 409 (duplicate), 413 (fi
 `GET /api/projects/:slug/image`). The check lives in `proxy.ts`.
 
 - Browser: log in at `/login` → an HttpOnly session cookie (7 days).
-- curl/scripts: send `Authorization: Bearer <token>`. Get a token from the login response or Admin → Users & security → API token.
-- There is no sign-up. Create the first admin with `npm run admin:create` (also resets a forgotten password);
-  add more admins in Admin → Users & security.
+- curl/scripts (admins only): send `Authorization: Bearer <token>`. Get a token from the login response or
+  Admin → Users & security → API token. Editors get no token and any Bearer request from an editor is refused (403).
+- There is no sign-up. Create the first admin with `npm run admin:create` (also resets a forgotten password
+  and makes that account an admin); add more users in Admin → Users & security.
+- Roles: **admin** can edit everything and add/remove users and change their roles; **editor** can edit all
+  portfolio content and their own password in the admin panel, but can't see or manage users or use API tokens (403).
+  New users are editors unless you pick Admin.
+- The **owner** is the first admin account (created at setup). Nobody, including other admins, can remove the
+  owner or change its role. Nobody can change their own role.
 - Changing your password signs out all other sessions and tokens. Removing an admin signs them out immediately.
 - 5 wrong passwords for the same email + IP lock that combination for 15 minutes.
 
@@ -90,8 +96,9 @@ other errors return `{ "error" }` with 404 (not found), 409 (duplicate), 413 (fi
 | `GET /api/auth/me` | — |
 | `POST /api/auth/password` | `{ currentPassword, newPassword }` (min 10 characters) |
 | `POST /api/auth/token` | — → a new Bearer token for the logged-in user |
-| `GET /api/users` · `POST /api/users` | POST: `{ email, name?, password }` (new admin) |
-| `DELETE /api/users/:id` | removes an admin (not yourself) |
+| `GET /api/users` · `POST /api/users` | admins only · POST: `{ email, name?, password, role? }` (`"editor"` default, or `"admin"`) |
+| `PATCH /api/users/:id` | admins only · `{ role?, name? }` (not your own role, not the owner's role) |
+| `DELETE /api/users/:id` | admins only · removes a user (not yourself, not the owner) |
 
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login -H "Content-Type: application/json" \

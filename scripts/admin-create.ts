@@ -1,4 +1,4 @@
-// Creates an admin account, or resets the password of an existing one.
+// Creates an admin account, or resets the password of an existing one (and makes it an admin).
 //   npm run admin:create                      → asks for email and password
 //   npm run admin:create -- you@example.com   → asks for the password only
 // The password is typed interactively (hidden) so it never ends up in shell history.
@@ -31,8 +31,9 @@ async function main() {
 
   const passwordHash = await hashPassword(password);
   if (existing) {
-    await prisma.user.update({ where: { email }, data: { passwordHash, tokenVersion: { increment: 1 } } });
-    console.log('Password updated. You can log in at /login.');
+    // Also makes the account an admin, so this command can always recover admin access.
+    await prisma.user.update({ where: { email }, data: { passwordHash, role: 'admin', tokenVersion: { increment: 1 } } });
+    console.log('Password updated (role: admin). You can log in at /login.');
   } else {
     await prisma.user.create({ data: { email, name: '', role: 'admin', passwordHash, createdAt: new Date().toISOString() } });
     console.log('Admin created. You can log in at /login.');

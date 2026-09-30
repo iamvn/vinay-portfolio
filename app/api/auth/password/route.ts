@@ -29,7 +29,8 @@ export async function POST(request: Request) {
       data: { passwordHash: await hashPassword(data.newPassword), tokenVersion: { increment: 1 } },
     });
     const { token, expiresAt } = await createToken(updated.id, updated.tokenVersion);
-    const response = NextResponse.json({ ok: true, token, expiresAt: expiresAt.toISOString() });
+    const apiToken = updated.role === 'admin' ? { token, expiresAt: expiresAt.toISOString() } : {};
+    const response = NextResponse.json({ ok: true, ...apiToken });
     response.cookies.set(sessionCookie(token));
     return response;
   } catch (err) {

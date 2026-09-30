@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api, describeError } from './api';
 import { Button, Card, ConfirmButton, Field, Loading, TextArea, TextInput, inputClass, type Notify } from './ui';
 
-export type AdminUser = { id: number; email: string; name: string; role: string; createdAt?: string };
+export type AdminUser = { id: number; email: string; name: string; role: string; createdAt?: string; owner?: boolean };
 
 const MIN_LENGTH = 10;
 
@@ -94,20 +94,48 @@ function ApiToken({ notify }: { notify: Notify }) {
   );
 }
 
-function AddAdmin({ onAdded, notify }: { onAdded: () => void; notify: Notify }) {
+type Role = 'admin' | 'editor';
+
+const ROLE_INFO: Record<Role, { label: string; help: string }> = {
+  editor: { label: 'Editor', help: 'Can edit all portfolio content and their own password. Can’t add or remove users.' },
+  admin: { label: 'Admin', help: 'Full access, including adding and removing users and changing roles.' },
+};
+
+function RolePicker({ value, onChange, disabled }: { value: Role; onChange: (role: Role) => void; disabled?: boolean }) {
+  return (
+    <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Role">
+      {(Object.keys(ROLE_INFO) as Role[]).map((role) => (
+        <button
+          key={role}
+          type="button"
+          role="radio"
+          aria-checked={value === role}
+          disabled={disabled}
+          onClick={() => onChange(role)}
+          className={`min-h-11 rounded-lg border px-3 text-sm font-bold transition disabled:opacity-40 sm:min-h-9 sm:text-xs ${value === role ? 'border-lime-300 bg-lime-300/10 text-lime-200' : 'border-white/10 text-slate-400 hover:text-white'}`}
+        >
+          {value === role ? '● ' : '○ '}{ROLE_INFO[role].label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function AddUser({ onAdded, notify }: { onAdded: () => void; notify: Notify }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<Role>('editor');
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     try {
-      const user = await api<AdminUser>('POST', '/api/users', { email, name, password });
+      const user = await api<AdminUser>('POST', '/api/users', { email, name, password, role });
       onAdded();
-      setEmail(''); setName(''); setPassword('');
-      notify(`Added ${user.email}. Share the password with them privately; they can change it after logging in.`);
+      setEmail(''); setName(''); setPassword(''); setRole('editor');
+      notify(`Added ${user.email} as ${ROLE_INFO[user.role as Role]?.label ?? user.role}. Share the password with them privately; they can change it after logging in.`);
     } catch (error) {
       notify(describeError(error), 'error');
     } finally {
@@ -122,71 +150,124 @@ function AddAdmin({ onAdded, notify }: { onAdded: () => void; notify: Notify }) 
       </Field>
       <Field label="Name (optional)"><TextInput value={name} onChange={setName} /></Field>
       <Field label="Temporary password" hint={`At least ${MIN_LENGTH} characters`}><TextInput value={password} onChange={setPassword} /></Field>
+      <div className="md:col-span-3">
+        <Field group label="Role" hint={ROLE_INFO[role].help}>
+          <RolePicker value={role} onChange={setRole} />
+        </Field>
+      </div>
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap md:col-span-3">
         <Button onClick={() => setPassword(generatePassword())}>Generate password</Button>
-        <Button tone="primary" type="submit" disabled={busy || !email || !password}>{busy ? 'Adding…' : 'Add admin'}</Button>
+        <Button tone="primary" type="submit" disabled={busy || !email || !password}>{busy ? 'Adding…' : 'Add user'}</Button>
       </div>
     </form>
   );
 }
 
-export function UsersTab({ me, notify }: { me: AdminUser; notify: Notify }) {
-  const [users, setUsers] = useState<AdminUser[] | null>(null);
+function UserRow({ user, onChanged, notify }: { user: AdminUser; onChanged: () => void; notify: Notify }) {
+  const [busy, setBusy] = useState(false);
+  const role = (user.role === 'admin' ? 'admin' : 'editor') as Role;
 
-  const load = useCallback(() => {
-    api<AdminUser[]>('GET', '/api/users').then(setUsers).catch((error) => notify(describeError(error), 'error'));
-  }, [notify]);
+  async function changeRole(next: Role) {
+    if (next === role) return;
+    setBusy(true);
+    try {
+      await api('PATCH', `/api/users/${user.id}`, { role: next });
+      notify(`${user.email} is now ${ROLE_INFO[next].label === 'Admin' ? 'an Admin' : 'an Editor'}.`);
+    } catch (error) {
+      notify(describeError(error), 'error');
+    } finally {
+      setBusy(false);
+      onChanged();
+    }
+  }
 
-  useEffect(load, [load]);
-
-  async function remove(user: AdminUser) {
+  async function remove() {
+    setBusy(true);
     try {
       await api('DELETE', `/api/users/${user.id}`);
       notify(`Removed ${user.email}. They are signed out everywhere.`);
     } catch (error) {
       notify(describeError(error), 'error');
     } finally {
-      load();
+      setBusy(false);
+      onChanged();
     }
   }
+
+  return (
+    <li className="grid gap-3 py-4 sm:grid-cols-[1fr_auto_auto] sm:items-center">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-bold text-white">
+          {user.email}
+          <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${role === 'admin' ? 'bg-lime-300/10 text-lime-200' : 'bg-white/[.06] text-slate-300'}`}>{user.owner ? 'Owner' : ROLE_INFO[role].label}</span>
+        </p>
+        <p className="text-xs text-slate-500">
+          {user.name || 'No name'}{user.createdAt ? ` · added ${new Date(user.createdAt).toLocaleDateString()}` : ''}
+        </p>
+      </div>
+      {user.owner ? (
+        <p className="text-xs text-slate-500 sm:col-span-2 sm:text-right">Owner · can’t be changed or removed</p>
+      ) : (
+        <>
+          <div className="sm:w-52"><RolePicker value={role} onChange={changeRole} disabled={busy} /></div>
+          <ConfirmButton onConfirm={remove} disabled={busy} confirmLabel="Tap again to remove">Remove</ConfirmButton>
+        </>
+      )}
+    </li>
+  );
+}
+
+export function UsersTab({ me, notify }: { me: AdminUser; notify: Notify }) {
+  const admin = me.role === 'admin';
+  const [users, setUsers] = useState<AdminUser[] | null>(null);
+
+  const load = useCallback(() => {
+    if (!admin) return; // editors can't list users (the server would refuse anyway)
+    api<AdminUser[]>('GET', '/api/users').then(setUsers).catch((error) => notify(describeError(error), 'error'));
+  }, [admin, notify]);
+
+  useEffect(load, [load]);
 
   // Your own account is managed under "My account" and can never be removed, so it isn't listed here.
   const others = users?.filter((user) => user.id !== me.id);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       <Card title={`My account · ${me.email}`}>
-        <p className="mb-4 text-xs text-slate-500">This is the account you are signed in with. It can’t be removed.</p>
+        <p className="mb-4 text-xs text-slate-500">
+          Signed in as <b className="text-slate-300">{me.owner ? 'Owner (admin)' : ROLE_INFO[admin ? 'admin' : 'editor'].label}</b>.{' '}
+          {me.owner
+            ? 'Nobody can remove this account or change its role.'
+            : admin
+              ? 'You can manage users, but not the owner account or your own role.'
+              : 'You can edit portfolio content and your own password. Only admins can manage users or create API tokens.'}
+        </p>
         <ChangePassword notify={notify} />
       </Card>
 
-      <Card title={others ? `Other admins (${others.length})` : 'Other admins'}>
-        {!others ? <Loading /> : others.length === 0 ? (
-          <p className="text-sm text-slate-400">No other admins yet. Add one below.</p>
-        ) : (
-          <ul className="divide-y divide-white/5">
-            {others.map((user) => (
-              <li key={user.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <div>
-                  <p className="text-sm font-bold text-white">{user.email}</p>
-                  <p className="text-xs text-slate-500">
-                    {user.name || 'No name'} · {user.role}{user.createdAt ? ` · added ${new Date(user.createdAt).toLocaleDateString()}` : ''}
-                  </p>
-                </div>
-                <ConfirmButton onConfirm={() => remove(user)}>Remove</ConfirmButton>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      {admin && (
+        <>
+          <Card title={others ? `Other users (${others.length})` : 'Other users'}>
+            {!others ? <Loading /> : others.length === 0 ? (
+              <p className="text-sm text-slate-400">No other users yet. Add one below.</p>
+            ) : (
+              <ul className="divide-y divide-white/5">
+                {others.map((user) => <UserRow key={user.id} user={user} onChanged={load} notify={notify} />)}
+              </ul>
+            )}
+          </Card>
 
-      <Card title="Add admin">
-        <AddAdmin notify={notify} onAdded={load} />
-      </Card>
+          <Card title="Add user">
+            <AddUser notify={notify} onAdded={load} />
+          </Card>
+        </>
+      )}
 
-      <Card title="API token">
-        <ApiToken notify={notify} />
-      </Card>
+      {admin && (
+        <Card title="API token">
+          <ApiToken notify={notify} />
+        </Card>
+      )}
     </div>
   );
 }

@@ -11,7 +11,7 @@ import { tokenFromRequest } from '@/lib/auth/token';
  *   - GET  /api/resume, /api/profile-image,
  *          /api/projects/<slug>/image         (files shown on the public site)
  * Everything else under /api and /admin requires a valid session cookie or
- * an "Authorization: Bearer <token>" header.
+ * an "Authorization: Bearer <token>" header (Bearer tokens: admins only).
  */
 const PUBLIC_API: { method: string; pattern: RegExp }[] = [
   { method: 'POST', pattern: /^\/api\/auth\/(login|logout)$/ },
@@ -57,6 +57,11 @@ export async function proxy(request: NextRequest) {
     const response = NextResponse.redirect(login);
     if (viaCookie) response.cookies.delete('portfolio_session'); // stale/revoked session
     return response;
+  }
+
+  // API tokens (Authorization: Bearer) are for admins only; editors use the admin panel in the browser.
+  if (isApi && !viaCookie && user.role !== 'admin') {
+    return NextResponse.json({ error: 'API tokens are only available to admins. Use the admin panel instead.' }, { status: 403 });
   }
 
   if (isApi && viaCookie && !['GET', 'HEAD', 'OPTIONS'].includes(request.method) && !sameOrigin(request)) {

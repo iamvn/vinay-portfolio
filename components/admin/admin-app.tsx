@@ -70,7 +70,7 @@ export function AdminApp({ user }: { user: AdminUser }) {
             </h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <span className="hidden text-xs text-slate-500 md:inline">Signed in as <b className="text-slate-300">{user.email}</b></span>
+            <span className="hidden text-xs text-slate-500 md:inline">Signed in as <b className="text-slate-300">{user.email}</b> · {user.owner ? 'Owner' : user.role === 'admin' ? 'Admin' : 'Editor'}</span>
             <a href="/" target="_blank" rel="noreferrer" className={`${headerButton} hover:border-lime-300/60`}>
               <span className="sm:hidden">Site ↗</span><span className="hidden sm:inline">View site ↗</span>
             </a>
@@ -91,7 +91,7 @@ export function AdminApp({ user }: { user: AdminUser }) {
               aria-current={tab === id ? 'page' : undefined}
               className={`min-h-11 shrink-0 snap-start whitespace-nowrap rounded-lg px-4 text-xs font-black uppercase tracking-wide transition sm:min-h-0 sm:px-3.5 sm:py-2 ${tab === id ? 'bg-lime-300 text-black' : 'bg-white/[.04] text-slate-300 hover:bg-white/5 hover:text-white sm:bg-transparent sm:text-slate-400'}`}
             >
-              {label}
+              {id === 'users' && user.role !== 'admin' ? 'My account' : label}
             </button>
           ))}
         </nav>

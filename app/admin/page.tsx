@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { AdminApp } from '@/components/admin/admin-app';
 import { publicUser } from '@/lib/auth/session';
 import { currentUser } from '@/lib/auth/server';
+import { ownerId } from '@/lib/auth/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,5 +16,5 @@ export default async function AdminPage() {
   // proxy.ts already guards /admin; this is a second check at render time.
   const user = await currentUser();
   if (!user) redirect('/login?next=/admin');
-  return <AdminApp user={publicUser(user)} />;
+  return <AdminApp user={{ ...publicUser(user), owner: user.id === (await ownerId()) }} />;
 }
