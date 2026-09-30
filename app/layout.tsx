@@ -15,6 +15,10 @@ export const metadata: Metadata = {
   openGraph: { type: 'website', siteName: 'Vinay Bharti', locale: 'en_US' },
   twitter: { card: 'summary_large_image' },
   formatDetection: { telephone: false },
+  // Google Search Console ("URL prefix" property → HTML tag method): only the content="…" value.
+  ...(process.env.GOOGLE_SITE_VERIFICATION?.trim()
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION.trim() } }
+    : {}),
 };
 
 // viewportFit "cover" lets the pages use env(safe-area-inset-*) around the iPhone notch and home bar.
