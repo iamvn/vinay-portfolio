@@ -113,8 +113,8 @@ export function BackupTab({ notify, onReplaced }: { notify: Notify; onReplaced: 
     <Card
       title="Backup & bulk edit"
       actions={<>
-        <Button onClick={load} disabled={busy}>Reload</Button>
-        <Button onClick={download} disabled={busy}>Download JSON</Button>
+        <Button view onClick={load} disabled={busy}>Reload</Button>
+        <Button view onClick={download} disabled={busy}>Download JSON</Button>
         <ConfirmButton onConfirm={replaceAll} disabled={busy} confirmLabel="Click again: replace everything">Replace everything</ConfirmButton>
       </>}
     >

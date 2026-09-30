@@ -21,7 +21,7 @@ async function main() {
   const email = (process.argv[2] ?? (await ask('Admin email: '))).trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('That is not a valid email address.');
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
   console.log(existing ? `Resetting the password for ${email} (all of its sessions will be signed out).` : `Creating admin ${email}.`);
 
   const password = await ask('Password (min 10 characters): ', true);
@@ -32,10 +32,10 @@ async function main() {
   const passwordHash = await hashPassword(password);
   if (existing) {
     // Also makes the account an admin, so this command can always recover admin access.
-    await prisma.user.update({ where: { email }, data: { passwordHash, role: 'admin', tokenVersion: { increment: 1 } } });
+    await prisma.user.update({ where: { email }, data: { passwordHash, role: 'admin', tokenVersion: { increment: 1 } }, select: { id: true } });
     console.log('Password updated (role: admin). You can log in at /login.');
   } else {
-    await prisma.user.create({ data: { email, name: '', role: 'admin', passwordHash, createdAt: new Date().toISOString() } });
+    await prisma.user.create({ data: { email, name: '', role: 'admin', passwordHash, createdAt: new Date().toISOString() }, select: { id: true } });
     console.log('Admin created. You can log in at /login.');
   }
 }

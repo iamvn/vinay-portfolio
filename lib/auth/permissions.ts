@@ -19,7 +19,7 @@ export const TAB_LABELS: Record<TabId, string> = {
 /** What an editor gets when no admin has chosen tabs for them (the access editors always had). */
 export const EDITOR_DEFAULT_TABS: TabId[] = ['profile', 'experience', 'skills', 'projects', 'copy', 'resume', 'backup'];
 
-type Who = { role: string; permissions?: string | null };
+type Who = { role: string; permissions?: string | null; readOnly?: boolean | null };
 
 /** Stored as a comma-separated list; empty means "role default". Unknown names are ignored. */
 export function parsePermissions(raw: string | null | undefined): TabId[] | null {
@@ -39,6 +39,15 @@ export function allowedTabs(user: Who): TabId[] {
 }
 
 export const canUseTab = (user: Who, tab: TabId) => allowedTabs(user).includes(tab);
+
+/**
+ * Read-only users (never admins) can open their tabs and look at everything, but can't change anything.
+ * The only things they may still do are signing out and changing their own password.
+ */
+export const isReadOnly = (user: Who) => user.role !== 'admin' && Boolean(user.readOnly);
+const READ_ONLY_ALLOWED = /^\/api\/auth\/(logout|password)$/;
+export const blockedForReadOnly = (method: string, path: string) =>
+  !['GET', 'HEAD', 'OPTIONS'].includes(method) && !READ_ONLY_ALLOWED.test(path);
 
 const WRITE_GATED: [RegExp, TabId][] = [
   [/^\/api\/profile(-image)?$/, 'profile'],

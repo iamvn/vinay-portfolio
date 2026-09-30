@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api, describeError, fromLines, toLines } from './api';
 import { IMAGE_ACCEPT, prepareImage } from './image';
-import { Button, ConfirmButton, Field, Loading, TextArea, TextInput, Toggle, buttonBase, type Notify } from './ui';
+import { Button, ConfirmButton, Field, Loading, ReadOnlyFieldset, TextArea, TextInput, Toggle, buttonBase, useReadOnly, type Notify } from './ui';
 
 type Row = Record<string, unknown>;
 type Draft = Record<string, string | boolean>;
@@ -188,7 +188,7 @@ function FieldsForm({ fields, draft, onChange, uploadUrl, notify, onImageUploade
   pendingImage?: File | null; onPendingImage?: (file: File | null) => void;
 }) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <ReadOnlyFieldset className="grid gap-4 md:grid-cols-3">
       {fields.filter((field) => !field.showIf || field.showIf(draft)).map((field) => {
         const { key, label, type, hint } = field;
         const set = (value: string | boolean) => onChange({ ...draft, [key]: value });
@@ -224,7 +224,7 @@ function FieldsForm({ fields, draft, onChange, uploadUrl, notify, onImageUploade
           </div>
         );
       })}
-    </div>
+    </ReadOnlyFieldset>
   );
 }
 
@@ -400,6 +400,7 @@ export function ListTab({ config, notify }: { config: ListConfig; notify: Notify
   const [rows, setRows] = useState<Row[] | null>(null);
   const [adding, setAdding] = useState(false);
   const [version, setVersion] = useState(0); // remounts cards after a reorder
+  const readOnly = useReadOnly();
 
   useEffect(() => {
     api<Row[]>('GET', config.endpoint).then(setRows).catch((error) => notify(describeError(error), 'error'));
@@ -426,10 +427,10 @@ export function ListTab({ config, notify }: { config: ListConfig; notify: Notify
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-400">
           {rows.length} {config.noun}{rows.length === 1 ? '' : 's'}
-          <span className="sm:hidden"> · tap one to edit</span>
+          <span className="sm:hidden"> · tap one to {readOnly ? 'view' : 'edit'}</span>
           {config.reorderEndpoint ? <span className="hidden sm:inline"> · use ↑ ↓ to change the order on the site</span> : null}
         </p>
-        {!adding && <Button tone="primary" onClick={() => setAdding(true)} className="w-full py-3 sm:w-auto sm:py-2">+ Add {config.noun}</Button>}
+        {!adding && !readOnly && <Button tone="primary" onClick={() => setAdding(true)} className="w-full py-3 sm:w-auto sm:py-2">+ Add {config.noun}</Button>}
       </div>
       {adding && (
         <NewItemCard

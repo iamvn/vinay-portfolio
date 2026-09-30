@@ -91,6 +91,11 @@ other errors return `{ "error" }` with 404 (not found), 409 (duplicate), 413 (fi
   and everyone keeps "My account" (their own password). Access is enforced on the server too: `proxy.ts` returns 403
   for API calls to a tab the user doesn't have (reading content stays open; saving needs the tab; Design, Insights,
   AI and Backup are closed entirely), and the design editor page redirects away. Stored in `User.permissions`.
+  Tick as many boxes as you like, then press **Save access** (or **Cancel**); nothing is saved until then.
+- **Read-only users:** the **Read-only** switch in the same Access box (also when adding a user) lets an editor open
+  their tabs and see everything, but not save, add, delete, upload, reorder or publish. Fields and buttons are
+  disabled, the design editor opens in view-only mode, and the server refuses every change (403) except signing out
+  and changing their own password. Admins are never read-only. Stored in `User.readOnly`.
 - The **owner** is the first admin account (created at setup). Nobody, including other admins, can remove the
   owner or change its role. Nobody can change their own role.
 - Changing your password signs out all other sessions and tokens. Removing an admin signs them out immediately.
@@ -104,7 +109,7 @@ other errors return `{ "error" }` with 404 (not found), 409 (duplicate), 413 (fi
 | `POST /api/auth/password` | `{ currentPassword, newPassword }` (min 10 characters) |
 | `POST /api/auth/token` | — → a new Bearer token for the logged-in user |
 | `GET /api/users` · `POST /api/users` | admins only · POST: `{ email, name?, password, role?, permissions? }` (`"editor"` default, or `"admin"`; `permissions` = list of tab ids) |
-| `PATCH /api/users/:id` | admins only · `{ role?, name?, permissions? }` (tab ids, or `null` for the default; not your own role/access, not the owner's role) |
+| `PATCH /api/users/:id` | admins only · `{ role?, name?, permissions?, readOnly? }` (tab ids, or `null` for the default; not your own role/access, not the owner's role) |
 | `DELETE /api/users/:id` | admins only · removes a user (not yourself, not the owner) |
 
 ```bash

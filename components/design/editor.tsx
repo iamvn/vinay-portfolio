@@ -27,8 +27,13 @@ async function send(method: string, url: string, body: unknown) {
   return json;
 }
 
-/** Full-screen visual editor. Changes autosave as a draft; "Publish" makes them live on the homepage. */
-export function DesignEditor({ initialData, savedAt, isLive, portfolio }: { initialData: Data; savedAt: string | null; isLive: boolean; portfolio: PortfolioData }) {
+const LOCKED = { drag: false, duplicate: false, delete: false, edit: false, insert: false };
+
+/**
+ * Full-screen visual editor. Changes autosave as a draft; "Publish" makes them live on the homepage.
+ * `readOnly` (read-only users): the design can be browsed, but blocks can't be moved, edited or published.
+ */
+export function DesignEditor({ initialData, savedAt, isLive, portfolio, readOnly = false }: { initialData: Data; savedAt: string | null; isLive: boolean; portfolio: PortfolioData; readOnly?: boolean }) {
   const [status, setStatus] = useState<Status>({ kind: 'saved', at: savedAt });
   const [live, setLive] = useState(isLive);
   const latest = useRef<Data>(initialData);
@@ -54,12 +59,13 @@ export function DesignEditor({ initialData, savedAt, isLive, portfolio }: { init
   }, []);
 
   const onChange = useCallback((data: Data) => {
+    if (readOnly) return;
     latest.current = data;
     dirty.current = true;
     setStatus({ kind: 'dirty' });
     if (pending.current) clearTimeout(pending.current);
     pending.current = setTimeout(saveNow, AUTOSAVE_MS);
-  }, [saveNow]);
+  }, [saveNow, readOnly]);
 
   const onPublish = useCallback(async (data: Data) => {
     latest.current = data;
@@ -114,7 +120,7 @@ export function DesignEditor({ initialData, savedAt, isLive, portfolio }: { init
     if (await saveNow()) window.location.assign('/admin#design');
   }
 
-  const statusText = {
+  const statusText = readOnly ? 'View only: you can’t change or publish the design' : {
     saved: status.kind === 'saved' && status.at ? `Draft saved ${time(status.at)}` : 'No changes yet',
     dirty: 'Unsaved changes…',
     saving: 'Saving draft…',
@@ -133,6 +139,7 @@ export function DesignEditor({ initialData, savedAt, isLive, portfolio }: { init
         metadata={metadata}
         onChange={onChange}
         onPublish={onPublish}
+        permissions={readOnly ? LOCKED : undefined}
         headerTitle={live ? 'Homepage design · custom design is live' : 'Homepage design · built-in classic is live'}
         viewports={[
           { width: 390, height: 'auto', label: 'Phone' },
@@ -144,12 +151,12 @@ export function DesignEditor({ initialData, savedAt, isLive, portfolio }: { init
             <>
               <span role="status" aria-live="polite" className={`hidden max-w-64 truncate text-xs md:inline ${status.kind === 'error' ? 'font-semibold text-red-600' : status.kind === 'published' ? 'font-semibold text-green-700' : 'text-slate-500'}`} title={statusText}>{statusText}</span>
               <button type="button" onClick={backToAdmin} className={small}>← Admin</button>
-              <button type="button" onClick={revertToLive} className={`${small} ${confirmRevert ? 'border-red-400 bg-red-50 text-red-700' : ''}`} title="Throw away draft changes and load the design visitors see now">
+              {!readOnly && <button type="button" onClick={revertToLive} className={`${small} ${confirmRevert ? 'border-red-400 bg-red-50 text-red-700' : ''}`} title="Throw away draft changes and load the design visitors see now">
                 {confirmRevert ? 'Click again to discard changes' : '↺ Revert to live'}
-              </button>
+              </button>}
               <button type="button" onClick={openPreview} className={small}>Preview ↗</button>
               {live && <a href="/" target="_blank" rel="noreferrer" className={small}>Live site ↗</a>}
-              {children}
+              {!readOnly && children}
             </>
           ),
         }}

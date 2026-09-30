@@ -33,7 +33,7 @@ export function InsightsTab({ notify }: { notify: Notify }) {
     <div className="space-y-4 sm:space-y-5">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-slate-400">Anonymous counts from your site. No names, IPs or cookies are stored.</p>
-        <Button onClick={load}>Refresh</Button>
+        <Button view onClick={load}>Refresh</Button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">

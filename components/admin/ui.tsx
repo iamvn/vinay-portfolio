@@ -1,8 +1,23 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 export type Notify = (message: string, tone?: 'success' | 'error') => void;
+
+/**
+ * Read-only mode (Users & security → Access → Read-only). Inside it, fields can be read but not edited and
+ * every action button is disabled, except buttons marked `view` (reload, download…). The server enforces
+ * the same rule, so this is only about making the screen honest.
+ */
+const ReadOnlyContext = createContext(false);
+export const ReadOnlyProvider = ReadOnlyContext.Provider;
+export const useReadOnly = () => useContext(ReadOnlyContext);
+
+/** Disables every form control inside it while read-only (for areas with hand-written inputs). */
+export function ReadOnlyFieldset({ children, className = '' }: { children: ReactNode; className?: string }) {
+  const readOnly = useReadOnly();
+  return <fieldset disabled={readOnly} className={`m-0 min-w-0 border-0 p-0 ${className}`}>{children}</fieldset>;
+}
 
 // 16px text on phones stops iOS Safari from zooming in when a field is focused.
 export const inputClass =
@@ -24,7 +39,8 @@ export function Field({ label, hint, children, group = false }: { label: string;
 }
 
 export function TextInput(props: { value: string; onChange: (value: string) => void; placeholder?: string }) {
-  return <input className={inputClass} value={props.value} placeholder={props.placeholder} onChange={(e) => props.onChange(e.target.value)} />;
+  const readOnly = useReadOnly();
+  return <input className={inputClass} readOnly={readOnly} value={props.value} placeholder={props.placeholder} onChange={(e) => props.onChange(e.target.value)} />;
 }
 
 /**
@@ -33,10 +49,12 @@ export function TextInput(props: { value: string; onChange: (value: string) => v
  */
 export function PasswordInput({ value, onChange, autoComplete = 'new-password', placeholder, id }: { value: string; onChange: (value: string) => void; autoComplete?: string; placeholder?: string; id?: string }) {
   const [visible, setVisible] = useState(false);
+  const readOnly = useReadOnly();
   return (
     <span className="relative block">
       <input
         id={id}
+        readOnly={readOnly}
         type={visible ? 'text' : 'password'}
         autoComplete={autoComplete}
         autoCapitalize="none"
@@ -61,8 +79,10 @@ export function PasswordInput({ value, onChange, autoComplete = 'new-password', 
 }
 
 export function TextArea(props: { value: string; onChange: (value: string) => void; rows?: number; mono?: boolean; placeholder?: string }) {
+  const readOnly = useReadOnly();
   return (
     <textarea
+      readOnly={readOnly}
       className={`${inputClass} ${props.mono ? 'font-mono sm:text-xs' : ''}`}
       rows={props.rows ?? 4}
       value={props.value}
@@ -73,9 +93,10 @@ export function TextArea(props: { value: string; onChange: (value: string) => vo
 }
 
 export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) {
+  const readOnly = useReadOnly();
   return (
     <label className="inline-flex min-h-11 cursor-pointer items-center gap-3 text-sm text-slate-200 sm:min-h-0">
-      <input type="checkbox" className="size-5 accent-lime-300 sm:size-4" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <input type="checkbox" className="size-5 accent-lime-300 sm:size-4" disabled={readOnly} checked={checked} onChange={(e) => onChange(e.target.checked)} />
       {label}
     </label>
   );
@@ -89,19 +110,21 @@ type ButtonProps = {
   type?: 'button' | 'submit';
   className?: string;
   label?: string; // accessible name for icon-only buttons
+  view?: boolean; // only looks at data (reload, download): stays enabled in read-only mode
 };
 
 /** 44px tall on phones (comfortable thumb target), compact from sm up. */
 export const buttonBase = 'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-black uppercase tracking-wide transition disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-0';
 
-export function Button({ children, onClick, disabled, tone = 'ghost', type = 'button', className = '', label }: ButtonProps) {
+export function Button({ children, onClick, disabled, tone = 'ghost', type = 'button', className = '', label, view = false }: ButtonProps) {
+  const readOnly = useReadOnly();
   const tones = {
     primary: 'bg-lime-300 text-black hover:bg-lime-200',
     ghost: 'border border-white/15 text-slate-200 hover:border-cyan-300/60 hover:text-white',
     danger: 'border border-red-400/40 text-red-300 hover:bg-red-500/10',
   };
   return (
-    <button type={type} onClick={onClick} disabled={disabled} aria-label={label} title={label} className={`${buttonBase} ${tones[tone]} ${className}`}>
+    <button type={type} onClick={onClick} disabled={disabled || (readOnly && !view)} aria-label={label} title={label} className={`${buttonBase} ${tones[tone]} ${className}`}>
       {children}
     </button>
   );
@@ -145,6 +168,7 @@ export function Loading() {
  * a normal right-aligned row on larger screens.
  */
 export function SaveBar({ dirty, busy, onSave, onReset, saveLabel }: { dirty: boolean; busy: boolean; onSave: () => void; onReset?: () => void; saveLabel: string }) {
+  if (useReadOnly()) return null;
   return (
     <div className="sticky bottom-0 z-10 -mx-4 flex items-center gap-2 border-t border-white/10 bg-[#030609]/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:justify-end sm:border-0 sm:bg-transparent sm:p-0">
       <span className={`mr-auto text-xs ${dirty ? 'text-yellow-300' : 'text-slate-500'} sm:hidden`}>{dirty ? '● Unsaved changes' : 'All changes saved'}</span>

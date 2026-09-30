@@ -119,6 +119,8 @@ model User {
   tokenVersion Int    @default(0)
   /// Admin tabs a non-admin may use, comma-separated ("" = role default, "-" = none). Admins get all.
   permissions  String @default("")
+  /// Non-admins only: can view the admin panel but not change anything.
+  readOnly     Boolean @default(false)
   createdAt    String
 }
 

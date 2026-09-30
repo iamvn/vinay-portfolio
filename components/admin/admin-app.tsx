@@ -10,7 +10,7 @@ import { InsightsTab } from './insights-tab';
 import { AiTab } from './ai-tab';
 import { DesignTab } from './design-tab';
 import { UsersTab, type AdminUser } from './users-tab';
-import type { Notify } from './ui';
+import { ReadOnlyFieldset, ReadOnlyProvider, type Notify } from './ui';
 
 const TABS = [
   ['profile', 'Profile'],
@@ -27,7 +27,6 @@ const TABS = [
 ] as const;
 
 type Tab = (typeof TABS)[number][0];
-/** Tabs only admins see (the API also refuses editors). */
 /** Tabs this user can open: admins get all; others get the tabs an admin enabled, plus "My account". */
 const visibleTabs = (user: AdminUser) =>
   TABS.filter(([id]) => user.role === 'admin' || id === 'users' || (user.tabs ?? []).includes(id as never));
@@ -74,6 +73,8 @@ export function AdminApp({ user, database }: { user: AdminUser; database?: Datab
   const tab: Tab = tabs.some(([id]) => id === hash) ? (hash as Tab) : tabs[0][0];
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
+  // Read-only users can look at every tab they have, but not change anything ("My account" stays usable).
+  const viewOnly = Boolean(user.viewOnly);
 
   // The selected tab lives in the URL hash, so a refresh stays on the same tab.
   const select = (next: Tab) => {
@@ -111,7 +112,7 @@ export function AdminApp({ user, database }: { user: AdminUser; database?: Datab
             </h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <span className="hidden text-xs text-slate-500 md:inline">Signed in as <b className="text-slate-300">{user.email}</b> · {user.owner ? 'Owner' : user.role === 'admin' ? 'Admin' : 'Editor'}</span>
+            <span className="hidden text-xs text-slate-500 md:inline">Signed in as <b className="text-slate-300">{user.email}</b> · {user.owner ? 'Owner' : user.role === 'admin' ? 'Admin' : viewOnly ? 'Editor (read-only)' : 'Editor'}</span>
             <a href="/" target="_blank" rel="noreferrer" className={`${headerButton} hover:border-lime-300/60`}>
               <span className="sm:hidden">Site ↗</span><span className="hidden sm:inline">View site ↗</span>
             </a>
@@ -140,16 +141,23 @@ export function AdminApp({ user, database }: { user: AdminUser; database?: Datab
 
       <main key={reloadKey} className="mx-auto max-w-5xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:py-6">
         {database && <DatabaseNotice database={database} />}
-        {tab === 'profile' && <ProfileTab notify={notify} />}
-        {tab === 'experience' && <ListTab config={EXPERIENCE} notify={notify} />}
-        {tab === 'skills' && <ListTab config={SKILLS} notify={notify} />}
-        {tab === 'projects' && <ListTab config={PROJECTS} notify={notify} />}
-        {tab === 'copy' && <CopyTab notify={notify} />}
-        {tab === 'resume' && <ResumeTab notify={notify} />}
-        {tab === 'insights' && can('insights') && <InsightsTab notify={notify} />}
-        {tab === 'ai' && can('ai') && <AiTab notify={notify} />}
-        {tab === 'design' && can('design') && <DesignTab notify={notify} />}
-        {tab === 'backup' && <BackupTab notify={notify} onReplaced={() => setReloadKey((key) => key + 1)} />}
+        {viewOnly && tab !== 'users' && (
+          <p className="mb-4 rounded-xl border border-yellow-300/30 bg-yellow-300/[.06] px-4 py-3 text-sm text-yellow-100">
+            <b>Read-only access.</b> You can look through everything here, but you can&apos;t save changes. Ask an admin if you need to edit something.
+          </p>
+        )}
+        <ReadOnlyProvider value={viewOnly && tab !== 'users'}>
+          {tab === 'profile' && <ReadOnlyFieldset><ProfileTab notify={notify} /></ReadOnlyFieldset>}
+          {tab === 'experience' && <ListTab config={EXPERIENCE} notify={notify} />}
+          {tab === 'skills' && <ListTab config={SKILLS} notify={notify} />}
+          {tab === 'projects' && <ListTab config={PROJECTS} notify={notify} />}
+          {tab === 'copy' && <ReadOnlyFieldset><CopyTab notify={notify} /></ReadOnlyFieldset>}
+          {tab === 'resume' && <ReadOnlyFieldset><ResumeTab notify={notify} /></ReadOnlyFieldset>}
+          {tab === 'insights' && can('insights') && <InsightsTab notify={notify} />}
+          {tab === 'ai' && can('ai') && <ReadOnlyFieldset><AiTab notify={notify} /></ReadOnlyFieldset>}
+          {tab === 'design' && can('design') && <DesignTab notify={notify} />}
+          {tab === 'backup' && <BackupTab notify={notify} onReplaced={() => setReloadKey((key) => key + 1)} />}
+        </ReadOnlyProvider>
         {tab === 'users' && <UsersTab me={user} notify={notify} />}
         {database && database.persistent && database.kind !== 'file' && (
           <div className="mt-8 space-y-1 text-center text-[11px] text-slate-500">

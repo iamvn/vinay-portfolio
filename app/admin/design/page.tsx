@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { currentUser } from '@/lib/auth/server';
-import { canUseTab } from '@/lib/auth/permissions';
+import { canUseTab, isReadOnly } from '@/lib/auth/permissions';
 import { getDraft, getPublished } from '@/lib/design/store';
 import { DEFAULT_TEMPLATE_ID, templateById } from '@/lib/design/templates';
 import { getPortfolioFromDatabase } from '@/lib/portfolio-repository';
@@ -11,7 +11,7 @@ import { DesignEditor } from '@/components/design/editor';
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Design editor', robots: { index: false, follow: false } };
 
-/** Full-screen visual editor (Puck) for the homepage design. Admins only. */
+/** Full-screen visual editor (Puck) for the homepage design. Needs the Design tab; read-only users can only look. */
 export default async function DesignEditorPage() {
   const user = await currentUser();
   if (!user) redirect('/login?next=/admin/design');
@@ -23,6 +23,7 @@ export default async function DesignEditorPage() {
       savedAt={draft?.savedAt ?? null}
       isLive={Boolean(published)}
       portfolio={resolvePortfolio(portfolio)}
+      readOnly={isReadOnly(user)}
     />
   );
 }

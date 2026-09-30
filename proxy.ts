@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { userFromToken } from '@/lib/auth/session';
 import { tokenFromRequest } from '@/lib/auth/token';
-import { TAB_LABELS, canUseTab, tabForRequest } from '@/lib/auth/permissions';
+import { TAB_LABELS, blockedForReadOnly, canUseTab, isReadOnly, tabForRequest } from '@/lib/auth/permissions';
 
 /**
  * The single gate in front of the admin panel and the API.
@@ -75,6 +75,10 @@ export async function proxy(request: NextRequest) {
     const tab = tabForRequest(request.method, pathname);
     if (tab && !canUseTab(user, tab)) {
       return NextResponse.json({ error: `You don't have access to ${TAB_LABELS[tab]}. Ask an admin to enable it for you.` }, { status: 403 });
+    }
+    // Read-only users can look at everything they have access to, but can't change anything.
+    if (isReadOnly(user) && blockedForReadOnly(request.method, pathname)) {
+      return NextResponse.json({ error: 'Your account is read-only: you can view the admin panel but not make changes. Ask an admin if you need to edit.' }, { status: 403 });
     }
   }
 

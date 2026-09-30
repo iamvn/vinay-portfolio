@@ -5,6 +5,7 @@ import { handleDbError, jsonError, parseBody } from '@/lib/api-utils';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
 import { clearLoginFailures, loginLockedFor, recordLoginFailure } from '@/lib/auth/rate-limit';
 import { publicUser } from '@/lib/auth/session';
+import { findSessionUser } from '@/lib/auth/permissions-store';
 import { createToken, sessionCookie } from '@/lib/auth/token';
 
 const loginSchema = z.object({ email: z.string().trim().toLowerCase().min(1), password: z.string().min(1) }).strict();
@@ -23,7 +24,8 @@ export async function POST(request: Request) {
   if (minutes) return jsonError(`Too many failed attempts. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`, 429);
 
   try {
-    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    // Only the columns every database has; access settings are read below (and added first if missing).
+    const user = await prisma.user.findUnique({ where: { email: data.email }, select: { id: true, email: true, name: true, role: true, passwordHash: true, tokenVersion: true } });
     dummyHash ??= hashPassword('not-a-real-password');
     const valid = await verifyPassword(data.password, user?.passwordHash ?? (await dummyHash));
     if (!user || !valid) {
@@ -34,7 +36,7 @@ export async function POST(request: Request) {
     const { token, expiresAt } = await createToken(user.id, user.tokenVersion);
     // Only admins get the token in the body (for curl/scripts); editors use the session cookie only.
     const apiToken = user.role === 'admin' ? { token, expiresAt: expiresAt.toISOString() } : {};
-    const response = NextResponse.json({ user: publicUser(user), ...apiToken });
+    const response = NextResponse.json({ user: publicUser((await findSessionUser(user.id)) ?? user), ...apiToken });
     response.cookies.set(sessionCookie(token));
     return response;
   } catch (err) {

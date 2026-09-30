@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, describeError } from './api';
-import { Button, Card, ConfirmButton, Loading, buttonBase, type Notify } from './ui';
+import { Button, Card, ConfirmButton, Loading, buttonBase, type Notify, useReadOnly } from './ui';
 import { THEME_PRESETS } from '@/lib/design/theme';
 
 type Status = {
@@ -49,6 +49,7 @@ function Thumb({ id }: { id: string }) {
 }
 
 export function DesignTab({ notify }: { notify: Notify }) {
+  const readOnly = useReadOnly();
   const [status, setStatus] = useState<Status | null>(null);
   const [busy, setBusy] = useState(false);
   const router = useRouter();
@@ -93,7 +94,7 @@ export function DesignTab({ notify }: { notify: Notify }) {
           </p>
         )}
         <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-          <a href="/admin/design" className={`${buttonBase} col-span-2 bg-lime-300 text-black hover:bg-lime-200 sm:col-span-1`}>Open design editor</a>
+          <a href="/admin/design" className={`${buttonBase} col-span-2 bg-lime-300 text-black hover:bg-lime-200 sm:col-span-1`}>{readOnly ? 'View design editor' : 'Open design editor'}</a>
           {status.draft && <a href="/admin/design/preview" target="_blank" rel="noreferrer" className={`${buttonBase} border border-white/15 text-slate-200 hover:border-cyan-300/60`}>Preview draft ↗</a>}
           {status.draft && status.unpublishedChanges && <Button onClick={() => run(() => api('POST', '/api/design/publish', {}), 'Published. The homepage now shows your design.')} disabled={busy}>Publish draft</Button>}
           {status.draft && status.unpublishedChanges && <ConfirmButton onConfirm={() => run(() => api('DELETE', '/api/design'), live ? 'Draft reverted to the live design.' : 'Draft discarded. The editor starts from the live Classic design again.')} disabled={busy} confirmLabel="Tap again to discard" className="border-white/15! text-slate-200!">↺ Revert draft to live</ConfirmButton>}

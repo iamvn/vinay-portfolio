@@ -6,22 +6,49 @@ import { Button, Card, ConfirmButton, Field, Loading, PasswordInput, TextInput, 
 
 import { EDITOR_DEFAULT_TABS, TAB_IDS, TAB_LABELS, type TabId } from '@/lib/auth/permissions';
 
-export type AdminUser = { id: number; email: string; name: string; role: string; createdAt?: string; owner?: boolean; permissions?: TabId[] | null; tabs?: TabId[] };
+export type AdminUser = {
+  id: number; email: string; name: string; role: string; createdAt?: string; owner?: boolean;
+  permissions?: TabId[] | null; tabs?: TabId[]; readOnly?: boolean; viewOnly?: boolean;
+};
 
-/** Checkboxes for the admin tabs a non-admin may use. */
+/** Checkboxes for the admin tabs a non-admin may use (nothing is saved until the form's Save button). */
 function AccessPicker({ value, onChange, disabled }: { value: TabId[]; onChange: (tabs: TabId[]) => void; disabled?: boolean }) {
-  const toggle = (tab: TabId) => onChange(value.includes(tab) ? value.filter((item) => item !== tab) : [...value, tab]);
+  // Keep the tab order fixed, whatever order the boxes were ticked in.
+  const toggle = (tab: TabId) => onChange(TAB_IDS.filter((item) => (item === tab ? !value.includes(tab) : value.includes(item))));
+  const quick = 'min-h-9 text-xs font-bold text-cyan-300 hover:text-white disabled:opacity-40';
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-1 sm:grid-cols-3 lg:grid-cols-5">
-      {TAB_IDS.map((tab) => (
-        <label key={tab} className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm text-slate-200 sm:min-h-8">
-          <input type="checkbox" className="size-5 accent-lime-300 sm:size-4" checked={value.includes(tab)} onChange={() => toggle(tab)} disabled={disabled} />
-          {TAB_LABELS[tab]}
-        </label>
-      ))}
+    <div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 sm:grid-cols-3 lg:grid-cols-5">
+        {TAB_IDS.map((tab) => (
+          <label key={tab} className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm text-slate-200 sm:min-h-8">
+            <input type="checkbox" className="size-5 accent-lime-300 sm:size-4" checked={value.includes(tab)} onChange={() => toggle(tab)} disabled={disabled} />
+            {TAB_LABELS[tab]}
+          </label>
+        ))}
+      </div>
+      <div className="mt-1 flex flex-wrap gap-x-4">
+        <button type="button" className={quick} disabled={disabled} onClick={() => onChange([...TAB_IDS])}>Select all</button>
+        <button type="button" className={quick} disabled={disabled} onClick={() => onChange([])}>Clear all</button>
+        <button type="button" className={quick} disabled={disabled} onClick={() => onChange(EDITOR_DEFAULT_TABS)}>Default tabs</button>
+      </div>
     </div>
   );
 }
+
+/** The read-only switch: the user can open their tabs and look, but can't change anything. */
+function ReadOnlySwitch({ checked, onChange, disabled }: { checked: boolean; onChange: (value: boolean) => void; disabled?: boolean }) {
+  return (
+    <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/[.02] px-3 py-2.5 sm:min-h-0">
+      <input type="checkbox" className="mt-0.5 size-5 shrink-0 accent-yellow-300 sm:size-4" checked={checked} onChange={(e) => onChange(e.target.checked)} disabled={disabled} />
+      <span>
+        <span className="block text-sm font-bold text-slate-100">Read-only</span>
+        <span className="block text-xs text-slate-500">Can open the tabs above and see everything in them, but can’t save, add, delete, upload or publish. They can still change their own password.</span>
+      </span>
+    </label>
+  );
+}
+
+const sameTabs = (a: readonly TabId[], b: readonly TabId[]) => a.length === b.length && a.every((tab) => b.includes(tab));
 
 const MIN_LENGTH = 10;
 
@@ -132,16 +159,17 @@ function AddUser({ onAdded, notify }: { onAdded: () => void; notify: Notify }) {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('editor');
   const [access, setAccess] = useState<TabId[]>(EDITOR_DEFAULT_TABS);
+  const [readOnly, setReadOnly] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     try {
-      const user = await api<AdminUser>('POST', '/api/users', { email, name, password, role, ...(role === 'editor' ? { permissions: access } : {}) });
+      const user = await api<AdminUser>('POST', '/api/users', { email, name, password, role, ...(role === 'editor' ? { permissions: access, readOnly } : {}) });
       onAdded();
-      setEmail(''); setName(''); setPassword(''); setRole('editor'); setAccess(EDITOR_DEFAULT_TABS);
-      notify(`Added ${user.email} as ${ROLE_INFO[user.role as Role]?.label ?? user.role}. Share the password with them privately; they can change it after logging in.`);
+      setEmail(''); setName(''); setPassword(''); setRole('editor'); setAccess(EDITOR_DEFAULT_TABS); setReadOnly(false);
+      notify(`Added ${user.email} as ${ROLE_INFO[user.role as Role]?.label ?? user.role}${user.viewOnly ? ' (read-only)' : ''}. Share the password with them privately; they can change it after logging in.`);
     } catch (error) {
       notify(describeError(error), 'error');
     } finally {
@@ -166,6 +194,7 @@ function AddUser({ onAdded, notify }: { onAdded: () => void; notify: Notify }) {
           <Field group label="Tabs this user can use" hint="“My account” (their password) is always available. Admins always see every tab.">
             <AccessPicker value={access} onChange={setAccess} />
           </Field>
+          <div className="mt-3"><ReadOnlySwitch checked={readOnly} onChange={setReadOnly} /></div>
         </div>
       )}
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap md:col-span-3">
@@ -194,11 +223,25 @@ function UserRow({ user, onChanged, notify }: { user: AdminUser; onChanged: () =
     }
   }
 
-  async function saveAccess(tabs: TabId[] | null) {
+  // Access is edited as a draft: tick several boxes, then Save once.
+  const savedTabs = user.tabs ?? EDITOR_DEFAULT_TABS;
+  const savedReadOnly = Boolean(user.readOnly);
+  const [tabs, setTabs] = useState<TabId[]>(savedTabs);
+  const [readOnly, setReadOnly] = useState(savedReadOnly);
+  const [synced, setSynced] = useState({ savedTabs, savedReadOnly });
+  if (!sameTabs(synced.savedTabs, savedTabs) || synced.savedReadOnly !== savedReadOnly) {
+    // The saved access changed (after Save or a reload): start the draft from it again.
+    setSynced({ savedTabs, savedReadOnly });
+    setTabs(savedTabs);
+    setReadOnly(savedReadOnly);
+  }
+  const accessDirty = !sameTabs(tabs, savedTabs) || readOnly !== savedReadOnly;
+
+  async function saveAccess() {
     setBusy(true);
     try {
-      await api('PATCH', `/api/users/${user.id}`, { permissions: tabs });
-      notify(tabs === null ? `${user.email}: access reset to the default tabs.` : `${user.email} can now use: ${tabs.length ? tabs.map((tab) => TAB_LABELS[tab]).join(', ') : 'only My account'}.`);
+      await api('PATCH', `/api/users/${user.id}`, { permissions: tabs, readOnly });
+      notify(`${user.email}${readOnly ? ' (read-only)' : ''} can now use: ${tabs.length ? tabs.map((tab) => TAB_LABELS[tab]).join(', ') : 'only My account'}.`);
     } catch (error) {
       notify(describeError(error), 'error');
     } finally {
@@ -239,16 +282,25 @@ function UserRow({ user, onChanged, notify }: { user: AdminUser; onChanged: () =
           <ConfirmButton onConfirm={remove} disabled={busy} confirmLabel="Tap again to remove">Remove</ConfirmButton>
         </>
       )}
-      <div className="rounded-xl border border-white/10 bg-black/20 p-3 sm:col-span-3">
+      <div className={`rounded-xl border bg-black/20 p-3 sm:col-span-3 ${accessDirty ? 'border-yellow-300/40' : 'border-white/10'}`}>
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Access</p>
-          {role === 'editor' && user.permissions && (
-            <button type="button" onClick={() => saveAccess(null)} disabled={busy} className="min-h-9 text-xs font-bold text-cyan-300 hover:text-white disabled:opacity-40">Reset to default</button>
-          )}
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            Access{role === 'editor' && savedReadOnly && <span className="ml-2 rounded-full bg-yellow-300/10 px-2 py-0.5 text-[10px] text-yellow-200">Read-only</span>}
+          </p>
+          {accessDirty && <span className="text-xs text-yellow-300">● Unsaved changes</span>}
         </div>
         {role === 'admin'
-          ? <p className="text-xs text-slate-500">Admins can use every tab.</p>
-          : <AccessPicker value={user.tabs ?? EDITOR_DEFAULT_TABS} onChange={(tabs) => saveAccess(tabs)} disabled={busy} />}
+          ? <p className="text-xs text-slate-500">Admins can use every tab and change everything.</p>
+          : (
+            <>
+              <AccessPicker value={tabs} onChange={setTabs} disabled={busy} />
+              <div className="mt-3"><ReadOnlySwitch checked={readOnly} onChange={setReadOnly} disabled={busy} /></div>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                <Button onClick={() => { setTabs(savedTabs); setReadOnly(savedReadOnly); }} disabled={busy || !accessDirty}>Cancel</Button>
+                <Button tone="primary" onClick={saveAccess} disabled={busy || !accessDirty}>{busy ? 'Saving…' : 'Save access'}</Button>
+              </div>
+            </>
+          )}
       </div>
     </li>
   );
@@ -272,12 +324,12 @@ export function UsersTab({ me, notify }: { me: AdminUser; notify: Notify }) {
     <div className="space-y-4 sm:space-y-5">
       <Card title={`My account · ${me.email}`}>
         <p className="mb-4 text-xs text-slate-500">
-          Signed in as <b className="text-slate-300">{me.owner ? 'Owner (admin)' : ROLE_INFO[admin ? 'admin' : 'editor'].label}</b>.{' '}
+          Signed in as <b className="text-slate-300">{me.owner ? 'Owner (admin)' : `${ROLE_INFO[admin ? 'admin' : 'editor'].label}${me.viewOnly ? ' (read-only)' : ''}`}</b>.{' '}
           {me.owner
             ? 'Nobody can remove this account or change its role.'
             : admin
               ? 'You can manage users, but not the owner account or your own role.'
-              : `You can use: ${(me.tabs ?? []).map((tab) => TAB_LABELS[tab]).join(', ') || 'only this page'}. An admin chooses which tabs you can use. Only admins can manage users or create API tokens.`}
+              : `You can ${me.viewOnly ? 'view (read-only)' : 'use'}: ${(me.tabs ?? []).map((tab) => TAB_LABELS[tab]).join(', ') || 'only this page'}. An admin chooses which tabs you can use${me.viewOnly ? ' and has made your account read-only, so you can look but not change anything (except your password)' : ''}. Only admins can manage users or create API tokens.`}
         </p>
         <ChangePassword notify={notify} />
       </Card>

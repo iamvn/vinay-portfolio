@@ -6,6 +6,7 @@ import type { Client } from '@libsql/client';
 const ADDED_COLUMNS: Record<string, Record<string, string>> = {
   User: {
     permissions: "TEXT NOT NULL DEFAULT ''",
+    readOnly: 'BOOLEAN NOT NULL DEFAULT 0',
   },
   Profile: {
     targetRoles: "TEXT NOT NULL DEFAULT ''",
