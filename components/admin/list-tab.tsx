@@ -529,8 +529,9 @@ export const PROJECTS: ListConfig = {
     { key: 'result', label: 'Result', type: 'textarea', showIf: isType('case-study'), placeholder: 'Measured outcomes: performance, adoption, reliability…' },
 
     { key: 'h-article', label: 'Article', type: 'heading', showIf: isType('article') },
+    { key: 'h-deep', label: 'Deep dive (optional, shown below the four sections)', type: 'heading', showIf: isType('case-study') },
     {
-      key: 'content', label: 'Article text', type: 'textarea', rows: 16, showIf: isType('article'),
+      key: 'content', label: 'Article text / deep dive', type: 'textarea', rows: 16, showIf: (draft: Draft) => draft.type === 'article' || draft.type === 'case-study',
       hint: 'Blank line = new paragraph · start a line with "## " for a heading · "- " for a bullet point.',
       placeholder: '## The problem\nWhat was broken or missing…\n\n## What I built\n- First key point\n- Second key point',
     },
@@ -538,7 +539,7 @@ export const PROJECTS: ListConfig = {
 };
 
 const PROJECT_TYPES_GUIDE = [
-  { type: 'Case study', button: 'ENTER PROJECT', click: 'Your page /projects/<slug>', fields: 'Objective · Engineering focus · Architecture · Result' },
+  { type: 'Case study', button: 'VIEW CASE STUDY', click: 'Your page /projects/<slug>', fields: 'Objective · Engineering focus · Architecture · Result · optional deep dive' },
   { type: 'Article', button: 'READ ARTICLE', click: 'Your page /projects/<slug>', fields: 'Article text' },
   { type: 'Direct link', button: 'OPEN LINK ↗', click: 'Opens the Link in a new tab', fields: '— (no page)' },
 ];

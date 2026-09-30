@@ -8,6 +8,7 @@ import { ProfileTab } from './profile-tab';
 import { ResumeTab } from './resume-tab';
 import { InsightsTab } from './insights-tab';
 import { AiTab } from './ai-tab';
+import { DesignTab } from './design-tab';
 import { UsersTab, type AdminUser } from './users-tab';
 import type { Notify } from './ui';
 
@@ -17,6 +18,7 @@ const TABS = [
   ['skills', 'Skills'],
   ['projects', 'Projects'],
   ['copy', 'Site text'],
+  ['design', 'Design'],
   ['resume', 'Resume'],
   ['insights', 'Insights'],
   ['ai', 'AI assistant'],
@@ -26,7 +28,7 @@ const TABS = [
 
 type Tab = (typeof TABS)[number][0];
 /** Tabs only admins see (the API also refuses editors). */
-const ADMIN_ONLY: readonly Tab[] = ['ai'];
+const ADMIN_ONLY: readonly Tab[] = ['insights', 'design', 'ai'];
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
 
 function subscribeToHash(callback: () => void) {
@@ -111,8 +113,9 @@ export function AdminApp({ user }: { user: AdminUser }) {
         {tab === 'projects' && <ListTab config={PROJECTS} notify={notify} />}
         {tab === 'copy' && <CopyTab notify={notify} />}
         {tab === 'resume' && <ResumeTab notify={notify} />}
-        {tab === 'insights' && <InsightsTab notify={notify} />}
+        {tab === 'insights' && user.role === 'admin' && <InsightsTab notify={notify} />}
         {tab === 'ai' && user.role === 'admin' && <AiTab notify={notify} />}
+        {tab === 'design' && user.role === 'admin' && <DesignTab notify={notify} />}
         {tab === 'backup' && <BackupTab notify={notify} onReplaced={() => setReloadKey((key) => key + 1)} />}
         {tab === 'users' && <UsersTab me={user} notify={notify} />}
       </main>

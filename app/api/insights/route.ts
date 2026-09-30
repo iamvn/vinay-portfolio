@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleDbError } from '@/lib/api-utils';
 import { EVENT_TYPES, daysAgo } from '@/lib/events';
+import { requireAdmin } from '@/lib/auth/roles';
 
 export const dynamic = 'force-dynamic';
 
-/** Counts for Admin → Insights (last 7 days, last 30 days, all time) plus recent assistant questions. */
-export async function GET() {
+/** Counts for Admin → Insights (last 7 days, last 30 days, all time) plus recent assistant questions. Admins only. */
+export async function GET(request: Request) {
+  const { error } = await requireAdmin(request);
+  if (error) return error;
   try {
     const since7 = daysAgo(7);
     const since30 = daysAgo(30);

@@ -40,4 +40,25 @@ export async function migrate(db: Client) {
       console.log(`Added column ${table}.${name}`);
     }
   }
+  await renameDefaultLabels(db);
+}
+
+/**
+ * Site text defaults that were renamed. Only an untouched old default is updated,
+ * so anything you typed yourself in Admin → Site text is kept.
+ */
+const RENAMED_LABELS: { path: [string, string]; from: string; to: string }[] = [
+  { path: ['projects', 'enter'], from: 'ENTER PROJECT', to: 'VIEW CASE STUDY' },
+];
+
+async function renameDefaultLabels(db: Client) {
+  const row = (await db.execute('SELECT content FROM SiteCopy WHERE id = 1')).rows[0];
+  if (!row) return;
+  let copy: Record<string, Record<string, unknown>>;
+  try { copy = JSON.parse(String(row.content)); } catch { return; }
+  let changed = false;
+  for (const { path: [section, key], from, to } of RENAMED_LABELS) {
+    if (copy[section]?.[key] === from) { copy[section][key] = to; changed = true; console.log(`Renamed site text ${section}.${key}: "${from}" → "${to}"`); }
+  }
+  if (changed) await db.execute({ sql: 'UPDATE SiteCopy SET content = ? WHERE id = 1', args: [JSON.stringify(copy)] });
 }

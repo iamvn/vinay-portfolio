@@ -133,7 +133,8 @@ They are filled in from the profile when the page renders, so updating `yearsExp
 - **Contact**: Email me (mailto), Copy email and LinkedIn buttons in the Contact section; X opens email.
 - **Drafts**: every project has "Visible on site". Hidden projects are left out of the homepage, sitemap,
   structured data and the assistant; signed-in users can still preview them. Admin → Backup → "Add projects
-  from JSON" adds projects without overwriting existing slugs (see `content/starter-projects.json`).
+  from JSON" adds projects (existing slugs are skipped, or updated when "Update projects that already exist" is on).
+  `content/portfolio-project.json` is the full case study of this site; case studies can also have a "deep dive" write-up.
 - **Insights** (Admin → Insights): anonymous counts of resume downloads (not your own while signed in),
   email/copy/LinkedIn clicks and assistant questions, plus the latest questions. No IPs or cookies are stored.
 - **Page views**: Vercel Web Analytics (`@vercel/analytics`). Enable it once in Vercel → Project → Analytics.
@@ -163,6 +164,40 @@ default daily limit until you save settings in the admin.
 Admin API (admin session or token): `GET/POST /api/ai/providers`, `PATCH/DELETE /api/ai/providers/:id`,
 `POST /api/ai/providers/:id/test`, `PUT /api/ai/providers/reorder` `{ ids }`, `GET/PATCH /api/ai/settings`.
 Public: `GET /api/ask` (status) and `POST /api/ask` `{ messages: [{ role, content }] }` → `{ answer }`.
+
+## Site design (visual editor)
+
+Admins can redesign the homepage without code in **Admin → Design**, using the open-source
+[Puck](https://puckeditor.com) visual editor (`@puckeditor/core`, MIT).
+
+- **Templates:** **Classic** (your original site rebuilt from blocks, pixel-identical to the built-in homepage
+  but fully editable), **Arcade**, **Minimal**, **Studio**, and **Blank**. Starting from a template replaces
+  the draft only. With no draft, the editor starts from Classic.
+- **Editor** (`/admin/design`, best on a laptop): drag blocks from the left, click a block to edit it on the
+  right, switch phone/tablet/desktop previews at the top. Click empty page space for the **Page** settings:
+  color theme (7 presets), every palette color (background, cards, soft background, text, secondary text,
+  borders, three accents) with color pickers, heading/body fonts, text size, heading weight and case, corners,
+  button shape and style, page width, text direction (LTR/RTL), background effect, and the "Ask AI" button.
+- **Style on every block** (like a Shopify section): background color, background image with overlay, text /
+  accent / card colors, space inside (top, bottom) and above, content width, text align, corners, border,
+  shadow, show on all / desktop / phone, and an anchor id.
+- **Revert to live** (editor header, and Design tab → "Revert draft to live") throws away draft changes and
+  goes back to what visitors see now.
+- **Blocks:** portfolio blocks (navigation, hero, hiring snapshot, stats, skills, projects, experience,
+  contact, social links, resume button, footer) show live content from the other admin tabs, so a design
+  never goes stale. Layout blocks (section, columns, card, spacer, divider) and text & media blocks
+  (heading, text, button, image, list) are for anything else. In a portfolio block, an empty text setting
+  uses the site text, and `-` hides that line.
+- **Draft → Publish:** edits autosave as a draft. **Preview** shows the draft full-page, and **Publish** makes it
+  the live homepage immediately (no redeploy). **Use classic design** switches back. The last 5 published
+  versions can be loaded back into the draft.
+- **Stored** as JSON in the `Setting` table (`design.draft`, `design.published`, `design.history`). The server
+  accepts known block types only, limits size and nesting, and filters links and image URLs when rendering.
+  Editors (non-admins) can't see the tab, the editor, or the API.
+
+API (admin session or token): `GET /api/design`, `PUT /api/design` `{ data }` (save draft),
+`POST /api/design/publish` (`{}` = publish draft, or `{ data }`), `DELETE /api/design/publish` (classic),
+`POST /api/design/template` `{ id }`, `POST /api/design/restore` `{ index }`, `DELETE /api/design` (revert draft to live).
 
 ## Deploying to Vercel
 

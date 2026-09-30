@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './design.css';
 
 :root {
   --bg: #030609;
@@ -206,3 +207,6 @@ html[data-game-mode='off'] [class*='bg-red-950'] { background-color: #fdecec !im
 
 /* Admin panel: hide the scanline overlay. */
 body:has(.admin-shell)::after { display: none; }
+
+/* Designed pages (Admin → Design) bring their own background effects. */
+body:has(.d-root).scanlines::after { display: none; }

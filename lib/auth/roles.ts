@@ -21,7 +21,7 @@ type AdminCheck = { user: SessionUser; error?: never } | { user?: never; error: 
 export async function requireAdmin(request: Request): Promise<AdminCheck> {
   const user = await userFromRequest(request);
   if (!user) return { error: jsonError('Not logged in.', 401) };
-  if (!isAdmin(user)) return { error: jsonError('Only admins can manage users.', 403) };
+  if (!isAdmin(user)) return { error: jsonError('Only admins can do this.', 403) };
   return { user };
 }
 

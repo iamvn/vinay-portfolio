@@ -1,0 +1,139 @@
+/* ------------------------------------------------------------------------------------------
+ * Designs made in Admin → Design. Colors, fonts, corners and width come from CSS variables
+ * set on .d-root (see lib/design/theme.ts), so one theme change restyles every block.
+ * ---------------------------------------------------------------------------------------- */
+
+@layer components {
+  .d-root {
+    position: relative;
+    min-height: 100vh;
+    background: var(--d-bg);
+    color: var(--d-text);
+    font-family: var(--d-body-font);
+    line-height: 1.6;
+    overflow-x: clip;
+  }
+  :where(.d-root) :is(h1, h2, h3, h4) { font-family: var(--d-heading-font); line-height: 1.15; margin: 0; color: var(--d-text); }
+  :where(.d-root) p { margin: 0; }
+  :where(.d-root) a { color: inherit; }
+  .d-root :is(button, a):focus-visible { outline: 2px solid var(--d-accent); outline-offset: 3px; }
+
+  /* Keep the classic site's overlays and "game mode off" overrides away from designed pages. */
+  .d-root.d-effect-scanlines::after {
+    content: ''; pointer-events: none; position: fixed; inset: 0; z-index: 40; opacity: .035;
+    background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.7) 4px);
+  }
+  .d-root.d-effect-grid {
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--d-accent-2) 5%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--d-accent) 4%, transparent) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .d-container { width: 100%; max-width: var(--d-width); margin-inline: auto; padding-inline: 1rem; }
+  @media (min-width: 768px) { .d-container { padding-inline: 2rem; } }
+
+  .d-muted { color: var(--d-muted); }
+  .d-accent { color: var(--d-accent); }
+  .d-accent-2 { color: var(--d-accent-2); }
+  .d-eyebrow { font-size: .72rem; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; color: var(--d-accent); }
+
+  .d-card { background: var(--d-surface); border: 1px solid var(--d-line); border-radius: var(--d-radius); }
+  .d-card-soft { background: var(--d-surface-2); border-radius: var(--d-radius); }
+  .d-line { border-color: var(--d-line); }
+
+  .d-tag {
+    display: inline-flex; align-items: center; border: 1px solid var(--d-line); border-radius: calc(var(--d-radius) * .6);
+    padding: .3rem .65rem; font-size: .75rem; color: var(--d-text); background: var(--d-surface-2);
+  }
+  .d-tag-accent { border-color: color-mix(in srgb, var(--d-accent) 35%, transparent); background: color-mix(in srgb, var(--d-accent) 8%, transparent); }
+
+  .d-btn {
+    display: inline-flex; min-height: 3rem; align-items: center; justify-content: center; gap: .5rem;
+    border-radius: var(--d-button-radius, var(--d-radius)); padding: .75rem 1.25rem; font-size: .85rem; font-weight: 800; letter-spacing: .02em;
+    text-decoration: none; transition: transform .15s, background-color .15s, border-color .15s, color .15s; cursor: pointer;
+  }
+  .d-btn:hover { transform: translateY(-1px); }
+  .d-btn-primary { background: var(--d-accent); color: var(--d-accent-text) !important; border: 1px solid var(--d-accent); }
+  .d-btn-secondary { background: transparent; color: var(--d-text); border: 1px solid color-mix(in srgb, var(--d-text) 25%, transparent); }
+  .d-btn-secondary:hover { border-color: var(--d-accent); }
+  .d-btn-ghost { background: transparent; color: var(--d-accent); border: 1px solid transparent; padding-inline: .25rem; }
+
+  .d-link { color: var(--d-accent); font-weight: 800; text-decoration: none; }
+  .d-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  .d-section-surface { background: var(--d-surface); }
+  .d-section-soft { background: var(--d-surface-2); }
+  .d-section-accent { background: color-mix(in srgb, var(--d-accent) 9%, var(--d-bg)); }
+  .d-section-inverted { background: var(--d-text); color: var(--d-bg); }
+  .d-section-inverted :is(h1, h2, h3, h4) { color: var(--d-bg); }
+  .d-section-inverted .d-muted { color: color-mix(in srgb, var(--d-bg) 70%, transparent); }
+
+  .d-avatar { object-fit: cover; background: var(--d-surface-2); border: 2px solid color-mix(in srgb, var(--d-accent) 45%, transparent); }
+  .d-dot { width: .6rem; height: .6rem; border-radius: 9999px; background: var(--d-accent); display: inline-block; }
+
+  .d-nav { background: color-mix(in srgb, var(--d-bg) 85%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--d-line); }
+
+  .d-placeholder {
+    border: 2px dashed var(--d-line); border-radius: var(--d-radius); padding: 2rem; text-align: center;
+    color: var(--d-muted); font-size: .85rem;
+  }
+
+  /* Text & media blocks placed straight on the page get the page width and side gutter;
+     inside a Section, Columns or Card they fill their box instead. */
+  .d-prim { width: 100%; max-width: var(--d-width); margin-inline: auto; padding-inline: 1rem; }
+  @media (min-width: 768px) { .d-prim { padding-inline: 2rem; } }
+  :is(.d-section-inner, .d-col, .d-cardbox) .d-prim { max-width: none; margin-inline: 0; padding-inline: 0; }
+  :is(.d-section-inner, .d-col, .d-cardbox) .d-container { max-width: none; padding-inline: 0; }
+  :is(.d-section-inner, .d-col, .d-cardbox) .d-block { padding-block: 1rem; }
+
+  /* Classic sections inside a design keep the original typography (Tailwind classes still win). */
+  .d-root .d-classic { line-height: 1.5; }
+  :where(.d-root .d-classic) :is(h1, h2, h3, h4) { line-height: inherit; color: inherit; font-family: inherit; }
+}
+
+/* ------------------------------------------------------------------------------------------
+ * Outside the layer on purpose: these must win over Tailwind utility classes.
+ * ---------------------------------------------------------------------------------------- */
+
+/* Page settings → Main buttons: Outline. */
+.d-buttons-outline .d-btn-primary { background: transparent; color: var(--d-accent) !important; border-color: var(--d-accent); }
+
+/* Page settings → Heading weight / case (the Classic sections keep their own typography). */
+.d-headings-bold :is(h1, h2, h3, h4):not(.d-classic *) { font-weight: 700; }
+.d-headings-normal :is(h1, h2, h3, h4):not(.d-classic *) { font-weight: 500; }
+.d-headings-upper :is(h1, h2, h3, h4):not(.d-classic *) { text-transform: uppercase; }
+
+
+/*
+ * Classic sections follow the design palette. They use Tailwind colors (lime = accent, cyan = second accent,
+ * purple = third accent, slate = text shades); pointing those color variables at the palette recolors them.
+ * Only applied when the palette isn't the untouched Classic preset, so "Classic" stays pixel-identical.
+ */
+.d-recolor {
+  --color-lime-200: color-mix(in oklab, var(--d-accent) 75%, white);
+  --color-lime-300: var(--d-accent);
+  --color-cyan-300: var(--d-accent-2);
+  --color-purple-200: color-mix(in oklab, var(--d-accent-3) 70%, white);
+  --color-purple-300: var(--d-accent-3);
+  --color-purple-400: color-mix(in oklab, var(--d-accent-3) 85%, black);
+  --color-slate-100: var(--d-text);
+  --color-slate-200: color-mix(in oklab, var(--d-text) 85%, var(--d-muted));
+  --color-slate-300: color-mix(in oklab, var(--d-text) 55%, var(--d-muted));
+  --color-slate-400: var(--d-muted);
+  --color-slate-500: color-mix(in oklab, var(--d-muted) 80%, var(--d-bg));
+  --color-slate-600: color-mix(in oklab, var(--d-muted) 60%, var(--d-bg));
+  --color-slate-800: var(--d-surface-2);
+  --color-slate-900: var(--d-surface);
+  --color-white: var(--d-text);
+}
+.d-recolor .d-classic .bg-\[\#030609\] { background-color: var(--d-bg); }
+.d-recolor .d-classic .bg-\[\#030609\]\/80 { background-color: color-mix(in oklab, var(--d-bg) 80%, transparent); }
+.d-recolor .d-classic :is(.bg-\[\#050c12\], .bg-\[\#050b11\]) { background-color: var(--d-surface-2); }
+.d-recolor .d-classic .bg-\[\#050b11\]\/95 { background-color: color-mix(in oklab, var(--d-surface-2) 95%, transparent); }
+.d-recolor .d-classic .bg-\[\#071018\] { background-color: var(--d-surface); }
+.d-recolor .d-classic :is([class*='border-white/']) { border-color: var(--d-line); }
+.d-recolor .d-classic .bg-lime-300.text-black { color: var(--d-accent-text); }
+.d-recolor .d-classic .game-grid { background-image: linear-gradient(color-mix(in srgb, var(--d-accent-2) 4%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--d-accent) 3%, transparent) 1px, transparent 1px); }
+.d-recolor .d-classic .bg-black\/40 { background-color: color-mix(in oklab, var(--d-surface-2) 85%, transparent); }
+.d-recolor .d-classic .bg-black\/20 { background-color: color-mix(in oklab, var(--d-surface-2) 60%, transparent); }

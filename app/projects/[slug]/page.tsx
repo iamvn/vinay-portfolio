@@ -136,6 +136,13 @@ export default async function ProjectPage({ params }: Props) {
               ))}
             </div>
           )}
+
+          {!isArticle && project.content && (
+            <div className="mt-10 max-w-3xl border-t border-white/10 pt-8">
+              <p className="font-mono text-xs uppercase tracking-[.3em] text-lime-300">Deep dive</p>
+              <div className="mt-4"><ArticleBody content={project.content} /></div>
+            </div>
+          )}
         </div>
       </article>
     </div>
