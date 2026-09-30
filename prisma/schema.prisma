@@ -22,6 +22,13 @@ model Profile {
   lighthouse        String
   usersImpacted     String
   socialLinks       String
+  /// Hiring snapshot (shown on the homepage when filled in)
+  targetRoles       String  @default("")
+  workPreference    String  @default("")
+  availability      String  @default("")
+  noticePeriod      String  @default("")
+  /// Extra facts only the "Ask my resume" assistant uses (education, languages, certifications…)
+  assistantNotes    String  @default("")
 }
 
 model SiteCopy {
@@ -64,6 +71,8 @@ model Project {
   architecture String  @default("")
   result       String  @default("")
   content      String  @default("")
+  /// false = draft: hidden from the site, sitemap and assistant; admins can still preview it
+  published    Boolean @default(true)
 }
 
 // Uploaded project images, one per project, keyed by the project's slug.
@@ -109,4 +118,36 @@ model User {
   /// Incremented on password change: invalidates every existing session/token for this user.
   tokenVersion Int    @default(0)
   createdAt    String
+}
+
+// Anonymous activity log for the admin Insights tab. No IPs or personal data are stored.
+// type: "resume_download" | "contact_email" | "contact_copy" | "contact_linkedin" | "ask"
+model Event {
+  id        Int    @id @default(autoincrement())
+  type      String
+  detail    String @default("")
+  createdAt String
+}
+
+// AI providers for "Ask my resume". Tried in `order`; the next one is used if one fails.
+// kind: "anthropic" | "openai" | "openai-compatible". apiKey is stored encrypted (see lib/ai/crypto.ts).
+model AiProvider {
+  id          Int     @id @default(autoincrement())
+  name        String
+  kind        String
+  baseUrl     String
+  model       String
+  keyCipher   String  @default("")
+  keyHint     String  @default("")
+  enabled     Boolean @default(true)
+  order       Int     @default(0)
+  /// "" = the provider's default temperature
+  temperature String  @default("")
+  createdAt   String
+}
+
+// Small key/value settings (JSON values), e.g. "assistant".
+model Setting {
+  key   String @id
+  value String
 }
