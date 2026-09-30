@@ -158,7 +158,8 @@ export function AdminApp({ user, database }: { user: AdminUser; database?: Datab
           {tab === 'design' && can('design') && <DesignTab notify={notify} />}
           {tab === 'backup' && <BackupTab notify={notify} onReplaced={() => setReloadKey((key) => key + 1)} />}
         </ReadOnlyProvider>
-        {tab === 'users' && <UsersTab me={user} notify={notify} />}
+        {/* "My account" (password change) always works, even for read-only users. */}
+        {tab === 'users' && <ReadOnlyProvider value={false}><UsersTab me={user} notify={notify} /></ReadOnlyProvider>}
         {database && database.persistent && database.kind !== 'file' && (
           <div className="mt-8 space-y-1 text-center text-[11px] text-slate-500">
             <p>Database: {database.label}{database.kind === 'turso' ? ' (Turso)' : ''} · changes are saved permanently</p>

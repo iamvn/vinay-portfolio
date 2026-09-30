@@ -67,6 +67,7 @@ function ChangePassword({ notify }: { notify: Notify }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (!current) return notify('Enter your current password.', 'error');
     if (next.length < MIN_LENGTH) return notify(`The new password must be at least ${MIN_LENGTH} characters.`, 'error');
     if (next !== repeat) return notify('The new passwords do not match.', 'error');
     setBusy(true);
@@ -86,7 +87,7 @@ function ChangePassword({ notify }: { notify: Notify }) {
       <Field label="Current password"><PasswordInput value={current} onChange={setCurrent} autoComplete="current-password" /></Field>
       <Field label="New password" hint={`At least ${MIN_LENGTH} characters`}><PasswordInput value={next} onChange={setNext} autoComplete="new-password" /></Field>
       <Field label="Repeat new password"><PasswordInput value={repeat} onChange={setRepeat} autoComplete="new-password" /></Field>
-      <div className="md:col-span-3"><Button tone="primary" type="submit" disabled={busy || !current || !next} className="w-full sm:w-auto">{busy ? 'Saving…' : 'Change password'}</Button></div>
+      <div className="md:col-span-3"><Button tone="primary" type="submit" disabled={busy} className="w-full sm:w-auto">{busy ? 'Saving…' : 'Change password'}</Button></div>
     </form>
   );
 }
