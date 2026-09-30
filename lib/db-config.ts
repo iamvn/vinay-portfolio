@@ -22,23 +22,27 @@ export function databaseConfig() {
     ? process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN
     : process.env.DATABASE_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN;
   const resolved = url || LOCAL_DATABASE_URL;
+  // Vercel's Turso integration can create a database branch for every deployment ("dpl-…"). Each new
+  // deployment then starts from a fresh copy of the (empty) main database, so edits vanish on every deploy.
+  const deploymentBranch = onVercel && useTurso && /^libsql:\/\/dpl-/i.test(resolved);
   return {
     url: resolved,
     authToken: authToken || undefined,
     configured: Boolean(url),
-    /** False when data would be wiped by the next deploy (a file database on Vercel). */
-    persistent: !(onVercel && isFile(resolved)),
+    /** False when data would be wiped by the next deploy (a file database, or a per-deployment branch). */
+    persistent: !(onVercel && isFile(resolved)) && !deploymentBranch,
+    deploymentBranch,
     onVercel,
   };
 }
 
 /** Safe to show in the admin panel: which database is in use, without credentials. */
 export function describeDatabase() {
-  const { url, persistent, onVercel } = databaseConfig();
+  const { url, persistent, onVercel, deploymentBranch } = databaseConfig();
   if (isFile(url)) {
-    return { kind: 'file' as const, label: url.replace(/^file:/, ''), persistent, onVercel };
+    return { kind: 'file' as const, label: url.replace(/^file:/, ''), persistent, onVercel, deploymentBranch };
   }
   let host = url;
   try { host = new URL(url).host; } catch { /* keep as is */ }
-  return { kind: host.endsWith('.turso.io') ? ('turso' as const) : ('remote' as const), label: host, persistent, onVercel };
+  return { kind: host.endsWith('.turso.io') ? ('turso' as const) : ('remote' as const), label: host, persistent, onVercel, deploymentBranch };
 }

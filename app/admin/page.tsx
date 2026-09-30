@@ -5,6 +5,7 @@ import { publicUser } from '@/lib/auth/session';
 import { currentUser } from '@/lib/auth/server';
 import { ownerId } from '@/lib/auth/roles';
 import { describeDatabase } from '@/lib/db-config';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,5 +18,8 @@ export default async function AdminPage() {
   // proxy.ts already guards /admin; this is a second check at render time.
   const user = await currentUser();
   if (!user) redirect('/login?next=/admin');
-  return <AdminApp user={{ ...publicUser(user), owner: user.id === (await ownerId()) }} database={describeDatabase()} />;
+  // What the last deploy found in the database (written by scripts/deploy-setup.ts).
+  const rows = await prisma.setting.findMany({ where: { key: { in: ['system.lastDeploy', 'system.seededAt'] } } }).catch(() => []);
+  const read = (key: string) => { try { return JSON.parse(rows.find((row) => row.key === key)?.value ?? 'null'); } catch { return null; } };
+  return <AdminApp user={{ ...publicUser(user), owner: user.id === (await ownerId()) }} database={{ ...describeDatabase(), lastDeploy: read('system.lastDeploy'), seededAt: read('system.seededAt')?.at ?? null }} />;
 }

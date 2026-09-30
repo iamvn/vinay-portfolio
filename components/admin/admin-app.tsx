@@ -36,14 +36,22 @@ function subscribeToHash(callback: () => void) {
   return () => window.removeEventListener('hashchange', callback);
 }
 
-export type DatabaseInfo = { kind: 'file' | 'turso' | 'remote'; label: string; persistent: boolean; onVercel: boolean };
+export type DatabaseInfo = {
+  kind: 'file' | 'turso' | 'remote'; label: string; persistent: boolean; onVercel: boolean; deploymentBranch?: boolean;
+  lastDeploy?: { at: string; result: 'seeded' | 'kept' | 'partial'; projects: number; users: number; commit: string | null } | null;
+  seededAt?: string | null;
+};
+const shortDate = (iso: string) => new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
 /** Makes it obvious which database is being edited: a local file on this computer, or the live one. */
 function DatabaseNotice({ database }: { database: DatabaseInfo }) {
   if (!database.persistent) {
     return (
       <p role="alert" className="mb-4 rounded-xl border border-red-400/40 bg-red-950/60 px-4 py-3 text-sm text-red-100">
-        <b>Changes here will be lost on the next deploy.</b> This site is using a database file inside the deployment. In Vercel → Settings → Environment Variables, remove the <code>file:</code> DATABASE_URL and connect your Turso database.
+        <b>Changes here will be lost on the next deploy.</b>{' '}
+        {database.deploymentBranch
+          ? <>This deployment uses its own temporary database branch ({database.label}). In Vercel → Settings → Environment Variables, set <code>DATABASE_URL</code> to your permanent Turso database and <code>DATABASE_AUTH_TOKEN</code>, then redeploy.</>
+          : <>This site is using a database file inside the deployment. In Vercel → Settings → Environment Variables, remove the <code>file:</code> DATABASE_URL and connect your Turso database.</>}
       </p>
     );
   }
@@ -141,7 +149,18 @@ export function AdminApp({ user, database }: { user: AdminUser; database?: Datab
         {tab === 'backup' && <BackupTab notify={notify} onReplaced={() => setReloadKey((key) => key + 1)} />}
         {tab === 'users' && <UsersTab me={user} notify={notify} />}
         {database && database.persistent && database.kind !== 'file' && (
-          <p className="mt-8 text-center text-[11px] text-slate-600">Database: {database.label}{database.kind === 'turso' ? ' (Turso)' : ''} · changes are saved permanently and survive deploys</p>
+          <div className="mt-8 space-y-1 text-center text-[11px] text-slate-500">
+            <p>Database: {database.label}{database.kind === 'turso' ? ' (Turso)' : ''} · changes are saved permanently</p>
+            {database.seededAt && <p>Starter content loaded into this database on {shortDate(database.seededAt)}</p>}
+            {database.lastDeploy && (
+              <p className={database.lastDeploy.result === 'kept' ? '' : 'text-yellow-300'}>
+                Last deploy{database.lastDeploy.commit ? ` (${database.lastDeploy.commit})` : ''}, {shortDate(database.lastDeploy.at)}:{' '}
+                {database.lastDeploy.result === 'kept' ? `existing content kept (${database.lastDeploy.projects} projects, ${database.lastDeploy.users} users)`
+                  : database.lastDeploy.result === 'seeded' ? 'found an EMPTY database and loaded the starter content'
+                  : 'found no profile; starter content NOT loaded'}
+              </p>
+            )}
+          </div>
         )}
       </main>
 

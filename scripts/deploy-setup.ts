@@ -13,8 +13,11 @@ import { prisma } from '../lib/prisma';
 import { portfolioSchema } from '../lib/schemas';
 
 async function main() {
-  const { url, authToken, configured, persistent } = databaseConfig();
-  if (process.env.VERCEL && !persistent) {
+  const { url, authToken, configured, persistent, deploymentBranch } = databaseConfig();
+  if (deploymentBranch && process.env.ALLOW_DEPLOYMENT_BRANCH_DB !== '1') {
+    throw new Error(`This deployment was given its own database branch (${new URL(url).host.split('.')[0]}) by the Turso integration. Every deploy would start from an empty copy and your edits would be lost. Fix: in Vercel → Settings → Environment Variables set DATABASE_URL to your permanent Turso database (libsql://<name>-<org>.turso.io) and DATABASE_AUTH_TOKEN, for Production and Preview, then redeploy. DATABASE_URL takes priority over TURSO_DATABASE_URL.`);
+  }
+  if (process.env.VERCEL && !persistent && !deploymentBranch) {
     // A file database on Vercel is rebuilt from scratch on every deploy: all edits would be lost.
     throw new Error('DATABASE_URL points to a local file ("file:…"). On Vercel that file is recreated on every deploy, so all your edits would be lost. In Vercel → Settings → Environment Variables, delete DATABASE_URL (if you connected Turso, TURSO_DATABASE_URL is used) or set it to your libsql://… Turso URL plus DATABASE_AUTH_TOKEN, then redeploy.');
   }
@@ -37,14 +40,27 @@ async function main() {
   // Default data is only ever loaded into a database that has no profile at all (a brand-new database).
   // Existing content is never overwritten by a deploy.
   const [profiles, projects, users] = await Promise.all([prisma.profile.count(), prisma.project.count(), prisma.user.count()]);
+  let result: 'seeded' | 'kept' | 'partial';
   if (profiles === 0 && projects === 0 && users === 0) {
     await replacePortfolio(portfolioSchema.parse(data));
+    result = 'seeded';
     console.log('✓ New, empty database: loaded the starter content from data/portfolio.json');
   } else if (profiles === 0) {
+    result = 'partial';
     console.warn('⚠ No profile found, but the database has other data, so the starter content was NOT loaded. Restore a backup in Admin → Backup.');
   } else {
+    result = 'kept';
     console.log(`✓ Existing content kept (${projects} projects, ${users} users). Deploys never overwrite it.`);
   }
+
+  // Remember what this deploy found, so Admin can show it (and prove whether data survives deploys).
+  const now = new Date().toISOString();
+  const host = url.startsWith('file:') ? url : new URL(url).host;
+  const record = { at: now, result, projects, users, database: host, commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null, env: process.env.VERCEL_ENV ?? 'local' };
+  const save = (key: string, value: unknown) =>
+    prisma.setting.upsert({ where: { key }, create: { key, value: JSON.stringify(value) }, update: { value: JSON.stringify(value) } });
+  await save('system.lastDeploy', record);
+  if (result === 'seeded') await save('system.seededAt', { at: now, database: host });
 
   if ((await prisma.user.count()) === 0) {
     const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
