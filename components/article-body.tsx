@@ -12,11 +12,11 @@ export function ArticleBody({ content }: { content: string }) {
   let bullets: string[] = [];
 
   const flush = () => {
-    if (paragraph.length) blocks.push(<p key={blocks.length} className="text-base leading-8 text-slate-300">{paragraph.join(' ')}</p>);
+    if (paragraph.length) blocks.push(<p key={blocks.length} className="text-[15px] leading-7 text-slate-300 sm:text-base sm:leading-8">{paragraph.join(' ')}</p>);
     if (bullets.length) {
       blocks.push(
-        <ul key={blocks.length} className="space-y-2 text-base leading-7 text-slate-300">
-          {bullets.map((item, index) => <li key={index} className="flex gap-3"><span className="text-lime-300">▸</span><span>{item}</span></li>)}
+        <ul key={blocks.length} className="space-y-2 text-[15px] leading-7 text-slate-300 sm:text-base">
+          {bullets.map((item, index) => <li key={index} className="flex gap-3"><span className="shrink-0 text-lime-300" aria-hidden="true">▸</span><span className="min-w-0 break-words">{item}</span></li>)}
         </ul>,
       );
     }
@@ -29,7 +29,7 @@ export function ArticleBody({ content }: { content: string }) {
     if (!line) { flush(); continue; }
     if (line.startsWith('## ')) {
       flush();
-      blocks.push(<h2 key={blocks.length} className="pt-4 text-xl font-black uppercase tracking-tight text-white">{line.slice(3)}</h2>);
+      blocks.push(<h2 key={blocks.length} className="text-balance pt-4 text-lg font-black uppercase tracking-tight text-white sm:text-xl">{line.slice(3)}</h2>);
       continue;
     }
     if (line.startsWith('- ')) {
