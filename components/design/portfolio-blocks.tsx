@@ -75,7 +75,7 @@ function Avatar({ profile, className }: { profile: Portfolio['profile']; classNa
     : <span className={`d-avatar flex items-center justify-center text-3xl font-black ${className}`}>{initialsOf(profile.name)}</span>;
 }
 
-export function Hero(props: HeroProps & { portfolio: Portfolio }) {
+export function Hero(props: HeroProps & { portfolio: Portfolio; extra?: ReactNode }) {
   const { portfolio: { profile, copy } } = props;
   const name = or(props.headline, profile.name);
   const role = or(props.subheading, profile.role);
@@ -109,7 +109,7 @@ export function Hero(props: HeroProps & { portfolio: Portfolio }) {
           <h1 className="mt-3 text-4xl font-black tracking-tight md:text-6xl">{name}</h1>
           <p className="d-accent-2 mt-3 text-base font-bold md:text-xl">{role}</p>
           <p className="d-muted mx-auto mt-6 max-w-2xl text-base leading-7">{profile.summary}</p>
-          {tags}{buttons}{social}{status}
+          {tags}{buttons}{social}{status}{props.extra}
         </div>
       </Block>
     );
@@ -124,7 +124,7 @@ export function Hero(props: HeroProps & { portfolio: Portfolio }) {
             <h1 className="mt-3 text-4xl font-black tracking-tight md:text-6xl">{name}</h1>
             <p className="d-accent-2 mt-3 text-lg font-bold">{role}</p>
             <p className="d-muted mt-6 max-w-xl text-base leading-7">{profile.summary}</p>
-            {tags}{buttons}{social}{status}
+            {tags}{buttons}{social}{status}{props.extra}
           </div>
           {props.showPhoto && <Avatar profile={profile} className="aspect-[4/5] w-full max-w-[16rem] justify-self-center md:max-w-sm rounded-[var(--d-radius)] md:justify-self-end" />}
         </div>
@@ -142,7 +142,7 @@ export function Hero(props: HeroProps & { portfolio: Portfolio }) {
           <h1 className="mt-2 text-5xl font-black uppercase tracking-tight md:text-7xl">{name}</h1>
           <p className="d-accent-2 mt-2 text-sm font-black uppercase tracking-[.3em] md:text-lg">{role}</p>
           <p className="d-muted mt-6 max-w-xl text-base leading-7">{profile.summary}</p>
-          {tags}{buttons}{social}{status}
+          {tags}{buttons}{social}{status}{props.extra}
         </div>
         {copy.hero.terminalLines.length > 0 && (
           <div className="d-card-soft absolute bottom-8 right-8 hidden w-80 p-5 font-mono text-xs leading-6 lg:block">
@@ -380,7 +380,7 @@ export function Experience(props: ExperienceProps & { portfolio: Portfolio }) {
 
 export type ContactProps = { style: 'card' | 'plain'; align: 'left' | 'center'; eyebrow: string; title: string; description: string; buttonLabel: string };
 
-export function Contact(props: ContactProps & { portfolio: Portfolio }) {
+export function Contact(props: ContactProps & { portfolio: Portfolio; extra?: ReactNode }) {
   const { profile, copy } = props.portfolio;
   const inner = (
     <div className={props.align === 'center' ? 'mx-auto max-w-2xl text-center' : 'max-w-2xl'}>
@@ -388,6 +388,7 @@ export function Contact(props: ContactProps & { portfolio: Portfolio }) {
       <h2 className="mt-3 text-3xl font-black tracking-tight md:text-4xl">{or(props.title, copy.contact.title)}</h2>
       <p className="d-muted mt-3 text-sm leading-6 md:text-base">{or(props.description, copy.contact.description)}</p>
       <ContactButtons email={profile.socialLinks.email} linkedin={profile.socialLinks.linkedin} actionLabel={or(props.buttonLabel, copy.contact.action)} align={props.align} />
+      {props.extra}
     </div>
   );
   return (

@@ -18,13 +18,14 @@ const MAX_DEPTH = 6;
 export const BLOCK_TYPES = [
   'ClassicShell', 'ClassicHero', 'ClassicAbout', 'ClassicSkills', 'ClassicProjects', 'ClassicExperience', 'ClassicContact', 'ClassicFooter',
   'NavBar', 'Hero', 'HiringSnapshot', 'Stats', 'Skills', 'Projects', 'Experience', 'Contact', 'SocialLinks', 'ResumeButton', 'Footer',
-  'Section', 'Columns', 'Card', 'Spacer', 'Divider', 'Heading', 'Text', 'Button', 'Image', 'List',
+  'Section', 'Flex', 'Grid', 'Columns', 'Card', 'Spacer', 'Divider', 'Heading', 'Text', 'Button', 'Image', 'List', 'Tags', 'Badge', 'ContactButtons',
 ] as const;
 // Compile-time check: the allow-list above must name every block in the editor config, and nothing else.
 type Missing = Exclude<DesignBlockName, (typeof BLOCK_TYPES)[number]> | Exclude<(typeof BLOCK_TYPES)[number], DesignBlockName>;
 export const BLOCK_LIST_COMPLETE: [Missing] extends [never] ? true : Missing = true;
 
-const SLOT_FIELDS: Record<string, string[]> = { ClassicShell: ['content'], Section: ['content'], Card: ['content'], Columns: ['column1', 'column2', 'column3', 'column4'] };
+const SLOT_FIELDS: Record<string, string[]> = {
+  ClassicShell: ['content'], ClassicHero: ['extra'], ClassicContact: ['extra'], Hero: ['extra'], Contact: ['extra'], Flex: ['items'], Grid: ['items'], Section: ['content'], Card: ['content'], Columns: ['column1', 'column2', 'column3', 'column4'] };
 
 export type StoredDesign = { data: DesignData; savedAt: string; savedBy: string; template?: string };
 

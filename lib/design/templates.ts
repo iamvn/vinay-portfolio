@@ -71,7 +71,34 @@ const studio = design(
   { theme: 'clean', headingFont: 'system', bodyFont: 'system', radius: 'medium', width: 'normal', effects: 'none' },
   [
     block('NavBar', 'studio-nav', { brand: '', links: NAV_LINKS, showResume: true, sticky: true }),
-    block('Hero', 'studio-hero', { variant: 'split', headline: '', subheading: '', showPhoto: true, showTags: true, showSocial: false, showStatus: true, primaryLabel: 'View projects', primaryHref: '#projects', secondaryLabel: 'Contact me', secondaryHref: '#contact' }),
+    // Built from individual elements (not one fixed Hero block), so every piece can be moved or restyled.
+    block('Section', 'studio-intro', {
+      background: 'none', padding: 'lg', anchor: 'home', contained: true,
+      content: [
+        block('Columns', 'studio-intro-columns', {
+          count: '2', ratio: 'wide-left', gap: 'lg', align: 'center',
+          column1: [
+            block('Badge', 'studio-intro-badge', { source: 'availability', text: '', dot: true, style: 'pill', align: 'left' }),
+            block('Heading', 'studio-intro-name', { source: 'name', text: '', eyebrow: '', level: 'h1', size: 'xl', sizePx: 0, weight: 'default', font: 'heading', tracking: 'default', align: 'left', uppercase: false }),
+            block('Text', 'studio-intro-role', { source: 'role', text: '', size: 'lg', sizePx: 0, weight: 'bold', font: 'body', tracking: 'default', tone: 'accent2', align: 'left', maxWidth: 'none', uppercase: false }),
+            block('Text', 'studio-intro-summary', { source: 'summary', text: '', size: 'md', sizePx: 0, weight: 'default', font: 'body', tracking: 'default', tone: 'muted', align: 'left', maxWidth: 'prose', uppercase: false }),
+            block('Tags', 'studio-intro-tags', { source: 'technologies', items: [], style: 'soft', align: 'left' }),
+            block('Flex', 'studio-intro-actions', {
+              direction: 'row', gap: 12, align: 'center', justify: 'start', wrap: true, stackOnMobile: true,
+              items: [
+                block('Button', 'studio-intro-btn-work', { action: 'projects', label: 'View projects', href: '', style: 'primary', size: 'md', icon: 'auto', align: 'left', fullWidthMobile: true, newTab: false }),
+                block('Button', 'studio-intro-btn-email', { action: 'email', label: 'Email me', href: '', style: 'secondary', size: 'md', icon: 'auto', align: 'left', fullWidthMobile: true, newTab: false }),
+                block('Button', 'studio-intro-btn-resume', { action: 'resume', label: 'Resume', href: '', style: 'ghost', size: 'md', icon: 'auto', align: 'left', fullWidthMobile: false, newTab: false }),
+              ],
+            }),
+          ],
+          column2: [
+            block('Image', 'studio-intro-photo', { source: 'profilePhoto', src: '', alt: '', aspect: 'portrait', rounded: true, maxWidth: 'md', align: 'center' }),
+          ],
+          column3: [], column4: [],
+        }),
+      ],
+    }),
     block('HiringSnapshot', 'studio-hiring', { title: 'Open to work' }),
     block('Section', 'studio-highlights', {
       background: 'soft', padding: 'md', anchor: 'about', contained: true,
@@ -109,7 +136,7 @@ export const TEMPLATES: { id: string; name: string; description: string; data: D
   { id: 'classic', name: 'Classic', description: 'Your original site (the one live now): sidebar, controller buttons, XP bar. Fully editable: restyle, reorder or add sections.', data: classic },
   { id: 'arcade', name: 'Arcade', description: 'Dark, neon and bold, like the classic gaming look. Every section, ready to tweak.', data: arcade },
   { id: 'minimal', name: 'Minimal', description: 'Warm paper tones, serif headings, a narrow reading column. Calm and recruiter-friendly.', data: minimal },
-  { id: 'studio', name: 'Studio', description: 'Clean and light with a split hero, “why me” cards, and project and experience cards.', data: studio },
+  { id: 'studio', name: 'Studio', description: 'Clean and light. The intro is built from separate pieces (badge, name, role, buttons, photo) you can move and restyle freely.', data: studio },
   { id: 'blank', name: 'Blank', description: 'An empty page. Drag in any blocks and build your own layout from scratch.', data: blank },
 ];
 

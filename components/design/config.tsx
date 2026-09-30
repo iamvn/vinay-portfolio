@@ -12,7 +12,9 @@ import {
   type ContactProps, type ExperienceProps, type HeroProps, type NavProps, type ProjectsProps, type SkillsProps,
 } from './portfolio-blocks';
 import { ClassicAbout, ClassicContact, ClassicExperience, ClassicFooter, ClassicHero, ClassicProjects, ClassicShell, ClassicSkills } from '../classic-sections';
-import { DEFAULT_APPEARANCE, Styled, appearanceField, colorField, type Appearance } from './appearance';
+import { DEFAULT_APPEARANCE, Styled, appearanceField, colorField, spacingField, sidesVars, type Appearance, type Sides } from './appearance';
+import { BUTTON_ACTIONS, IMAGE_SOURCES, TAG_SOURCES, TEXT_SOURCES, boundTags, boundText } from '@/lib/design/bindings';
+import { ContactButtons } from './contact-buttons';
 
 /** Passed to Puck as `metadata`: the live content blocks render. */
 export type DesignMetadata = { portfolio: PortfolioData; assistant: boolean };
@@ -22,23 +24,23 @@ type Align = 'left' | 'center' | 'right';
 
 type Components = {
   // Classic (the original site, section by section)
-  ClassicShell: { content: Slot };
-  ClassicHero: Record<string, never>;
+  ClassicShell: { content: Slot; sidebar: boolean; topBar: boolean; panelWidth: 'default' | '5xl' | '6xl' | 'full'; panelPadding: Sides; panelPaddingMobile: Sides; sectionGap: number };
+  ClassicHero: { extra: Slot };
   ClassicAbout: Record<string, never>;
   ClassicSkills: Record<string, never>;
   ClassicProjects: Record<string, never>;
   ClassicExperience: Record<string, never>;
-  ClassicContact: Record<string, never>;
+  ClassicContact: { extra: Slot };
   ClassicFooter: Record<string, never>;
   // Portfolio (live content)
   NavBar: NavProps;
-  Hero: HeroProps;
+  Hero: HeroProps & { extra: Slot };
   HiringSnapshot: { title: string };
   Stats: { style: 'cards' | 'inline' };
   Skills: SkillsProps;
   Projects: ProjectsProps;
   Experience: ExperienceProps;
-  Contact: ContactProps;
+  Contact: ContactProps & { extra: Slot };
   SocialLinks: { align: 'left' | 'center'; labels: boolean };
   ResumeButton: { label: string; style: 'primary' | 'secondary'; align: Align };
   Footer: { text: string; showSocial: boolean };
@@ -46,13 +48,18 @@ type Components = {
   Section: { content: Slot; background: 'none' | 'surface' | 'soft' | 'accent' | 'inverted'; padding: 'sm' | 'md' | 'lg' | 'xl'; anchor: string; contained: boolean };
   Columns: { count: '2' | '3' | '4'; ratio: 'equal' | 'wide-left' | 'wide-right'; gap: 'sm' | 'md' | 'lg'; align: 'start' | 'center'; column1: Slot; column2: Slot; column3: Slot; column4: Slot };
   Card: { content: Slot; padding: 'sm' | 'md' | 'lg'; tone: 'surface' | 'soft' | 'accent' };
-  Spacer: { size: 'sm' | 'md' | 'lg' | 'xl' };
+  Flex: { items: Slot; direction: 'row' | 'column'; gap: number; align: 'stretch' | 'start' | 'center' | 'end'; justify: 'start' | 'center' | 'end' | 'between' | 'around'; wrap: boolean; stackOnMobile: boolean };
+  Grid: { items: Slot; columns: string; columnsTablet: string; columnsMobile: '1' | '2'; gap: number; align: 'stretch' | 'start' | 'center' | 'end' };
+  Spacer: { size: 'sm' | 'md' | 'lg' | 'xl'; height: number };
   Divider: { style: 'line' | 'dots' };
   // Basic
-  Heading: { text: string; eyebrow: string; level: 'h1' | 'h2' | 'h3' | 'h4'; size: 'sm' | 'md' | 'lg' | 'xl'; align: Align; uppercase: boolean };
-  Text: { text: string; size: 'sm' | 'md' | 'lg'; align: Align; tone: 'normal' | 'muted' | 'accent'; maxWidth: 'none' | 'prose' };
-  Button: { label: string; href: string; style: 'primary' | 'secondary' | 'ghost'; align: Align; newTab: boolean };
-  Image: { src: string; alt: string; aspect: 'auto' | 'square' | 'video' | 'portrait'; rounded: boolean; maxWidth: 'sm' | 'md' | 'lg' | 'full'; align: Align };
+  Heading: { source: string; text: string; eyebrow: string; level: 'h1' | 'h2' | 'h3' | 'h4'; size: string; sizePx: number; weight: string; font: string; tracking: string; align: Align; uppercase: boolean };
+  Text: { source: string; text: string; size: string; sizePx: number; weight: string; font: string; tracking: string; align: Align; tone: 'normal' | 'muted' | 'accent' | 'accent2'; maxWidth: 'none' | 'prose'; uppercase: boolean };
+  Button: { action: string; label: string; href: string; style: 'primary' | 'secondary' | 'ghost'; size: 'sm' | 'md' | 'lg'; icon: string; align: Align; fullWidthMobile: boolean; newTab: boolean };
+  Image: { source: string; src: string; alt: string; aspect: 'auto' | 'square' | 'circle' | 'video' | 'portrait'; rounded: boolean; maxWidth: 'xs' | 'sm' | 'md' | 'lg' | 'full'; align: Align };
+  Tags: { source: string; items: { text: string }[]; style: 'soft' | 'accent' | 'outline'; align: Align };
+  Badge: { source: string; text: string; dot: boolean; style: 'pill' | 'plain'; align: Align };
+  ContactButtons: { buttonLabel: string; align: 'left' | 'center' };
   List: { items: { text: string }[]; style: 'bullets' | 'checks' | 'numbers' };
 };
 
@@ -64,16 +71,34 @@ const fromSiteText = (label: string) => ({ type: 'text' as const, label: `${labe
 const alignClass = (align: Align) => ({ left: 'text-left', center: 'text-center', right: 'text-right' })[align] ?? 'text-left';
 const justifyClass = (align: Align) => ({ left: 'justify-start', center: 'justify-center', right: 'justify-end' })[align] ?? 'justify-start';
 
+// Typography options shared by Heading and Text.
+const HEADING_SIZES = [{ label: 'XS', value: 'xs' }, { label: 'S', value: 'sm' }, { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }, { label: 'XL', value: 'xl' }, { label: '2XL', value: '2xl' }];
+const TEXT_SIZES = [{ label: 'XS', value: 'xs' }, { label: 'S', value: 'sm' }, { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }, { label: 'XL', value: 'xl' }];
+const WEIGHT_OPTIONS = [{ label: 'Default', value: 'default' }, { label: 'Light', value: 'light' }, { label: 'Regular', value: 'normal' }, { label: 'Medium', value: 'medium' }, { label: 'Bold', value: 'bold' }, { label: 'Black', value: 'black' }];
+const FONT_ROLE_OPTIONS = [{ label: 'Heading font', value: 'heading' }, { label: 'Body font', value: 'body' }, { label: 'Monospace', value: 'mono' }];
+const TRACKING_OPTIONS = [{ label: 'Default', value: 'default' }, { label: 'Tight', value: 'tight' }, { label: 'Normal', value: 'normal' }, { label: 'Wide', value: 'wide' }, { label: 'Extra wide', value: 'widest' }];
+const weightClass = (weight: string, fallback: string) =>
+  ({ light: 'font-light', normal: 'font-normal', medium: 'font-medium', bold: 'font-bold', black: 'font-black' } as Record<string, string>)[weight] ?? fallback;
+function typeStyle(sizePx: number, font: string, tracking: string) {
+  const style: Record<string, string> = {};
+  if (Number(sizePx) > 0) { style.fontSize = `${Math.min(200, Number(sizePx))}px`; style.lineHeight = '1.2'; }
+  if (font === 'heading') style.fontFamily = 'var(--d-heading-font)';
+  if (font === 'body') style.fontFamily = 'var(--d-body-font)';
+  if (font === 'mono') style.fontFamily = FONTS.mono.stack;
+  const spacing = ({ tight: '-0.02em', normal: '0', wide: '0.08em', widest: '0.25em' } as Record<string, string>)[tracking];
+  if (spacing) style.letterSpacing = spacing;
+  return style;
+}
+
 /** Every block name; lib/design/store.ts checks its allow-list against this at compile time. */
 export type DesignBlockName = keyof Components;
-const INNER_BLOCKS = ['Heading', 'Text', 'Button', 'Image', 'List', 'Spacer', 'Divider', 'Card', 'Columns', 'SocialLinks', 'ResumeButton'];
 
 export const designConfig: Config<Components, RootProps> = {
   categories: {
+    containers: { title: 'Containers (drop blocks inside)', components: ['Section', 'Flex', 'Grid', 'Columns', 'Card'] },
+    elements: { title: 'Elements (text, images, buttons, your data)', components: ['Heading', 'Text', 'Button', 'Image', 'Tags', 'Badge', 'ContactButtons', 'SocialLinks', 'ResumeButton', 'List', 'Spacer', 'Divider'] },
+    portfolio: { title: 'Ready-made sections (live content)', components: ['NavBar', 'Hero', 'HiringSnapshot', 'Stats', 'Skills', 'Projects', 'Experience', 'Contact', 'Footer'] },
     classic: { title: 'Classic (original site)', components: ['ClassicShell', 'ClassicHero', 'ClassicAbout', 'ClassicSkills', 'ClassicProjects', 'ClassicExperience', 'ClassicContact', 'ClassicFooter'] },
-    portfolio: { title: 'Portfolio (live content)', components: ['NavBar', 'Hero', 'HiringSnapshot', 'Stats', 'Skills', 'Projects', 'Experience', 'Contact', 'SocialLinks', 'ResumeButton', 'Footer'] },
-    layout: { title: 'Layout', components: ['Section', 'Columns', 'Card', 'Spacer', 'Divider'] },
-    basic: { title: 'Text & media', components: ['Heading', 'Text', 'Button', 'Image', 'List'] },
   },
 
   root: {
@@ -122,20 +147,49 @@ export const designConfig: Config<Components, RootProps> = {
     /* ======================= Classic (original site) ======================= */
     ClassicShell: {
       label: 'Classic layout (sidebar + top bar)',
-      fields: { content: { type: 'slot', label: 'Page sections' } },
-      defaultProps: { content: [] },
-      render: ({ content: Content, puck }) => (
-        <div className="d-classic">
-          <ClassicShell data={meta(puck).portfolio}><Content className="d-section-inner" minEmptyHeight={200} /></ClassicShell>
-        </div>
-      ),
+      fields: {
+        content: { type: 'slot', label: 'Page sections' },
+        sidebar: { type: 'radio', label: 'Sidebar (desktop)', options: [{ label: 'Show', value: true }, { label: 'Hide', value: false }] },
+        topBar: { type: 'radio', label: 'Top status bar', options: [{ label: 'Show', value: true }, { label: 'Hide', value: false }] },
+        panelWidth: { type: 'select', label: 'Main panel width', options: [{ label: 'Default (1280px)', value: 'default' }, { label: 'Narrower (1024px)', value: '5xl' }, { label: 'Medium (1152px)', value: '6xl' }, { label: 'Full width', value: 'full' }] },
+        panelPadding: spacingField('Main panel padding', 'Space around all sections. Empty = default (20px top/bottom, 32px sides).'),
+        panelPaddingMobile: spacingField('Main panel padding on phones', 'Empty sides use the padding above, or the default (20px top/bottom, 16px sides).'),
+        sectionGap: { type: 'number', label: 'Extra space between sections (px)', min: 0, max: 200 },
+      },
+      defaultProps: { content: [], sidebar: true, topBar: true, panelWidth: 'default', panelPadding: {}, panelPaddingMobile: {}, sectionGap: 0 },
+      render: ({ content: Content, puck, sidebar, topBar, panelWidth, panelPadding, panelPaddingMobile, sectionGap }) => {
+        const vars = sidesVars(panelPadding, panelPaddingMobile, { top: '20', right: '32', bottom: '20', left: '32' }, { top: '20', right: '16', bottom: '20', left: '16' });
+        const custom = panelWidth !== 'default' || Object.keys(vars.set).length > 0;
+        const width = { default: 'max-w-7xl', '5xl': 'max-w-5xl', '6xl': 'max-w-6xl', full: 'max-w-none' }[panelWidth] ?? 'max-w-7xl';
+        const gap = Math.max(0, Math.min(200, Number(sectionGap) || 0));
+        return (
+          <div className="d-classic">
+            <ClassicShell
+              data={meta(puck).portfolio}
+              options={{ hideSidebar: sidebar === false, hideTopBar: topBar === false, ...(custom ? { panelClassName: `d-padded mx-auto ${width}`, panelStyle: vars.style } : {}) }}
+            >
+              <Content className="d-section-inner" minEmptyHeight={200} style={gap ? { display: 'grid', gap: `${gap}px` } : undefined} />
+            </ClassicShell>
+          </div>
+        );
+      },
     },
-    ClassicHero: { label: 'Classic hero', render: ({ puck }) => <div className="d-classic"><ClassicHero data={meta(puck).portfolio} /></div> },
+    ClassicHero: {
+      label: 'Classic hero',
+      fields: { extra: { type: 'slot', label: 'Your blocks (under the buttons)' } },
+      defaultProps: { extra: [] },
+      render: ({ puck, extra: Extra }) => <div className="d-classic"><ClassicHero data={meta(puck).portfolio} extra={<Extra className="d-slot-extra" minEmptyHeight={48} />} /></div>,
+    },
     ClassicAbout: { label: 'Classic hiring & stats', render: ({ puck }) => <div className="d-classic"><ClassicAbout data={meta(puck).portfolio} /></div> },
     ClassicSkills: { label: 'Classic tech stack', render: ({ puck }) => <div className="d-classic"><ClassicSkills data={meta(puck).portfolio} /></div> },
     ClassicProjects: { label: 'Classic projects', render: ({ puck }) => <div className="d-classic"><ClassicProjects data={meta(puck).portfolio} /></div> },
     ClassicExperience: { label: 'Classic experience', render: ({ puck }) => <div className="d-classic"><ClassicExperience data={meta(puck).portfolio} /></div> },
-    ClassicContact: { label: 'Classic contact', render: ({ puck }) => <div className="d-classic"><ClassicContact data={meta(puck).portfolio} /></div> },
+    ClassicContact: {
+      label: 'Classic contact',
+      fields: { extra: { type: 'slot', label: 'Your blocks (under the buttons)' } },
+      defaultProps: { extra: [] },
+      render: ({ puck, extra: Extra }) => <div className="d-classic"><ClassicContact data={meta(puck).portfolio} extra={<Extra className="d-slot-extra" minEmptyHeight={48} />} /></div>,
+    },
     ClassicFooter: { label: 'Classic footer', render: ({ puck }) => <div className="d-classic"><ClassicFooter data={meta(puck).portfolio} /></div> },
 
     /* ======================= Portfolio ======================= */
@@ -168,12 +222,13 @@ export const designConfig: Config<Components, RootProps> = {
         showPhoto: yesNo('Photo'), showTags: yesNo('Technology tags'), showSocial: yesNo('Social icons'), showStatus: yesNo('Availability & location'),
         primaryLabel: fromSiteText('Main button'), primaryHref: { type: 'text', label: 'Main button link' },
         secondaryLabel: fromSiteText('Second button'), secondaryHref: { type: 'text', label: 'Second button link' },
+        extra: { type: 'slot', label: 'Your blocks (under the buttons)' },
       },
       defaultProps: {
         variant: 'centered', headline: '', subheading: '', showPhoto: true, showTags: true, showSocial: true, showStatus: true,
-        primaryLabel: '', primaryHref: '#projects', secondaryLabel: '', secondaryHref: '#contact',
+        primaryLabel: '', primaryHref: '#projects', secondaryLabel: '', secondaryHref: '#contact', extra: [],
       },
-      render: ({ puck, ...props }) => <Hero {...props} portfolio={meta(puck).portfolio} />,
+      render: ({ puck, extra: Extra, ...props }) => <Hero {...props} portfolio={meta(puck).portfolio} extra={<Extra className="d-slot-extra" minEmptyHeight={48} />} />,
     },
 
     HiringSnapshot: {
@@ -234,9 +289,10 @@ export const designConfig: Config<Components, RootProps> = {
         style: { type: 'radio', label: 'Style', options: [{ label: 'Card', value: 'card' }, { label: 'Plain', value: 'plain' }] },
         align: align2Field,
         eyebrow: fromSiteText('Small label'), title: fromSiteText('Title'), description: fromSiteText('Description'), buttonLabel: fromSiteText('Email button'),
+        extra: { type: 'slot', label: 'Your blocks (under the buttons)' },
       },
-      defaultProps: { style: 'card', align: 'center', eyebrow: '', title: '', description: '', buttonLabel: '' },
-      render: ({ puck, ...props }) => <Contact {...props} portfolio={meta(puck).portfolio} />,
+      defaultProps: { style: 'card', align: 'center', eyebrow: '', title: '', description: '', buttonLabel: '', extra: [] },
+      render: ({ puck, extra: Extra, ...props }) => <Contact {...props} portfolio={meta(puck).portfolio} extra={<Extra className="d-slot-extra" minEmptyHeight={48} />} />,
     },
 
     SocialLinks: {
@@ -326,11 +382,64 @@ export const designConfig: Config<Components, RootProps> = {
       ),
     },
 
+    Flex: {
+      label: 'Row / Stack (flex)',
+      fields: {
+        items: { type: 'slot', label: 'Items' },
+        direction: { type: 'radio', label: 'Direction', options: [{ label: 'Row →', value: 'row' }, { label: 'Stack ↓', value: 'column' }] },
+        gap: { type: 'number', label: 'Gap between items (px)', min: 0, max: 200 },
+        align: { type: 'select', label: 'Align items (cross axis)', options: [{ label: 'Stretch', value: 'stretch' }, { label: 'Start', value: 'start' }, { label: 'Center', value: 'center' }, { label: 'End', value: 'end' }] },
+        justify: { type: 'select', label: 'Distribute (main axis)', options: [{ label: 'Start', value: 'start' }, { label: 'Center', value: 'center' }, { label: 'End', value: 'end' }, { label: 'Space between', value: 'between' }, { label: 'Space around', value: 'around' }] },
+        wrap: { type: 'radio', label: 'Wrap to next line', options: [{ label: 'Yes', value: true }, { label: 'No', value: false }] },
+        stackOnMobile: { type: 'radio', label: 'On phones', options: [{ label: 'Stack items', value: true }, { label: 'Keep direction', value: false }] },
+      },
+      defaultProps: { items: [], direction: 'row', gap: 16, align: 'center', justify: 'start', wrap: true, stackOnMobile: false },
+      render: ({ items: Items, direction, gap, align, justify, wrap, stackOnMobile }) => {
+        const dir = direction === 'column' ? 'flex-col' : stackOnMobile ? 'flex-col md:flex-row' : 'flex-row';
+        const alignCls = { stretch: 'items-stretch', start: 'items-start', center: 'items-center', end: 'items-end' }[align] ?? 'items-stretch';
+        const justifyCls = { start: 'justify-start', center: 'justify-center', end: 'justify-end', between: 'justify-between', around: 'justify-around' }[justify] ?? 'justify-start';
+        return (
+          <div className="d-prim">
+            <Items className={`d-flex flex min-w-0 ${dir} ${wrap ? 'flex-wrap' : ''} ${alignCls} ${justifyCls} ${direction === 'row' && stackOnMobile ? 'max-md:items-stretch' : ''}`} style={{ gap: `${Math.max(0, Math.min(200, Number(gap) || 0))}px` }} minEmptyHeight={64} />
+          </div>
+        );
+      },
+    },
+
+    Grid: {
+      label: 'Grid',
+      fields: {
+        items: { type: 'slot', label: 'Items' },
+        columns: { type: 'select', label: 'Columns (desktop)', options: ['1', '2', '3', '4', '5', '6'].map((value) => ({ label: value, value })) },
+        columnsTablet: { type: 'select', label: 'Columns (tablet)', options: ['1', '2', '3', '4'].map((value) => ({ label: value, value })) },
+        columnsMobile: { type: 'radio', label: 'Columns (phone)', options: [{ label: '1', value: '1' }, { label: '2', value: '2' }] },
+        gap: { type: 'number', label: 'Gap (px)', min: 0, max: 200 },
+        align: { type: 'select', label: 'Align items', options: [{ label: 'Stretch', value: 'stretch' }, { label: 'Top', value: 'start' }, { label: 'Center', value: 'center' }, { label: 'Bottom', value: 'end' }] },
+      },
+      defaultProps: { items: [], columns: '3', columnsTablet: '2', columnsMobile: '1', gap: 16, align: 'stretch' },
+      render: ({ items: Items, columns, columnsTablet, columnsMobile, gap, align }) => {
+        const desktop = { 1: 'lg:grid-cols-1', 2: 'lg:grid-cols-2', 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5', 6: 'lg:grid-cols-6' }[Number(columns) as 1] ?? 'lg:grid-cols-3';
+        const tablet = { 1: 'md:grid-cols-1', 2: 'md:grid-cols-2', 3: 'md:grid-cols-3', 4: 'md:grid-cols-4' }[Number(columnsTablet) as 1] ?? 'md:grid-cols-2';
+        const phone = columnsMobile === '2' ? 'grid-cols-2' : 'grid-cols-1';
+        const alignCls = { stretch: 'items-stretch', start: 'items-start', center: 'items-center', end: 'items-end' }[align] ?? 'items-stretch';
+        return (
+          <div className="d-prim">
+            <Items className={`d-grid grid min-w-0 ${phone} ${tablet} ${desktop} ${alignCls}`} style={{ gap: `${Math.max(0, Math.min(200, Number(gap) || 0))}px` }} minEmptyHeight={64} />
+          </div>
+        );
+      },
+    },
+
     Spacer: {
       label: 'Spacer',
-      fields: { size: { type: 'radio', label: 'Size', options: [{ label: 'S', value: 'sm' }, { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }, { label: 'XL', value: 'xl' }] } },
-      defaultProps: { size: 'md' },
-      render: ({ size }) => <div aria-hidden="true" className={{ sm: 'h-4', md: 'h-10', lg: 'h-20', xl: 'h-32' }[size]} />,
+      fields: {
+        size: { type: 'radio', label: 'Size', options: [{ label: 'S', value: 'sm' }, { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }, { label: 'XL', value: 'xl' }] },
+        height: { type: 'number', label: 'Exact height (px, overrides size)', min: 0, max: 600 },
+      },
+      defaultProps: { size: 'md', height: 0 },
+      render: ({ size, height }) => Number(height) > 0
+        ? <div aria-hidden="true" style={{ height: `${Math.min(600, Number(height))}px` }} />
+        : <div aria-hidden="true" className={{ sm: 'h-4', md: 'h-10', lg: 'h-20', xl: 'h-32' }[size]} />,
     },
 
     Divider: {
@@ -342,25 +451,34 @@ export const designConfig: Config<Components, RootProps> = {
         : <div className="d-prim py-4"><hr className="border-0 border-t" style={{ borderColor: 'var(--d-line)' }} /></div>,
     },
 
-    /* ======================= Text & media ======================= */
+    /* ======================= Elements (text & media, optionally showing live data) ======================= */
     Heading: {
       label: 'Heading',
       fields: {
+        source: { type: 'select', label: 'Content', options: TEXT_SOURCES.map(({ value, label }) => ({ value, label })) },
+        text: { type: 'text', label: 'Heading (when content is “My own text”)', contentEditable: true },
         eyebrow: { type: 'text', label: 'Small label above (optional)' },
-        text: { type: 'text', label: 'Heading', contentEditable: true },
-        level: { type: 'select', label: 'HTML level', options: [{ label: 'H1 (page title)', value: 'h1' }, { label: 'H2', value: 'h2' }, { label: 'H3', value: 'h3' }, { label: 'H4', value: 'h4' }] },
-        size: { type: 'radio', label: 'Size', options: [{ label: 'S', value: 'sm' }, { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }, { label: 'XL', value: 'xl' }] },
+        level: { type: 'select', label: 'HTML level (SEO)', options: [{ label: 'H1 (page title)', value: 'h1' }, { label: 'H2', value: 'h2' }, { label: 'H3', value: 'h3' }, { label: 'H4', value: 'h4' }] },
+        size: { type: 'select', label: 'Size', options: HEADING_SIZES },
+        sizePx: { type: 'number', label: 'Exact size (px, overrides size)', min: 0, max: 200 },
+        weight: { type: 'select', label: 'Weight', options: WEIGHT_OPTIONS },
+        font: { type: 'select', label: 'Font', options: FONT_ROLE_OPTIONS },
+        tracking: { type: 'select', label: 'Letter spacing', options: TRACKING_OPTIONS },
         align: alignField,
         uppercase: { type: 'radio', label: 'Uppercase', options: [{ label: 'No', value: false }, { label: 'Yes', value: true }] },
       },
-      defaultProps: { eyebrow: '', text: 'Heading', level: 'h2', size: 'lg', align: 'left', uppercase: false },
-      render: ({ eyebrow, text, level, size, align, uppercase }) => {
+      defaultProps: { source: 'custom', text: 'Heading', eyebrow: '', level: 'h2', size: 'lg', sizePx: 0, weight: 'default', font: 'heading', tracking: 'default', align: 'left', uppercase: false },
+      render: ({ source, eyebrow, text, level, size, sizePx, weight, font, tracking, align, uppercase, puck }) => {
         const Tag = (['h1', 'h2', 'h3', 'h4'].includes(level) ? level : 'h2') as 'h2';
-        const sizes = { sm: 'text-xl', md: 'text-2xl md:text-3xl', lg: 'text-3xl md:text-5xl', xl: 'text-4xl md:text-7xl' };
+        const content = boundText(source, text, meta(puck).portfolio);
+        if (!content && !puck.isEditing) return <></>;
+        const sizes: Record<string, string> = { xs: 'text-base', sm: 'text-xl', md: 'text-2xl md:text-3xl', lg: 'text-3xl md:text-5xl', xl: 'text-4xl md:text-7xl', '2xl': 'text-5xl md:text-8xl' };
         return (
           <div className={`d-prim ${alignClass(align)}`}>
             {eyebrow && <p className="d-eyebrow mb-2">{eyebrow}</p>}
-            <Tag className={`${sizes[size]} font-black tracking-tight ${uppercase ? 'uppercase' : ''}`}>{text}</Tag>
+            <Tag className={`${Number(sizePx) > 0 ? '' : sizes[size] ?? sizes.lg} ${weightClass(weight, 'font-black')} tracking-tight ${uppercase ? 'uppercase' : ''}`} style={typeStyle(sizePx, font, tracking)}>
+              {content || <span className="d-muted">(empty: fill this in the admin)</span>}
+            </Tag>
           </div>
         );
       },
@@ -369,62 +487,145 @@ export const designConfig: Config<Components, RootProps> = {
     Text: {
       label: 'Text',
       fields: {
-        text: { type: 'textarea', label: 'Text (blank line = new paragraph)', contentEditable: true },
-        size: { type: 'radio', label: 'Size', options: [{ label: 'S', value: 'sm' }, { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }] },
-        tone: { type: 'radio', label: 'Color', options: [{ label: 'Normal', value: 'normal' }, { label: 'Muted', value: 'muted' }, { label: 'Accent', value: 'accent' }] },
+        source: { type: 'select', label: 'Content', options: TEXT_SOURCES.map(({ value, label }) => ({ value, label })) },
+        text: { type: 'textarea', label: 'Text (when content is “My own text”; blank line = new paragraph)', contentEditable: true },
+        size: { type: 'select', label: 'Size', options: TEXT_SIZES },
+        sizePx: { type: 'number', label: 'Exact size (px, overrides size)', min: 0, max: 120 },
+        weight: { type: 'select', label: 'Weight', options: WEIGHT_OPTIONS },
+        font: { type: 'select', label: 'Font', options: FONT_ROLE_OPTIONS },
+        tracking: { type: 'select', label: 'Letter spacing', options: TRACKING_OPTIONS },
+        tone: { type: 'radio', label: 'Color', options: [{ label: 'Normal', value: 'normal' }, { label: 'Muted', value: 'muted' }, { label: 'Accent', value: 'accent' }, { label: '2nd accent', value: 'accent2' }] },
         align: alignField,
         maxWidth: { type: 'radio', label: 'Line length', options: [{ label: 'Full', value: 'none' }, { label: 'Readable', value: 'prose' }] },
+        uppercase: { type: 'radio', label: 'Uppercase', options: [{ label: 'No', value: false }, { label: 'Yes', value: true }] },
       },
-      defaultProps: { text: 'Write something here.', size: 'md', tone: 'muted', align: 'left', maxWidth: 'prose' },
-      render: ({ text, size, tone, align, maxWidth }) => (
-        <div className={`d-prim grid gap-3 ${alignClass(align)} ${{ sm: 'text-sm leading-6', md: 'text-base leading-7', lg: 'text-lg leading-8 md:text-xl' }[size]} ${tone === 'muted' ? 'd-muted' : tone === 'accent' ? 'd-accent' : ''}`}>
-          {/* While editing, Puck passes an inline-editable element instead of the plain string. */}
-          {(typeof text === 'string' ? text.split(/\n\s*\n/) : [text]).map((paragraph, index) => (
-            <p key={index} className={`whitespace-pre-line ${maxWidth === 'prose' ? `max-w-[65ch] ${align === 'center' ? 'mx-auto' : align === 'right' ? 'ml-auto' : ''}` : ''}`}>{paragraph}</p>
-          ))}
-        </div>
-      ),
+      defaultProps: { source: 'custom', text: 'Write something here.', size: 'md', sizePx: 0, weight: 'default', font: 'body', tracking: 'default', tone: 'muted', align: 'left', maxWidth: 'prose', uppercase: false },
+      render: ({ source, text, size, sizePx, weight, font, tracking, tone, align, maxWidth, uppercase, puck }) => {
+        const content = boundText(source, text, meta(puck).portfolio);
+        if (!content && !puck.isEditing) return <></>;
+        const sizes: Record<string, string> = { xs: 'text-xs leading-5', sm: 'text-sm leading-6', md: 'text-base leading-7', lg: 'text-lg leading-8 md:text-xl', xl: 'text-xl leading-8 md:text-2xl' };
+        const toneCls = tone === 'muted' ? 'd-muted' : tone === 'accent' ? 'd-accent' : tone === 'accent2' ? 'd-accent-2' : '';
+        return (
+          <div className={`d-prim grid gap-3 ${alignClass(align)} ${Number(sizePx) > 0 ? '' : sizes[size] ?? sizes.md} ${weightClass(weight, '')} ${toneCls} ${uppercase ? 'uppercase' : ''}`} style={typeStyle(sizePx, font, tracking)}>
+            {/* While editing, Puck passes an inline-editable element instead of the plain string. */}
+            {(typeof content === 'string' ? content.split(/\n\s*\n/) : [content]).map((paragraph, index) => (
+              <p key={index} className={`whitespace-pre-line ${maxWidth === 'prose' ? `max-w-[65ch] ${align === 'center' ? 'mx-auto' : align === 'right' ? 'ml-auto' : ''}` : ''}`}>{paragraph || <span className="d-muted">(empty: fill this in the admin)</span>}</p>
+            ))}
+          </div>
+        );
+      },
     },
 
     Button: {
       label: 'Button',
       fields: {
-        label: { type: 'text', label: 'Label' },
-        href: { type: 'text', label: 'Link (#section, /path, https://… or mailto:)' },
+        action: { type: 'select', label: 'When clicked', options: BUTTON_ACTIONS.map(({ value, label }) => ({ value, label })) },
+        label: { type: 'text', label: 'Label (empty = default for the action)' },
+        href: { type: 'text', label: 'Link (for “Open a link”: #section, /path, https://… or mailto:)' },
         style: { type: 'radio', label: 'Style', options: [{ label: 'Primary', value: 'primary' }, { label: 'Secondary', value: 'secondary' }, { label: 'Link', value: 'ghost' }] },
+        size: { type: 'radio', label: 'Size', options: [{ label: 'S', value: 'sm' }, { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }] },
+        icon: { type: 'select', label: 'Icon', options: [{ label: 'Automatic', value: 'auto' }, { label: 'None', value: 'none' }, { label: 'Arrow', value: 'arrow' }, { label: 'Download', value: 'download' }, { label: 'Mail', value: 'mail' }, { label: 'LinkedIn', value: 'linkedin' }, { label: 'GitHub', value: 'github' }, { label: 'External', value: 'external' }] },
         align: alignField,
+        fullWidthMobile: { type: 'radio', label: 'Full width on phones', options: [{ label: 'Yes', value: true }, { label: 'No', value: false }] },
         newTab: { type: 'radio', label: 'Open in new tab', options: [{ label: 'No', value: false }, { label: 'Yes', value: true }] },
       },
-      defaultProps: { label: 'Button', href: '#contact', style: 'primary', align: 'left', newTab: false },
-      render: ({ label, href, style, align, newTab }) => (
-        <div className={`d-prim flex py-1 ${justifyClass(align)}`}>
-          <a href={safeHref(href) ?? '#'} className={`d-btn d-btn-${style}`} {...(newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{label}</a>
-        </div>
-      ),
+      defaultProps: { action: 'custom', label: 'Button', href: '#contact', style: 'primary', size: 'md', icon: 'auto', align: 'left', fullWidthMobile: false, newTab: false },
+      render: ({ action, label, href, style, size, icon, align, fullWidthMobile, newTab, puck }) => {
+        const chosen = BUTTON_ACTIONS.find((item) => item.value === action) ?? BUTTON_ACTIONS[0];
+        const url = chosen.value === 'custom' ? safeHref(href) : chosen.href?.(meta(puck).portfolio);
+        if (!url && !puck.isEditing) return <></>;
+        const iconName = icon === 'auto' ? chosen.icon : icon === 'none' ? '' : icon;
+        const sizeCls = { sm: 'min-h-10 px-4 py-2 text-xs', md: '', lg: 'min-h-14 px-7 text-base' }[size] ?? '';
+        const openNew = newTab || chosen.external;
+        return (
+          <div className={`d-prim flex py-1 ${justifyClass(align)}`}>
+            <a href={url ?? '#'} className={`d-btn d-btn-${style} ${sizeCls} ${fullWidthMobile ? 'max-sm:w-full' : ''}`} {...(openNew ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
+              {iconName && <Icon name={iconName} size={size === 'lg' ? 18 : 16} />}
+              {label || chosen.defaultLabel}
+            </a>
+          </div>
+        );
+      },
     },
 
     Image: {
       label: 'Image',
       fields: {
+        source: { type: 'radio', label: 'Image', options: IMAGE_SOURCES.map(({ value, label }) => ({ value, label })) },
         src: { type: 'text', label: 'Image URL (https://… or /images/…)' },
         alt: { type: 'text', label: 'Description (for screen readers & SEO)' },
-        aspect: { type: 'select', label: 'Shape', options: [{ label: 'Original', value: 'auto' }, { label: 'Square', value: 'square' }, { label: 'Wide (16:9)', value: 'video' }, { label: 'Portrait (4:5)', value: 'portrait' }] },
+        aspect: { type: 'select', label: 'Shape', options: [{ label: 'Original', value: 'auto' }, { label: 'Square', value: 'square' }, { label: 'Circle', value: 'circle' }, { label: 'Wide (16:9)', value: 'video' }, { label: 'Portrait (4:5)', value: 'portrait' }] },
         rounded: { type: 'radio', label: 'Rounded corners', options: [{ label: 'Yes', value: true }, { label: 'No', value: false }] },
-        maxWidth: { type: 'radio', label: 'Size', options: [{ label: 'S', value: 'sm' }, { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }, { label: 'Full', value: 'full' }] },
+        maxWidth: { type: 'radio', label: 'Size', options: [{ label: 'XS', value: 'xs' }, { label: 'S', value: 'sm' }, { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }, { label: 'Full', value: 'full' }] },
         align: alignField,
       },
-      defaultProps: { src: '', alt: '', aspect: 'auto', rounded: true, maxWidth: 'full', align: 'center' },
-      render: ({ src, alt, aspect, rounded, maxWidth, align, puck }) => {
-        const url = safeSrc(src);
-        const width = { sm: 'max-w-xs', md: 'max-w-md', lg: 'max-w-2xl', full: 'max-w-full' }[maxWidth];
-        const shape = { auto: '', square: 'aspect-square object-cover', video: 'aspect-video object-cover', portrait: 'aspect-[4/5] object-cover' }[aspect];
-        if (!url) return puck.isEditing ? <div className="d-prim d-placeholder">Add an image URL in the settings panel.</div> : <></>;
+      defaultProps: { source: 'custom', src: '', alt: '', aspect: 'auto', rounded: true, maxWidth: 'full', align: 'center' },
+      render: ({ source, src, alt, aspect, rounded, maxWidth, align, puck }) => {
+        const { profile } = meta(puck).portfolio;
+        const url = safeSrc(source === 'profilePhoto' ? profile.profileImage : src);
+        const width = { xs: 'max-w-[8rem]', sm: 'max-w-xs', md: 'max-w-md', lg: 'max-w-2xl', full: 'max-w-full' }[maxWidth] ?? 'max-w-full';
+        const shape = { auto: '', square: 'aspect-square object-cover', circle: 'aspect-square rounded-full object-cover', video: 'aspect-video object-cover', portrait: 'aspect-[4/5] object-cover' }[aspect] ?? '';
+        if (!url) return puck.isEditing ? <div className="d-prim d-placeholder">{source === 'profilePhoto' ? 'No profile photo yet: upload one in Admin → Profile.' : 'Add an image URL in the settings panel.'}</div> : <></>;
         return (
           <div className={`d-prim flex ${justifyClass(align)}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt={alt} loading="lazy" className={`w-full ${width} ${shape}`} style={rounded ? { borderRadius: 'var(--d-radius)' } : undefined} />
+            <img src={url} alt={alt || (source === 'profilePhoto' ? profile.name : '')} loading="lazy" className={`w-full ${width} ${shape}`} style={rounded && aspect !== 'circle' ? { borderRadius: 'var(--d-radius)' } : undefined} />
           </div>
         );
+      },
+    },
+
+    Tags: {
+      label: 'Tags',
+      fields: {
+        source: { type: 'radio', label: 'Tags', options: TAG_SOURCES.map(({ value, label }) => ({ value, label })) },
+        items: { type: 'array', label: 'My own tags', arrayFields: { text: { type: 'text', label: 'Tag' } }, defaultItemProps: { text: 'Tag' }, getItemSummary: (item) => item.text || 'Tag' },
+        style: { type: 'radio', label: 'Style', options: [{ label: 'Soft', value: 'soft' }, { label: 'Accent', value: 'accent' }, { label: 'Outline', value: 'outline' }] },
+        align: alignField,
+      },
+      defaultProps: { source: 'technologies', items: [], style: 'soft', align: 'left' },
+      render: ({ source, items, style, align, puck }) => {
+        const tags = boundTags(source, items, meta(puck).portfolio);
+        if (tags.length === 0) return puck.isEditing ? <div className="d-prim d-placeholder">No tags yet.</div> : <></>;
+        return (
+          <ul className={`d-prim flex flex-wrap gap-2 ${justifyClass(align)}`}>
+            {tags.map((tag) => <li key={tag} className={`d-tag ${style === 'accent' ? 'd-tag-accent' : ''}`} style={style === 'outline' ? { background: 'transparent' } : undefined}>{tag}</li>)}
+          </ul>
+        );
+      },
+    },
+
+    Badge: {
+      label: 'Status badge',
+      fields: {
+        source: { type: 'select', label: 'Content', options: TEXT_SOURCES.map(({ value, label }) => ({ value, label })) },
+        text: { type: 'text', label: 'Text (when content is “My own text”)' },
+        dot: { type: 'radio', label: 'Pulsing dot', options: [{ label: 'Yes', value: true }, { label: 'No', value: false }] },
+        style: { type: 'radio', label: 'Style', options: [{ label: 'Pill', value: 'pill' }, { label: 'Plain', value: 'plain' }] },
+        align: alignField,
+      },
+      defaultProps: { source: 'availability', text: 'Open to work', dot: true, style: 'pill', align: 'left' },
+      render: ({ source, text, dot, style, align, puck }) => {
+        const content = boundText(source, text, meta(puck).portfolio);
+        if (!content && !puck.isEditing) return <></>;
+        return (
+          <div className={`d-prim flex ${justifyClass(align)}`}>
+            <span className={`inline-flex items-center gap-2 text-sm font-bold ${style === 'pill' ? 'd-tag d-tag-accent px-3 py-1.5' : 'd-accent'}`}>
+              {dot && <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full opacity-60 motion-reduce:hidden" style={{ background: 'var(--d-accent)' }} /><span className="d-dot relative size-2" /></span>}
+              {content || '(empty)'}
+            </span>
+          </div>
+        );
+      },
+    },
+
+    ContactButtons: {
+      label: 'Contact buttons',
+      fields: { buttonLabel: fromSiteText('Email button'), align: align2Field },
+      defaultProps: { buttonLabel: '', align: 'left' },
+      render: ({ buttonLabel, align, puck }) => {
+        const { profile, copy } = meta(puck).portfolio;
+        return <div className="d-prim"><ContactButtons email={profile.socialLinks.email} linkedin={profile.socialLinks.linkedin} actionLabel={buttonLabel && buttonLabel.trim() !== '-' ? buttonLabel : copy.contact.action} align={align} /></div>;
       },
     },
 
@@ -452,10 +653,9 @@ export const designConfig: Config<Components, RootProps> = {
   },
 };
 
-// Only small, safe blocks go inside Sections, Columns and Cards (no nav bars inside columns, etc.).
-for (const name of ['Columns', 'Card'] as const) {
-  const fields = designConfig.components[name].fields as Record<string, { type: string; allow?: string[] }>;
-  for (const field of Object.values(fields)) if (field.type === 'slot') field.allow = INNER_BLOCKS;
+// Any block can go inside any container, except the Classic layout itself (it's a whole page).
+for (const component of Object.values(designConfig.components) as { fields?: Record<string, { type: string; disallow?: string[] }> }[]) {
+  for (const field of Object.values(component.fields ?? {})) if (field.type === 'slot') field.disallow = ['ClassicShell'];
 }
 
 // Every block gets the same "Style" settings (colors, background, spacing, width, corners…), applied by <Styled>.

@@ -179,15 +179,26 @@ Admins can redesign the homepage without code in **Admin → Design**, using the
   borders, three accents) with color pickers, heading/body fonts, text size, heading weight and case, corners,
   button shape and style, page width, text direction (LTR/RTL), background effect, and the "Ask AI" button.
 - **Style on every block** (like a Shopify section): background color, background image with overlay, text /
-  accent / card colors, space inside (top, bottom) and above, content width, text align, corners, border,
+  accent / card colors, padding on all four sides (with a separate phone value), margin on all four sides,
+  max width with left / center / right position, min height, content width, text align, corners, border,
   shadow, show on all / desktop / phone, and an anchor id.
 - **Revert to live** (editor header, and Design tab → "Revert draft to live") throws away draft changes and
   goes back to what visitors see now.
-- **Blocks:** portfolio blocks (navigation, hero, hiring snapshot, stats, skills, projects, experience,
-  contact, social links, resume button, footer) show live content from the other admin tabs, so a design
-  never goes stale. Layout blocks (section, columns, card, spacer, divider) and text & media blocks
-  (heading, text, button, image, list) are for anything else. In a portfolio block, an empty text setting
-  uses the site text, and `-` hides that line.
+- **Build anything by drag and drop.** Blocks come in four groups:
+  - **Containers:** Section, Row / Stack (flex: direction, gap, alignment, distribution, wrap, stack on phones),
+    Grid (1–6 columns with separate tablet and phone counts, gap), Columns and Card. Any block can go inside any
+    container, and containers nest.
+  - **Elements:** Heading, Text, Button, Image, Tags, Status badge, Contact buttons, Social links, Resume
+    download, List, Spacer, Divider. Heading, Text, Badge and Image can show **live data** (name, role, summary,
+    location, greeting, stats, hiring details, site text, profile photo); Buttons have actions (email, LinkedIn,
+    GitHub, Instagram, resume, jump to a section, or any link). Typography per block: size or exact px, weight,
+    font (heading, body, mono), letter spacing, uppercase.
+  - **Ready-made sections:** navigation bar, hero, hiring snapshot, stats, skills, projects, experience,
+    contact, footer. The hero and contact have a drop area for your own blocks under their buttons.
+  - **Classic:** the original site section by section. The Classic layout has settings for the main panel
+    (width, padding on desktop and on phones, space between sections) and can hide the sidebar or top bar;
+    the Classic hero and contact have drop areas for your own blocks.
+  Empty text settings in ready-made sections use the site text, and `-` hides that line.
 - **Draft → Publish:** edits autosave as a draft. **Preview** shows the draft full-page, and **Publish** makes it
   the live homepage immediately (no redeploy). **Use classic design** switches back. The last 5 published
   versions can be loaded back into the draft.

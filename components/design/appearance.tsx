@@ -13,6 +13,13 @@ export type Appearance = {
   textColor?: string;
   accentColor?: string;
   cardColor?: string;
+  padding?: Sides;          // space inside the block (px)
+  paddingMobile?: Sides;    // phones only; empty sides fall back to `padding`
+  margin?: Sides;           // space around the block (px)
+  maxWidth?: string;        // px; empty = full width of its container
+  minHeight?: string;       // px
+  blockAlign?: 'default' | 'left' | 'center' | 'right'; // where a narrower block sits
+  /** Older designs (before the four-side spacing editor). */
   paddingTop?: string;
   paddingBottom?: string;
   marginTop?: string;
@@ -24,6 +31,9 @@ export type Appearance = {
   visibility?: 'all' | 'desktop' | 'mobile';
   anchor?: string;
 };
+
+export type Sides = { top?: string; right?: string; bottom?: string; left?: string };
+const SIDES = ['top', 'right', 'bottom', 'left'] as const;
 
 /* ---------- color picker field (editor only) ---------- */
 
@@ -65,10 +75,64 @@ export const colorField = (text: string) => ({
   },
 });
 
+/* ---------- four-side spacing field (editor only) ---------- */
+
+const clampPx = (value: string) => {
+  const digits = value.replace(/[^\d]/g, '').slice(0, 3);
+  return digits === '' ? '' : String(Math.min(400, Number(digits)));
+};
+
+/** Box-model editor: top / right / bottom / left in px, plus "all sides" at once. Empty = default. */
+export const spacingField = (text: string, hint?: string) => ({
+  type: 'custom' as const,
+  label: text,
+  render: ({ value, onChange, readOnly }: { value?: Sides; onChange: (value: Sides) => void; readOnly?: boolean }) => {
+    const current: Sides = value && typeof value === 'object' ? value : {};
+    const set = (side: keyof Sides, raw: string) => onChange({ ...current, [side]: clampPx(raw) });
+    const same = SIDES.every((side) => (current[side] ?? '') === (current.top ?? ''));
+    const input = (side: keyof Sides) => (
+      <input
+        aria-label={`${text}: ${side} (px)`}
+        inputMode="numeric"
+        placeholder="–"
+        disabled={readOnly}
+        value={current[side] ?? ''}
+        onChange={(e) => set(side, e.target.value)}
+        className="h-8 w-12 rounded border border-slate-300 bg-white text-center font-mono text-[12px] text-slate-800"
+      />
+    );
+    return (
+      <div className="d-spacing-field">
+        <span className={label}>{text}</span>
+        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-1 rounded-md border border-dashed border-slate-300 bg-slate-50 p-2">
+          <span />
+          <div className="flex justify-center">{input('top')}</div>
+          <span />
+          <div>{input('left')}</div>
+          <div className="flex items-center justify-center">
+            <input
+              aria-label={`${text}: all sides (px)`}
+              inputMode="numeric"
+              placeholder="all"
+              disabled={readOnly}
+              value={same ? current.top ?? '' : ''}
+              onChange={(e) => { const v = clampPx(e.target.value); onChange({ top: v, right: v, bottom: v, left: v }); }}
+              className="h-8 w-14 rounded border border-slate-400 bg-white text-center font-mono text-[12px] font-semibold text-slate-900"
+            />
+          </div>
+          <div className="flex justify-end">{input('right')}</div>
+          <span />
+          <div className="flex justify-center">{input('bottom')}</div>
+          <span />
+        </div>
+        <span className="mt-1 block text-[11px] text-slate-500">{hint ?? 'Pixels. Empty = default.'}</span>
+      </div>
+    );
+  },
+});
+
 /* ---------- field definitions ---------- */
 
-const SPACING = ['default', '0', '8', '16', '24', '32', '48', '64', '96', '128', '160'];
-const spacing = (text: string) => ({ type: 'select' as const, label: text, options: SPACING.map((value) => ({ label: value === 'default' ? 'Default' : `${value}px`, value })) });
 
 export const appearanceField = {
   type: 'object' as const,
@@ -80,9 +144,12 @@ export const appearanceField = {
     textColor: colorField('Text color'),
     accentColor: colorField('Accent color'),
     cardColor: colorField('Card color'),
-    paddingTop: spacing('Space inside, top'),
-    paddingBottom: spacing('Space inside, bottom'),
-    marginTop: spacing('Space above'),
+    padding: spacingField('Padding (space inside)'),
+    paddingMobile: spacingField('Padding on phones', 'Only on phones. Empty sides use the padding above.'),
+    margin: spacingField('Margin (space outside)'),
+    maxWidth: { type: 'text' as const, label: 'Max width (px, empty = full)' },
+    blockAlign: { type: 'radio' as const, label: 'Position (when narrower)', options: [{ label: 'Default', value: 'default' }, { label: 'Left', value: 'left' }, { label: 'Center', value: 'center' }, { label: 'Right', value: 'right' }] },
+    minHeight: { type: 'text' as const, label: 'Min height (px)' },
     width: { type: 'select' as const, label: 'Content width', options: [{ label: 'Default', value: 'default' }, { label: 'Narrow', value: 'narrow' }, { label: 'Normal', value: 'normal' }, { label: 'Wide', value: 'wide' }, { label: 'Full width', value: 'full' }] },
     align: { type: 'select' as const, label: 'Text align', options: [{ label: 'Default', value: 'default' }, { label: 'Left', value: 'left' }, { label: 'Center', value: 'center' }, { label: 'Right', value: 'right' }] },
     radius: { type: 'select' as const, label: 'Corners', options: [{ label: 'Default', value: 'default' }, { label: 'Square', value: 'none' }, { label: 'Small', value: 'small' }, { label: 'Medium', value: 'medium' }, { label: 'Large', value: 'large' }, { label: 'Extra large', value: 'xl' }] },
@@ -95,13 +162,31 @@ export const appearanceField = {
 
 export const DEFAULT_APPEARANCE: Appearance = {
   background: '', backgroundImage: '', overlay: 'none', textColor: '', accentColor: '', cardColor: '',
-  paddingTop: 'default', paddingBottom: 'default', marginTop: 'default', width: 'default', align: 'default',
+  padding: {}, paddingMobile: {}, margin: {}, maxWidth: '', minHeight: '', blockAlign: 'default', width: 'default', align: 'default',
   radius: 'default', border: 'none', shadow: 'none', visibility: 'all', anchor: '',
 };
 
 /* ---------- wrapper ---------- */
 
-const px = (value?: string) => (value && value !== 'default' && /^\d{1,3}$/.test(value) ? `${value}px` : undefined);
+const px = (value?: string) => (typeof value === 'string' && value !== 'default' && /^\d{1,4}$/.test(value.trim()) ? `${Math.min(2000, Number(value))}px` : undefined);
+
+/**
+ * CSS variables for a `.d-padded` element from padding settings, with defaults for sides left empty.
+ * `set` lists only what the user typed, so callers can tell "customised" from "all defaults".
+ */
+export function sidesVars(padding: Sides | undefined, mobile: Sides | undefined, defaults: Sides, mobileDefaults: Sides) {
+  const style: Record<string, string> = {};
+  const set: Record<string, string> = {};
+  for (const side of SIDES) {
+    const desktop = px(padding?.[side]);
+    const phone = px(mobile?.[side]);
+    if (desktop) set[`--p-${side}`] = desktop;
+    if (phone) set[`--pm-${side}`] = phone;
+    style[`--p-${side}`] = desktop ?? `${defaults[side] ?? 0}px`;
+    style[`--pm-${side}`] = phone ?? desktop ?? `${mobileDefaults[side] ?? 0}px`;
+  }
+  return { style: style as CSSProperties, set };
+}
 
 /** Applies a block's Style settings around it. With nothing set it adds no box at all. */
 export function Styled({ appearance, editing, panel = false, children }: { appearance?: Appearance; editing: boolean; panel?: boolean; children: ReactNode }) {
@@ -142,9 +227,26 @@ export function Styled({ appearance, editing, panel = false, children }: { appea
   }
   if (a.width && a.width !== 'default' && a.width in WIDTHS) vars['--d-width'] = WIDTHS[a.width];
   if (a.radius && a.radius !== 'default' && a.radius in RADII) vars['--d-radius'] = RADII[a.radius];
-  if (px(a.paddingTop)) box.paddingTop = px(a.paddingTop);
-  if (px(a.paddingBottom)) box.paddingBottom = px(a.paddingBottom);
-  if (px(a.marginTop)) box.marginTop = px(a.marginTop);
+  // Four-side spacing (older designs stored only top/bottom padding and top margin).
+  const padding: Sides = { top: a.paddingTop, bottom: a.paddingBottom, ...(a.padding ?? {}) };
+  const margin: Sides = { top: a.marginTop, ...(a.margin ?? {}) };
+  let padded = false;
+  for (const side of SIDES) {
+    const value = px(padding[side]);
+    if (value) { vars[`--p-${side}`] = value; padded = true; }
+    const mobile = px(a.paddingMobile?.[side]);
+    if (mobile) { vars[`--pm-${side}`] = mobile; padded = true; }
+    const outer = px(margin[side]);
+    if (outer) box[`margin${side[0].toUpperCase()}${side.slice(1)}` as 'marginTop'] = outer;
+  }
+  const maxWidth = px(a.maxWidth);
+  if (maxWidth) {
+    box.maxWidth = maxWidth;
+    if (a.blockAlign === 'center' || !a.blockAlign || a.blockAlign === 'default') { box.marginLeft ??= 'auto'; box.marginRight ??= 'auto'; }
+    if (a.blockAlign === 'right') { box.marginLeft ??= 'auto'; }
+    if (a.blockAlign === 'left') { box.marginRight ??= 'auto'; }
+  }
+  if (px(a.minHeight)) box.minHeight = px(a.minHeight);
   if (a.border === 'subtle') box.border = '1px solid var(--d-line)';
   if (a.border === 'accent') box.border = '1px solid color-mix(in oklab, var(--d-accent) 55%, transparent)';
   if (a.shadow === 'soft') box.boxShadow = '0 10px 30px -12px rgba(0,0,0,.25)';
@@ -154,7 +256,7 @@ export function Styled({ appearance, editing, panel = false, children }: { appea
   const id = anchorId(a.anchor);
 
   const hidden = a.visibility === 'desktop' ? 'max-md:hidden' : a.visibility === 'mobile' ? 'md:hidden' : '';
-  const hasBox = Object.keys(box).some((key) => key !== 'textAlign' && key !== 'color') || Boolean(id);
+  const hasBox = Object.keys(box).some((key) => key !== 'textAlign' && key !== 'color') || Boolean(id) || padded;
   const hasAnything = hasBox || Object.keys(vars).length > 0 || Boolean(box.textAlign) || Boolean(hidden);
   if (!hasAnything) return <>{children}</>;
 
@@ -164,7 +266,7 @@ export function Styled({ appearance, editing, panel = false, children }: { appea
     <div
       id={id}
       // No box of its own (only colors / alignment / visibility): `contents` keeps sticky nav bars and grids working.
-      className={`d-styled ${recolor ? 'd-recolor' : ''} ${!hasBox && !editing ? 'contents' : ''} ${visibilityClass} ${id ? 'scroll-mt-20' : ''}`}
+      className={`d-styled ${padded ? 'd-padded' : ''} ${recolor ? 'd-recolor' : ''} ${!hasBox && !editing ? 'contents' : ''} ${visibilityClass} ${id ? 'scroll-mt-20' : ''}`}
       style={{ ...(vars as CSSProperties), ...box }}
     >
       {children}
