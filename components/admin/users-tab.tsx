@@ -2,23 +2,11 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api, describeError } from './api';
-import { Button, Card, ConfirmButton, Field, Loading, TextArea, TextInput, inputClass, type Notify } from './ui';
+import { Button, Card, ConfirmButton, Field, Loading, PasswordInput, TextInput, inputClass, type Notify } from './ui';
 
 export type AdminUser = { id: number; email: string; name: string; role: string; createdAt?: string; owner?: boolean };
 
 const MIN_LENGTH = 10;
-
-function PasswordInput({ value, onChange, autoComplete }: { value: string; onChange: (value: string) => void; autoComplete: string }) {
-  return (
-    <input
-      type="password"
-      autoComplete={autoComplete}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={inputClass}
-    />
-  );
-}
 
 /** A random 16-character password (for handing to a new admin, who can change it later). */
 function generatePassword() {
@@ -86,7 +74,7 @@ function ApiToken({ notify }: { notify: Notify }) {
       </div>
       {token && (
         <>
-          <TextArea value={token.token} onChange={() => {}} rows={3} mono />
+          <PasswordInput value={token.token} onChange={() => {}} autoComplete="off" />
           <p className="text-[11px] text-slate-500">Expires {new Date(token.expiresAt).toLocaleString()}</p>
         </>
       )}
@@ -149,7 +137,7 @@ function AddUser({ onAdded, notify }: { onAdded: () => void; notify: Notify }) {
         <input type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
       </Field>
       <Field label="Name (optional)"><TextInput value={name} onChange={setName} /></Field>
-      <Field label="Temporary password" hint={`At least ${MIN_LENGTH} characters`}><TextInput value={password} onChange={setPassword} /></Field>
+      <Field label="Temporary password" hint={`At least ${MIN_LENGTH} characters · use Show to read it out`}><PasswordInput value={password} onChange={setPassword} autoComplete="new-password" /></Field>
       <div className="md:col-span-3">
         <Field group label="Role" hint={ROLE_INFO[role].help}>
           <RolePicker value={role} onChange={setRole} />

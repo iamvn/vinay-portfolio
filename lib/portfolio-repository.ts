@@ -39,6 +39,11 @@ export function toProfile(row: NonNullable<Awaited<ReturnType<typeof prisma.prof
     lighthouse: row.lighthouse,
     usersImpacted: row.usersImpacted,
     socialLinks: parse<SocialLinks>(row.socialLinks),
+    targetRoles: row.targetRoles,
+    workPreference: row.workPreference,
+    availability: row.availability,
+    noticePeriod: row.noticePeriod,
+    assistantNotes: row.assistantNotes,
   };
 }
 
@@ -47,13 +52,17 @@ export const cleanLinks = (links: SocialLinks) =>
   Object.fromEntries(Object.entries(links).filter(([, value]) => typeof value === 'string' && value.length > 0));
 
 // ---------- Reads ----------
-export async function getPortfolioFromDatabase(): Promise<PortfolioData> {
+/**
+ * The whole portfolio. By default only published projects are included (what visitors see);
+ * pass { includeDrafts: true } for admin views such as the Backup tab.
+ */
+export async function getPortfolioFromDatabase({ includeDrafts = false } = {}): Promise<PortfolioData> {
   const [profile, copy, skills, experience, projects] = await Promise.all([
     prisma.profile.findUnique({ where: { id: 1 } }),
     prisma.siteCopy.findUnique({ where: { id: 1 } }),
     prisma.skillGroup.findMany({ orderBy: { order: 'asc' } }),
     prisma.experience.findMany({ orderBy: { order: 'asc' } }),
-    prisma.project.findMany({ orderBy: { id: 'asc' } }),
+    prisma.project.findMany({ where: includeDrafts ? {} : { published: true }, orderBy: { id: 'asc' } }),
   ]);
 
   if (!profile || !copy) throw new Error('NOT_SEEDED');

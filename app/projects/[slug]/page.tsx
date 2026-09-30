@@ -5,6 +5,7 @@ import { ArticleBody } from '@/components/article-body';
 import { prisma } from '@/lib/prisma';
 import { parseCopy, toProject } from '@/lib/portfolio-repository';
 import { SITE_URL, absoluteUrl, clip, jsonLd } from '@/lib/seo';
+import { currentUser } from '@/lib/auth/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   ]);
   if (!row) return { title: 'Project not found', robots: { index: false, follow: true } };
   const project = toProject(row);
+  if (!project.published) return { title: `Draft: ${project.title}`, robots: { index: false, follow: false } };
   const name = profile?.name ?? 'Portfolio';
   const title = `${project.title} | ${name}`;
   const description = clip(project.description);
@@ -52,6 +54,9 @@ export default async function ProjectPage({ params }: Props) {
   ]);
   if (!row) notFound();
   const project = toProject(row);
+  // Drafts are only visible to signed-in admins/editors (to preview before publishing).
+  const isDraft = !project.published;
+  if (isDraft && !(await currentUser())) notFound();
   // "link" projects have no page of their own: send visitors straight to the link.
   if (project.type === 'link' && project.externalUrl) redirect(project.externalUrl);
 
@@ -88,10 +93,15 @@ export default async function ProjectPage({ params }: Props) {
   };
 
   return <>
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }} />
+    {!isDraft && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }} />}
     <main className="game-grid min-h-screen px-4 pb-10 pt-[calc(env(safe-area-inset-top)+1rem)] md:px-10 md:py-8">
     <div className="mx-auto max-w-5xl">
       <Link href="/#projects" className="inline-flex min-h-11 items-center text-sm font-bold text-lime-300 hover:text-white">← BACK TO PROJECTS</Link>
+      {isDraft && (
+        <p role="status" className="mt-4 rounded-xl border border-yellow-300/40 bg-yellow-300/10 px-4 py-3 text-sm text-yellow-100">
+          <b>Draft preview.</b> Only signed-in users can see this page. Turn on “Visible on site” in Admin → Projects to publish it.
+        </p>
+      )}
       <article className="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-slate-950/80 shadow-2xl">
         {project.image && (
           // eslint-disable-next-line @next/next/no-img-element

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 /** Full portfolio payload (same shape as data/portfolio.json). */
 export async function GET() {
   try {
-    return NextResponse.json(await getPortfolioFromDatabase(), { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json(await getPortfolioFromDatabase({ includeDrafts: true }), { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return handleDbError(error);
   }
@@ -24,7 +24,7 @@ export async function PUT(request: Request) {
   if (new Set(groups).size !== groups.length) return NextResponse.json({ error: 'Skill group names must be unique.' }, { status: 400 });
   try {
     await replacePortfolio(data);
-    return NextResponse.json(await getPortfolioFromDatabase());
+    return NextResponse.json(await getPortfolioFromDatabase({ includeDrafts: true }));
   } catch (err) {
     return handleDbError(err);
   }

@@ -27,6 +27,39 @@ export function TextInput(props: { value: string; onChange: (value: string) => v
   return <input className={inputClass} value={props.value} placeholder={props.placeholder} onChange={(e) => props.onChange(e.target.value)} />;
 }
 
+/**
+ * A masked password / secret field with a Show–Hide toggle.
+ * Always type="password" while hidden, so browsers and screen sharing never reveal it by default.
+ */
+export function PasswordInput({ value, onChange, autoComplete = 'new-password', placeholder, id }: { value: string; onChange: (value: string) => void; autoComplete?: string; placeholder?: string; id?: string }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span className="relative block">
+      <input
+        id={id}
+        type={visible ? 'text' : 'password'}
+        autoComplete={autoComplete}
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${inputClass} pr-16`}
+      />
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); setVisible((v) => !v); }}
+        aria-label={visible ? 'Hide' : 'Show'}
+        aria-pressed={visible}
+        className="absolute inset-y-0 right-0 flex min-w-14 items-center justify-center px-3 text-[11px] font-black uppercase tracking-wide text-slate-400 hover:text-lime-200"
+      >
+        {visible ? 'Hide' : 'Show'}
+      </button>
+    </span>
+  );
+}
+
 export function TextArea(props: { value: string; onChange: (value: string) => void; rows?: number; mono?: boolean; placeholder?: string }) {
   return (
     <textarea

@@ -41,7 +41,7 @@ const dataFields = (fields: FieldDef[]) => fields.filter((field) => field.type !
 function toDraft(fields: FieldDef[], row: Row): Draft {
   return Object.fromEntries(dataFields(fields).map(({ key, type, defaultValue }) => {
     const value = row[key];
-    if (type === 'checkbox') return [key, Boolean(value)];
+    if (type === 'checkbox') return [key, value === undefined ? defaultValue === 'true' : Boolean(value)];
     if (type === 'lines') return [key, toLines((value as string[] | undefined) ?? [])];
     return [key, (value as string | undefined) ?? defaultValue ?? ''];
   }));
@@ -195,7 +195,14 @@ function FieldsForm({ fields, draft, onChange, uploadUrl, notify, onImageUploade
         if (type === 'heading') {
           return <h4 key={key} className="border-t border-white/5 pt-4 text-[11px] font-black uppercase tracking-[.2em] text-lime-300/80 first:border-0 first:pt-0 md:col-span-3">{label}</h4>;
         }
-        if (type === 'checkbox') return <div key={key} className="flex items-end sm:pb-2"><Toggle label={label} checked={draft[key] as boolean} onChange={set} /></div>;
+        if (type === 'checkbox') {
+          return (
+            <div key={key} className="flex flex-col justify-end sm:pb-2">
+              <Toggle label={label} checked={draft[key] as boolean} onChange={set} />
+              {hint && <span className="mt-1 text-[11px] text-slate-500">{hint}</span>}
+            </div>
+          );
+        }
         const wide = type !== 'text' ? 'md:col-span-3' : '';
         return (
           <div key={key} className={wide}>
@@ -486,7 +493,7 @@ export const PROJECTS: ListConfig = {
   idKey: 'slug',
   noun: 'project',
   itemTitle: (row) => String(row.title || 'Project'),
-  itemSubtitle: (row) => `${row.type === 'article' ? 'Article' : row.type === 'link' ? 'Direct link' : 'Case study'}${row.featured ? ' · ★ featured' : ''}`,
+  itemSubtitle: (row) => `${row.published === false ? 'DRAFT (hidden) · ' : ''}${row.type === 'article' ? 'Article' : row.type === 'link' ? 'Direct link' : 'Case study'}${row.featured ? ' · ★ featured' : ''}`,
   previewHref: (row) => (row.type === 'link' ? String(row.externalUrl) : `/projects/${String(row.slug)}`),
   imageEndpoint: (row) => `/api/projects/${String(row.slug)}/image`,
   intro: <ProjectsGuide />,
@@ -494,6 +501,7 @@ export const PROJECTS: ListConfig = {
     { key: 'h-card', label: 'Card on the homepage', type: 'heading' },
     { key: 'title', label: 'Title', type: 'text' },
     { key: 'slug', label: 'Slug', type: 'text', hint: 'Page address: /projects/<slug> · lowercase-with-hyphens' },
+    { key: 'published', label: 'Visible on site', type: 'checkbox', defaultValue: 'true', hint: 'Off = draft: hidden from visitors, search engines and the assistant. You can still preview it.' },
     { key: 'featured', label: 'Show "★ Featured" badge', type: 'checkbox' },
     { key: 'description', label: 'Short description', type: 'textarea', hint: 'One or two sentences, shown on the card and at the top of the page.' },
     { key: 'stack', label: 'Tech stack tags', type: 'lines' },

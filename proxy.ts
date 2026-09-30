@@ -8,6 +8,8 @@ import { tokenFromRequest } from '@/lib/auth/token';
  * Public (no login needed):
  *   - POST /api/auth/login, POST /api/auth/logout
  *   - POST /api/contact                       (the site's contact form)
+ *   - POST /api/track                         (anonymous contact-click counts)
+ *   - GET/POST /api/ask                       (the "Ask my resume" assistant)
  *   - GET  /api/resume, /api/profile-image,
  *          /api/projects/<slug>/image         (files shown on the public site)
  * Everything else under /api and /admin requires a valid session cookie or
@@ -16,6 +18,9 @@ import { tokenFromRequest } from '@/lib/auth/token';
 const PUBLIC_API: { method: string; pattern: RegExp }[] = [
   { method: 'POST', pattern: /^\/api\/auth\/(login|logout)$/ },
   { method: 'POST', pattern: /^\/api\/contact$/ },
+  { method: 'POST', pattern: /^\/api\/track$/ },
+  { method: 'POST', pattern: /^\/api\/ask$/ },
+  { method: 'GET', pattern: /^\/api\/ask$/ },
   { method: 'GET', pattern: /^\/api\/resume$/ },
   { method: 'GET', pattern: /^\/api\/profile-image$/ },
   { method: 'GET', pattern: /^\/api\/projects\/[^/]+\/image$/ },

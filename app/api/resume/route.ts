@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { handleDbError, jsonError } from '@/lib/api-utils';
 import { readUpload } from '@/lib/uploads';
+import { recordEvent } from '@/lib/events';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,8 @@ export async function GET(request: Request) {
     const resume = await prisma.resume.findUnique({ where: { id: 1 } });
     if (!resume) return jsonError('No resume uploaded yet.', 404);
     if (new URL(request.url).searchParams.has('meta')) return NextResponse.json(metadata(resume));
+    // Count downloads by visitors (not by you while signed in) for Admin → Insights.
+    if (request.method === 'GET' && !request.headers.get('cookie')?.includes('portfolio_session=')) await recordEvent('resume_download');
     return new Response(Buffer.from(resume.data), {
       headers: {
         'Content-Type': resume.mimeType,

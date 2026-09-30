@@ -126,6 +126,44 @@ Any string in the site copy can use `{years}`, `{level}`, `{xp}`, `{xpMax}`, `{n
 They are filled in from the profile when the page renders, so updating `yearsExperience` updates the header everywhere.
 `"6+"` gives `LEVEL 06` and `XP 6,000 / 10,000`; `"6.5+"` gives `XP 6,500`. `GET /api/copy` returns the raw text with the placeholders.
 
+## Recruiter features
+
+- **Hiring snapshot**: Admin → Profile → Hiring snapshot (target roles, work mode, availability, notice period).
+  Shown under the hero while "Available for opportunities" is on; empty lines are hidden.
+- **Contact**: Email me (mailto), Copy email and LinkedIn buttons in the Contact section; X opens email.
+- **Drafts**: every project has "Visible on site". Hidden projects are left out of the homepage, sitemap,
+  structured data and the assistant; signed-in users can still preview them. Admin → Backup → "Add projects
+  from JSON" adds projects without overwriting existing slugs (see `content/starter-projects.json`).
+- **Insights** (Admin → Insights): anonymous counts of resume downloads (not your own while signed in),
+  email/copy/LinkedIn clicks and assistant questions, plus the latest questions. No IPs or cookies are stored.
+- **Page views**: Vercel Web Analytics (`@vercel/analytics`). Enable it once in Vercel → Project → Analytics.
+  Admin and login pages are not tracked.
+
+### Ask my resume (AI assistant)
+
+A chat on the homepage that answers questions using only the site's own content (published projects,
+profile, experience, skills) plus Admin → Profile → "Ask my resume: extra facts". Answers are generated on the
+server, so API keys never reach the browser. The button is hidden until at least one provider works.
+
+**Set it up in Admin → AI assistant** (admins only; editors don't see the tab):
+
+- **Providers:** add as many as you like: Anthropic (Claude), OpenAI, Google Gemini, Groq, OpenRouter, Mistral,
+  DeepSeek, or any OpenAI-compatible service (base URL + model + API key). Each one has **Test**, **Edit**,
+  **Enable/Disable**, **Delete** and **↑/↓**. Visitors' questions go to the first enabled provider; if it fails
+  (bad key, out of credit, down), the next one answers.
+- **Keys** are encrypted (AES-256-GCM, derived from `AUTH_SECRET`) before they are stored, and only the last
+  4 characters are ever shown again. If you change `AUTH_SECRET`, enter the keys again.
+- **Settings:** on/off switch, questions per day (all visitors), questions per visitor per 10 minutes, and max
+  answer length in tokens (raise it for reasoning models).
+
+Environment fallback: if no provider is added in the admin, `ANTHROPIC_API_KEY` (and optional
+`ASSISTANT_MODEL`, default `claude-haiku-4-5-20251001`) from the environment is used. `ASK_DAILY_LIMIT` sets the
+default daily limit until you save settings in the admin.
+
+Admin API (admin session or token): `GET/POST /api/ai/providers`, `PATCH/DELETE /api/ai/providers/:id`,
+`POST /api/ai/providers/:id/test`, `PUT /api/ai/providers/reorder` `{ ids }`, `GET/PATCH /api/ai/settings`.
+Public: `GET /api/ask` (status) and `POST /api/ask` `{ messages: [{ role, content }] }` → `{ answer }`.
+
 ## Deploying to Vercel
 
 Vercel's filesystem is read-only, so production uses a hosted SQLite database on Turso.

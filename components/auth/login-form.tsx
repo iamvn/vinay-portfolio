@@ -8,6 +8,7 @@ export function LoginForm({ next }: { next: string }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -44,7 +45,18 @@ export function LoginForm({ next }: { next: string }) {
         </label>
         <label className="mt-4 block">
           <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-400">Password</span>
-          <input className={input} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <span className="relative block">
+            <input className={`${input} pr-16`} type={showPassword ? 'text' : 'password'} autoComplete="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={password} onChange={(e) => setPassword(e.target.value)} />
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); setShowPassword((v) => !v); }}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-pressed={showPassword}
+              className="absolute inset-y-0 right-0 flex min-w-14 items-center justify-center px-3 text-[11px] font-black uppercase tracking-wide text-slate-400 hover:text-lime-200"
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </span>
         </label>
         {error && <p role="alert" className="mt-4 rounded-lg border border-red-400/30 bg-red-950/60 px-3 py-2 text-sm text-red-100">{error}</p>}
         <button type="submit" disabled={busy} className="mt-6 min-h-12 w-full rounded-xl bg-lime-300 py-3 text-sm sm:text-xs font-black uppercase tracking-wide text-black transition hover:bg-lime-200 disabled:opacity-50">

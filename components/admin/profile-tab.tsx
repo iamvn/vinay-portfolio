@@ -10,7 +10,16 @@ type Profile = {
   yearsExperience: string; profileImage: string; productsShipped: string; performanceMetric: string;
   lighthouse: string; usersImpacted: string;
   socialLinks: { github?: string; linkedin?: string; instagram?: string; email?: string };
+  targetRoles: string; workPreference: string; availability: string; noticePeriod: string;
+  assistantNotes: string;
 };
+
+const HIRING_FIELDS: { key: keyof Profile; label: string; placeholder: string }[] = [
+  { key: 'targetRoles', label: 'Looking for', placeholder: 'Senior Frontend / Full-stack Engineer' },
+  { key: 'workPreference', label: 'Location & work mode', placeholder: 'Pune · Hybrid or Remote' },
+  { key: 'availability', label: 'Availability', placeholder: 'Open to offers' },
+  { key: 'noticePeriod', label: 'Notice period', placeholder: '30 days' },
+];
 
 const TEXT_FIELDS: { key: keyof Profile; label: string; hint?: string }[] = [
   { key: 'name', label: 'Name' },
@@ -196,6 +205,19 @@ export function ProfileTab({ notify }: { notify: Notify }) {
         </div>
       </Card>
 
+      <Card title="Hiring snapshot">
+        <p className="mb-4 text-xs leading-5 text-slate-500">
+          Shown near the top of your homepage while “Available for opportunities” is on, so recruiters see the essentials first. Empty lines are hidden.
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          {HIRING_FIELDS.map(({ key, label, placeholder }) => (
+            <Field key={key} label={label}>
+              <TextInput value={String(profile[key] ?? '')} onChange={(value) => set(key, value as never)} placeholder={placeholder} />
+            </Field>
+          ))}
+        </div>
+      </Card>
+
       <Card title="Stats">
         <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
           {STAT_FIELDS.map(({ key, label, hint }) => (
@@ -226,6 +248,19 @@ export function ProfileTab({ notify }: { notify: Notify }) {
             </Field>
           ))}
         </div>
+      </Card>
+
+      <Card title="Ask my resume: extra facts">
+        <p className="mb-3 text-xs leading-5 text-slate-500">
+          The assistant already knows everything on your site (profile, experience, skills, published projects). Add anything else it may answer with,
+          e.g. education, certifications, languages, what kind of team you want. Visitors can be told anything written here, so keep private details out.
+        </p>
+        <TextArea
+          value={profile.assistantNotes ?? ''}
+          onChange={(value) => set('assistantNotes', value)}
+          rows={6}
+          placeholder={'Example:\nEducation: <degree>, <university>, <year>\nLanguages: <languages you speak>\nLooking for: <kind of team or product>'}
+        />
       </Card>
 
       <SaveBar dirty={dirty} busy={saving} onSave={save} onReset={() => setProfile(saved)} saveLabel="Save profile" />

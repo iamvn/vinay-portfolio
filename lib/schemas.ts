@@ -12,7 +12,7 @@ export const socialLinksSchema = z.object({
   email: optionalLink,
 }).strict();
 
-export const profileSchema = z.object({
+const profileFields = {
   name: text,
   role: text,
   location: text,
@@ -25,10 +25,30 @@ export const profileSchema = z.object({
   lighthouse: text,
   usersImpacted: text,
   socialLinks: socialLinksSchema,
+  // Hiring snapshot (each optional; the card only shows filled-in lines)
+  targetRoles: z.string().trim().max(200),     // e.g. "Senior Frontend / Full-stack Engineer"
+  workPreference: z.string().trim().max(200),  // e.g. "Pune · Hybrid or Remote"
+  availability: z.string().trim().max(200),    // e.g. "Open to offers"
+  noticePeriod: z.string().trim().max(100),    // e.g. "30 days"
+  // Extra facts only the "Ask my resume" assistant uses
+  assistantNotes: z.string().trim().max(4000),
+};
+
+/** Full profile (seed, PUT /api/portfolio). Fields added later default to empty so older backups still load. */
+export const profileSchema = z.object({
+  ...profileFields,
+  targetRoles: profileFields.targetRoles.optional().default(''),
+  workPreference: profileFields.workPreference.optional().default(''),
+  availability: profileFields.availability.optional().default(''),
+  noticePeriod: profileFields.noticePeriod.optional().default(''),
+  assistantNotes: profileFields.assistantNotes.optional().default(''),
 }).strict();
 
-/** PATCH /api/profile: every field optional; socialLinks is merged key by key (null removes a link). */
-export const profilePatchSchema = profileSchema.partial().strict();
+/**
+ * PATCH /api/profile: every field optional; socialLinks is merged key by key (null removes a link).
+ * Built from the fields WITHOUT defaults, so fields a request leaves out are left unchanged.
+ */
+export const profilePatchSchema = z.object(profileFields).partial().strict();
 
 // ---------- Site copy ----------
 export const copySchema = z.object({
@@ -103,6 +123,7 @@ const projectFields = {
   architecture: optionalText,
   result: optionalText,
   content: optionalText,      // article body: blank line = new paragraph, "## " heading, "- " bullet
+  published: z.boolean(),     // false = draft, hidden from the public site
 };
 
 const requireLinkUrl = (project: { type?: ProjectType; externalUrl?: string }, ctx: z.RefinementCtx) => {
@@ -124,6 +145,7 @@ export const projectSchema = z.object({
   architecture: optionalText.optional().default(''),
   result: optionalText.optional().default(''),
   content: optionalText.optional().default(''),
+  published: projectFields.published.optional().default(true),
 }).strict().superRefine(requireLinkUrl);
 
 /** PATCH: any subset. The "link needs externalUrl" rule is checked in the route after merging. */

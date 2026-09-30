@@ -6,7 +6,7 @@ import { SITE_URL } from '@/lib/seo';
 export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const projects = await prisma.project.findMany({ orderBy: { id: 'asc' }, select: { slug: true, type: true, externalUrl: true } }).catch(() => []);
+  const projects = await prisma.project.findMany({ where: { published: true }, orderBy: { id: 'asc' }, select: { slug: true, type: true, externalUrl: true } }).catch(() => []);
   return [
     { url: `${SITE_URL}/`, changeFrequency: 'weekly', priority: 1 },
     // "link" projects redirect elsewhere, so only projects with their own page are listed.

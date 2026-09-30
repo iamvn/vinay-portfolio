@@ -4,6 +4,13 @@ import type { Client } from '@libsql/client';
 
 /** Columns added after the first release, per table: name → definition. */
 const ADDED_COLUMNS: Record<string, Record<string, string>> = {
+  Profile: {
+    targetRoles: "TEXT NOT NULL DEFAULT ''",
+    workPreference: "TEXT NOT NULL DEFAULT ''",
+    availability: "TEXT NOT NULL DEFAULT ''",
+    noticePeriod: "TEXT NOT NULL DEFAULT ''",
+    assistantNotes: "TEXT NOT NULL DEFAULT ''",
+  },
   Project: {
     type: "TEXT NOT NULL DEFAULT 'case-study'",
     image: "TEXT NOT NULL DEFAULT ''",
@@ -15,6 +22,7 @@ const ADDED_COLUMNS: Record<string, Record<string, string>> = {
     architecture: "TEXT NOT NULL DEFAULT ''",
     result: "TEXT NOT NULL DEFAULT ''",
     content: "TEXT NOT NULL DEFAULT ''",
+    published: 'BOOLEAN NOT NULL DEFAULT 1',
   },
 };
 

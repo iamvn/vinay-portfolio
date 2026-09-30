@@ -4,6 +4,7 @@ import type React from 'react';
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Icon } from './icons';
+import { track } from '@/lib/track-client';
 
 // Game mode on/off is remembered in this browser. app/layout.tsx applies the saved choice
 // before the page paints, so a returning visitor never sees the wrong theme flash.
@@ -76,12 +77,27 @@ export function InteractionLayer({
   availability: string;
 }) {
   const [active, setActive] = useState('home');
-  const [contactOpen, setContactOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const gameMode = useSyncExternalStore(subscribeToGameMode, readGameMode, () => true);
   const setGameMode = (update: (current: boolean) => boolean) => writeGameMode(update(gameMode));
-  const [status, setStatus] = useState('');
   const [menuOpen, setMenuOpen] = useState(false); // phones/tablets: slide-in menu
+
+  // "Contact" (X key, menu button) opens the visitor's email app. Without an email, go to the contact section.
+  const contactHref = socialLinks?.email
+    ? (socialLinks.email.startsWith('mailto:') ? socialLinks.email : `mailto:${socialLinks.email}`)
+    : '#contact';
+
+  // Count contact intents for Admin → Insights: any email or LinkedIn link, wherever it is on the page.
+  useEffect(() => {
+    const onClick = (event: MouseEvent) => {
+      const link = (event.target as HTMLElement | null)?.closest?.('a[href]');
+      const href = link?.getAttribute('href') ?? '';
+      if (href.startsWith('mailto:')) track('contact_email');
+      else if (/linkedin\.com/i.test(href)) track('contact_linkedin');
+    };
+    document.addEventListener('click', onClick, { capture: true });
+    return () => document.removeEventListener('click', onClick, { capture: true });
+  }, []);
 
   // Lock page scrolling behind the open menu.
   useEffect(() => {
@@ -100,13 +116,18 @@ export function InteractionLayer({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Leave browser shortcuts (⌘X, Ctrl+B…) and typing in form fields alone.
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
+
       if (e.key.toLowerCase() === 'x') {
         e.preventDefault();
-        setContactOpen(true);
+        if (contactHref.startsWith('mailto:')) { track('contact_email'); window.location.href = contactHref; }
+        else document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
       if (e.key === 'Escape' || e.key.toLowerCase() === 'b') {
-        setContactOpen(false);
         setProfileOpen(false);
         setMenuOpen(false);
       }
@@ -171,34 +192,7 @@ export function InteractionLayer({
       window.removeEventListener('keydown', onKey);
       observer.disconnect();
     };
-  }, [active]);
-
-  async function submitContact(
-    e: React.FormEvent<HTMLFormElement>
-  ) {
-    e.preventDefault();
-    setStatus('SENDING...');
-
-    const form = new FormData(e.currentTarget);
-
-    const res = await fetch('/api/contact', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(Object.fromEntries(form)),
-    });
-
-    setStatus(
-      res.ok
-        ? 'TRANSMISSION RECEIVED'
-        : 'TRANSMISSION FAILED'
-    );
-
-    if (res.ok) {
-      e.currentTarget.reset();
-    }
-  }
+  }, [active, contactHref]);
 
   const iconFor = (id: string) =>
     id === 'home'
@@ -321,9 +315,9 @@ export function InteractionLayer({
               <a href="/api/resume" className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-purple-400/50 bg-purple-400/5 text-xs font-black text-purple-200">
                 <Icon name="download" size={16} /> DOWNLOAD RESUME
               </a>
-              <button type="button" onClick={() => { setMenuOpen(false); setContactOpen(true); }} className="flex min-h-12 items-center justify-center rounded-xl bg-lime-300 text-xs font-black text-black">
+              <a href={contactHref} onClick={() => setMenuOpen(false)} className="flex min-h-12 items-center justify-center rounded-xl bg-lime-300 text-xs font-black text-black">
                 CONTACT ME
-              </button>
+              </a>
             </div>
 
             {/* pushes the game-mode switch to the bottom, with at least 1.5rem of space above it */}
@@ -563,59 +557,6 @@ export function InteractionLayer({
           <p className="mt-5 text-sm leading-7 text-slate-300">
             {summary}
           </p>
-        </Modal>
-      )}
-
-      {/* Contact Modal */}
-      {contactOpen && (
-        <Modal
-          title="MISSION: CONTACT"
-          onClose={() => setContactOpen(false)}
-        >
-          <form
-            onSubmit={submitContact}
-            className="space-y-4"
-          >
-            <input
-              name="name"
-              required
-              placeholder="NAME"
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-base outline-none focus:border-lime-300 sm:text-sm"
-            />
-
-            <input
-              name="email"
-              type="email"
-              inputMode="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              required
-              placeholder="EMAIL"
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-base outline-none focus:border-lime-300 sm:text-sm"
-            />
-
-            <textarea
-              name="message"
-              required
-              placeholder="MESSAGE"
-              rows={5}
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-base outline-none focus:border-lime-300 sm:text-sm"
-            />
-
-            <button className="min-h-12 w-full rounded-xl bg-lime-300 px-5 py-3 text-xs font-black text-black transition hover:bg-lime-200">
-              SEND TRANSMISSION
-            </button>
-
-            {status && (
-              <p className="text-center text-xs font-bold text-lime-300">
-                {status}
-              </p>
-            )}
-
-            <p className="hidden text-center text-[10px] text-slate-600 lg:block">
-              Esc / B = back
-            </p>
-          </form>
         </Modal>
       )}
 

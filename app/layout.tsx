@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { SITE_URL } from '@/lib/seo';
 import './globals.css';
+import { SiteAnalytics } from '@/components/site-analytics';
 
 // Site-wide defaults. Pages refine these with their own titles, descriptions and canonical URLs.
 export const metadata: Metadata = {
@@ -35,7 +36,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           }}
         />
       </head>
-      <body className="scanlines">{children}</body>
+      <body className="scanlines">
+        {children}
+        <SiteAnalytics />
+      </body>
     </html>
   );
 }

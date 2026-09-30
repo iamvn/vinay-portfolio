@@ -1,0 +1,57 @@
+[
+  {
+    "slug": "portfolio-platform",
+    "title": "This Portfolio: Full-stack Site with Its Own CMS",
+    "description": "The site you're on: a Next.js portfolio backed by a database, with a mobile-first admin panel, role-based login, uploads, analytics and an AI assistant that answers questions about my experience.",
+    "stack": [
+      "Next.js 16",
+      "React 19",
+      "TypeScript",
+      "Prisma 7",
+      "Turso (SQLite)",
+      "Tailwind CSS 4",
+      "Zod",
+      "Vercel",
+      "Claude API"
+    ],
+    "featured": true,
+    "type": "case-study",
+    "liveUrl": "https://vinay-bharti.vercel.app",
+    "published": true,
+    "objective": "Replace a static, hard-coded portfolio with one I can update from my phone in a minute, without redeploying, while keeping it fast, secure and cheap to run (free hosting tiers).",
+    "approach": "Server Components render every page straight from the database, so edits appear on the next page load. A REST API validates every write with Zod schemas shared by the API and the admin UI. Login uses salted scrypt password hashes and signed, HttpOnly session tokens checked by a single proxy in front of /admin and /api, with admin and editor roles and a protected owner account. Uploads (resume, photos) are checked by file content, not just extension, and phone photos are resized in the browser before upload. Database changes are additive migrations that run automatically on every deploy.",
+    "architecture": "Browser (site + admin panel)\n        │\n   Next.js on Vercel\n   ├─ proxy.ts  → auth gate for /admin and /api\n   ├─ Server Components → pages\n   └─ Route handlers → REST API\n        │  Prisma + libSQL\n        ▼\n   Turso (hosted SQLite)\n        │\n   Claude API ← \"Ask my resume\"",
+    "result": "Content, images and resume are editable from a phone. Every push to main deploys automatically and migrates the database. It runs on free tiers with no surprise-bill risk, and it includes visit and contact analytics plus an AI assistant grounded only in the site's own content."
+  },
+  {
+    "slug": "ai-agent-writes-puppeteer-tests",
+    "title": "Building an AI Agent That Writes Puppeteer Tests from Real UI Sessions",
+    "description": "How I approached generating end-to-end tests by recording UI interactions and network calls and letting an AI agent turn them into Puppeteer scripts.",
+    "stack": [
+      "AI Agents",
+      "Puppeteer",
+      "Node.js",
+      "TypeScript"
+    ],
+    "featured": false,
+    "type": "article",
+    "published": false,
+    "content": "## The problem\nWriting and maintaining end-to-end tests for a large frontend takes a lot of time. [Add: which app, how many flows, how long tests took to write before.]\n\n## The idea\nInstead of writing tests by hand, record what a user actually does and let an AI agent turn that session into a test.\n- Record UI interactions (clicks, inputs, navigation)\n- Record the network calls each step triggers\n- Generate a Puppeteer script that replays the flow and checks the results\n\n## How it works\n[Add: how recording works, what the agent receives as input, how you prompt it, how you validate the generated script.]\n\n## What I explored next\nI also explored automation that analyses commits, feature changes and bug fixes to find which tests are affected and update them.\n[Add: what worked, what didn't.]\n\n## Results\n[Add: measured outcomes, e.g. time to create a test before vs after, number of flows covered.]\n\n## Lessons learned\n[Add: 2–3 practical lessons for engineers trying this.]"
+  },
+  {
+    "slug": "hybrid-code-search-rag-bm25",
+    "title": "Hybrid Code Search for a Talk-to-Code Assistant: RAG, BM25 and Re-ranking",
+    "description": "Why a code assistant needs more than vector search, and how combining semantic search, BM25 keyword search and re-ranking improves the answers.",
+    "stack": [
+      "RAG",
+      "Vector DB",
+      "BM25",
+      "Semantic Search",
+      "Re-ranking"
+    ],
+    "featured": false,
+    "type": "article",
+    "published": false,
+    "content": "## The goal\nA VS Code prototype that answers questions about a codebase, right inside the editor. [Add: which codebase, who it was for.]\n\n## Why vector search alone falls short for code\nSemantic search finds code that means the same thing, but exact names (function names, config keys, error codes) often need keyword matching.\n\n## The approach\n- Index code chunks in a vector database for semantic search\n- Run BM25 keyword search alongside it\n- Merge the candidates and re-rank them before sending the best ones to the model (RAG)\n\n## Implementation notes\n[Add: how you chunk code, which embedding model and vector DB, how results are merged, which re-ranker.]\n\n## Results\n[Add: examples of questions it answered well, and any measurements.]\n\n## What I'd do next\n[Add: improvements you'd make.]"
+  }
+]

@@ -186,6 +186,8 @@ html[data-game-mode='off'] input,
 html[data-game-mode='off'] textarea { color: var(--pro-text); }
 html[data-game-mode='off'] input::placeholder,
 html[data-game-mode='off'] textarea::placeholder { color: #94a3b8; }
+/* Ask my resume: error message */
+html[data-game-mode='off'] [class*='bg-red-950'] { background-color: #fdecec !important; border-color: #f5b5b5 !important; color: #9f1d1d !important; }
 
 .scanlines::after {
   content: '';

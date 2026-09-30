@@ -6,6 +6,8 @@ import { CopyTab } from './copy-tab';
 import { EXPERIENCE, ListTab, PROJECTS, SKILLS } from './list-tab';
 import { ProfileTab } from './profile-tab';
 import { ResumeTab } from './resume-tab';
+import { InsightsTab } from './insights-tab';
+import { AiTab } from './ai-tab';
 import { UsersTab, type AdminUser } from './users-tab';
 import type { Notify } from './ui';
 
@@ -16,11 +18,15 @@ const TABS = [
   ['projects', 'Projects'],
   ['copy', 'Site text'],
   ['resume', 'Resume'],
+  ['insights', 'Insights'],
+  ['ai', 'AI assistant'],
   ['backup', 'Backup'],
   ['users', 'Users & security'],
 ] as const;
 
 type Tab = (typeof TABS)[number][0];
+/** Tabs only admins see (the API also refuses editors). */
+const ADMIN_ONLY: readonly Tab[] = ['ai'];
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
 
 function subscribeToHash(callback: () => void) {
@@ -30,7 +36,8 @@ function subscribeToHash(callback: () => void) {
 
 export function AdminApp({ user }: { user: AdminUser }) {
   const hash = useSyncExternalStore(subscribeToHash, () => window.location.hash.slice(1), () => '');
-  const tab: Tab = TABS.some(([id]) => id === hash) ? (hash as Tab) : 'profile';
+  const tabs = TABS.filter(([id]) => user.role === 'admin' || !ADMIN_ONLY.includes(id));
+  const tab: Tab = tabs.some(([id]) => id === hash) ? (hash as Tab) : 'profile';
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -83,7 +90,7 @@ export function AdminApp({ user }: { user: AdminUser }) {
           aria-label="Admin sections"
           className="mx-auto flex max-w-5xl snap-x gap-1 overflow-x-auto px-4 pb-2.5 [scrollbar-width:none] sm:pb-3 [&::-webkit-scrollbar]:hidden"
         >
-          {TABS.map(([id, label]) => (
+          {tabs.map(([id, label]) => (
             <button
               key={id}
               data-tab={id}
@@ -104,6 +111,8 @@ export function AdminApp({ user }: { user: AdminUser }) {
         {tab === 'projects' && <ListTab config={PROJECTS} notify={notify} />}
         {tab === 'copy' && <CopyTab notify={notify} />}
         {tab === 'resume' && <ResumeTab notify={notify} />}
+        {tab === 'insights' && <InsightsTab notify={notify} />}
+        {tab === 'ai' && user.role === 'admin' && <AiTab notify={notify} />}
         {tab === 'backup' && <BackupTab notify={notify} onReplaced={() => setReloadKey((key) => key + 1)} />}
         {tab === 'users' && <UsersTab me={user} notify={notify} />}
       </main>
