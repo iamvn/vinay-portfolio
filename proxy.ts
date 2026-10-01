@@ -77,8 +77,8 @@ async function guard(request: NextRequest, site: Site) {
   const isApi = pathname.startsWith('/api/');
   const protectedPath = isApi || pathname === '/admin' || pathname.startsWith('/admin/');
   if (!protectedPath) return NextResponse.next();
-  // The platform (creating and managing sites) only exists on the main site.
-  if (pathname.startsWith('/api/platform') && !site.isMain) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
+  // The platform (creating and managing sites) exists on the main site, and on sites the main admin allowed to create sites.
+  if (pathname.startsWith('/api/platform') && !site.isMain && !site.canAddSites) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   if (isApi && isPublic(request.method, pathname)) return NextResponse.next();
 
   const { token, viaCookie } = tokenFromRequest(request);

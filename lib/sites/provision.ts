@@ -58,7 +58,12 @@ export async function deleteSiteDatabase(site: Site) {
 const COPIED_TABLES = ['Profile', 'SiteCopy', 'SkillGroup', 'Experience', 'Project', 'ProjectImage'] as const;
 
 async function copyTable(from: Client, to: Client, table: string, where = '') {
-  const result = await from.execute(`SELECT * FROM "${table}" ${where}`);
+  // An older source database may not have every table yet (e.g. no saved design): nothing to copy then.
+  const result = await from.execute(`SELECT * FROM "${table}" ${where}`).catch((error) => {
+    if (/no such table/i.test(String(error))) return null;
+    throw error;
+  });
+  if (!result) return 0;
   if (!result.rows.length) return 0;
   const columns = result.columns;
   const sql = `INSERT INTO "${table}" (${columns.map((c) => `"${c}"`).join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`;
@@ -67,12 +72,17 @@ async function copyTable(from: Client, to: Client, table: string, where = '') {
 }
 
 /**
- * Sets up a new site's database: tables, a copy of the main site's portfolio content and design (with the
- * new owner's name and email instead of yours), and the owner's admin account.
+ * Sets up a new site's database: tables, a copy of the creating site's portfolio content and design (the
+ * main site's, unless another site's admin creates it) with the new owner's name and email, and the
+ * owner's admin account.
  */
-export async function prepareSiteDatabase(site: { dbUrl: string; dbToken?: string }, owner: { name: string; email: string; password: string }) {
+export async function prepareSiteDatabase(
+  site: { dbUrl: string; dbToken?: string },
+  owner: { name: string; email: string; password: string },
+  from?: { dbUrl: string; dbToken?: string },
+) {
   const target = createClient({ url: site.dbUrl, authToken: site.dbToken });
-  const { url, authToken } = databaseConfig();
+  const { url, authToken } = from ? { url: from.dbUrl, authToken: from.dbToken } : databaseConfig();
   const source = createClient({ url, authToken });
   try {
     await migrate(target);

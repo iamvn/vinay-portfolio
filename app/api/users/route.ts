@@ -7,6 +7,8 @@ import { ROLES, ownerId, requireAdmin } from '@/lib/auth/roles';
 import { publicUser } from '@/lib/auth/session';
 import { TAB_IDS } from '@/lib/auth/permissions';
 import { accessById, setAccess } from '@/lib/auth/permissions-store';
+import { canAddUsersHere } from '@/lib/sites/platform';
+import { actorLabel, logActivity } from '@/lib/sites/activity';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,8 +35,10 @@ export async function GET(request: Request) {
 
 /** Adds a user. Admins only. Body: { email, name?, password, role?, permissions?, readOnly? } — role is "editor" unless "admin" is given. */
 export async function POST(request: Request) {
-  const { error: denied } = await requireAdmin(request);
+  const { user: me, error: denied } = await requireAdmin(request);
   if (denied) return denied;
+  const { site, allowed } = await canAddUsersHere();
+  if (!allowed) return jsonError('Adding users is turned off for this site. Ask the platform owner to allow it.', 403);
   const { data, error } = await parseBody(request, newUserSchema);
   if (error) return error;
   const problem = passwordProblem(data.password);
@@ -46,6 +50,10 @@ export async function POST(request: Request) {
     const access = data.role === 'admin'
       ? { permissions: '', readOnly: false }
       : await setAccess(user.id, { permissions: data.permissions, readOnly: data.readOnly ?? false });
+    // Users added on other sites are reported to the main site's admin.
+    await logActivity(site, actorLabel(me), 'user.added', {
+      email: user.email, name: user.name ?? '', role: user.role, ...(user.role !== 'admin' && access.readOnly ? { access: 'read-only' } : {}),
+    });
     return NextResponse.json(publicUser({ ...user, ...access }), { status: 201 });
   } catch (err) {
     return handleDbError(err);

@@ -307,7 +307,7 @@ function UserRow({ user, onChanged, notify }: { user: AdminUser; onChanged: () =
   );
 }
 
-export function UsersTab({ me, notify }: { me: AdminUser; notify: Notify }) {
+export function UsersTab({ me, notify, canAddUsers = true }: { me: AdminUser; notify: Notify; canAddUsers?: boolean }) {
   const admin = me.role === 'admin';
   const [users, setUsers] = useState<AdminUser[] | null>(null);
 
@@ -339,7 +339,7 @@ export function UsersTab({ me, notify }: { me: AdminUser; notify: Notify }) {
         <>
           <Card title={others ? `Other users (${others.length})` : 'Other users'}>
             {!others ? <Loading /> : others.length === 0 ? (
-              <p className="text-sm text-slate-400">No other users yet. Add one below.</p>
+              <p className="text-sm text-slate-400">{canAddUsers ? 'No other users yet. Add one below.' : 'No other users.'}</p>
             ) : (
               <ul className="divide-y divide-white/5">
                 {others.map((user) => <UserRow key={user.id} user={user} onChanged={load} notify={notify} />)}
@@ -348,7 +348,11 @@ export function UsersTab({ me, notify }: { me: AdminUser; notify: Notify }) {
           </Card>
 
           <Card title="Add user">
-            <AddUser notify={notify} onAdded={load} />
+            {canAddUsers ? <AddUser notify={notify} onAdded={load} /> : (
+              <p className="text-sm leading-6 text-slate-400">
+                Adding users is turned off for this site. The platform owner can allow it if you need to give someone else access.
+              </p>
+            )}
           </Card>
         </>
       )}

@@ -283,6 +283,16 @@ does affects another.
 - **SEO per site:** canonical URLs, sitemap, robots.txt, share image, favicon initials and structured data use each
   site's own address and name. The `ANTHROPIC_API_KEY` fallback is main-site only (other sites add their own provider).
 - **Manage:** pause/resume, set a custom domain, delete (type the address to confirm; deletes its database).
+- **Security (per site, main site admins only):** new sites start locked down. Under each site → Security:
+  - *Site admins can add users* (off by default): otherwise that site's Users & security has no "Add user" and
+    `POST /api/users` is refused there.
+  - *Site admins can create sites* (off by default): gives that site's admins their own Sites tab. They only see,
+    pause and delete the sites they created (a copy of their site); they can't change any security settings.
+  Switching either off applies on the next request. Every user added and site created/deleted by another site's
+  admin appears in **Activity on other sites** (who, on which site, and the details), stored in the main
+  database (`SiteActivity` table). Sites created that way show "Created by …".
+- **Other pages follow the design:** project pages use the published design's theme (colors, background, buttons),
+  so they match the homepage.
 
 ### Free option (no domain to buy): one `*.vercel.app` address per site
 

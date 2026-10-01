@@ -70,7 +70,7 @@ function DatabaseNotice({ database }: { database: DatabaseInfo }) {
   return null;
 }
 
-export function AdminApp({ user, database, platform = false }: { user: AdminUser; database?: DatabaseInfo; platform?: boolean }) {
+export function AdminApp({ user, database, platform = false, canAddUsers = true }: { user: AdminUser; database?: DatabaseInfo; platform?: boolean; canAddUsers?: boolean }) {
   const hash = useSyncExternalStore(subscribeToHash, () => window.location.hash.slice(1), () => '');
   const tabs = visibleTabs(user, platform);
   const can = (id: Tab) => tabs.some(([tab]) => tab === id);
@@ -165,7 +165,7 @@ export function AdminApp({ user, database, platform = false }: { user: AdminUser
         </ReadOnlyProvider>
         {/* "My account" (password change) always works, even for read-only users. */}
         {tab === 'sites' && platform && <SitesTab notify={notify} />}
-        {tab === 'users' && <ReadOnlyProvider value={false}><UsersTab me={user} notify={notify} /></ReadOnlyProvider>}
+        {tab === 'users' && <ReadOnlyProvider value={false}><UsersTab me={user} notify={notify} canAddUsers={canAddUsers} /></ReadOnlyProvider>}
         {database && database.persistent && database.kind !== 'file' && (
           <div className="mt-8 space-y-1 text-center text-[11px] text-slate-500">
             <p>Database: {database.label}{database.kind === 'turso' ? ' (Turso)' : ''} · changes are saved permanently</p>

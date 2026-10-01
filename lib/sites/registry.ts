@@ -18,22 +18,49 @@ export type Site = {
   status: 'active' | 'suspended';
   createdAt: string;
   isMain: boolean;
+  /** Security (set by the main site's admin): may this site's admins add users / create sites of their own? */
+  canAddUsers: boolean;
+  canAddSites: boolean;
+  /** Who created it: '' = the main site, otherwise the slug of the site whose admin created it. */
+  createdBy: string;
+  /** Name and email of the admin who created it. */
+  createdByUser: string;
 };
 
 export function mainSite(): Site {
   const { url, authToken } = databaseConfig();
-  return { slug: MAIN_SLUG, name: 'Main site', ownerEmail: '', domain: null, dbUrl: url, dbToken: authToken, dbName: '', status: 'active', createdAt: '', isMain: true };
+  return { slug: MAIN_SLUG, name: 'Main site', ownerEmail: '', domain: null, dbUrl: url, dbToken: authToken, dbName: '', status: 'active', createdAt: '', isMain: true, canAddUsers: true, canAddSites: true, createdBy: '', createdByUser: '' };
 }
 
 const CREATE = `CREATE TABLE IF NOT EXISTS Site (slug TEXT PRIMARY KEY, name TEXT NOT NULL, ownerEmail TEXT NOT NULL DEFAULT '', domain TEXT UNIQUE, dbUrl TEXT NOT NULL, dbTokenCipher TEXT NOT NULL DEFAULT '', dbName TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'active', createdAt TEXT NOT NULL)`;
 let ready: Promise<unknown> | null = null;
-const ensureTable = () => (ready ??= mainClient.$executeRawUnsafe(CREATE).catch((error) => { ready = null; throw error; }));
+// Columns added after the first version: added to older Site tables on first use.
+const LATER_COLUMNS = [
+  "canAddUsers INTEGER NOT NULL DEFAULT 0",
+  "canAddSites INTEGER NOT NULL DEFAULT 0",
+  "createdBy TEXT NOT NULL DEFAULT ''",
+  "createdByUser TEXT NOT NULL DEFAULT ''",
+];
+async function createTable() {
+  await mainClient.$executeRawUnsafe(CREATE);
+  for (const column of LATER_COLUMNS) {
+    await mainClient.$executeRawUnsafe(`ALTER TABLE Site ADD COLUMN ${column}`).catch((error) => {
+      if (!/duplicate column/i.test(String(error))) throw error;
+    });
+  }
+}
+const ensureTable = () => (ready ??= createTable().catch((error) => { ready = null; throw error; }));
 
-type Row = { slug: string; name: string; ownerEmail: string; domain: string | null; dbUrl: string; dbTokenCipher: string; dbName: string; status: string; createdAt: string };
+type Row = {
+  slug: string; name: string; ownerEmail: string; domain: string | null; dbUrl: string; dbTokenCipher: string; dbName: string; status: string; createdAt: string;
+  canAddUsers: number | bigint | null; canAddSites: number | bigint | null; createdBy: string | null; createdByUser: string | null;
+};
 const toSite = (row: Row): Site => ({
   slug: row.slug, name: row.name, ownerEmail: row.ownerEmail, domain: row.domain || null, dbUrl: row.dbUrl,
   dbToken: row.dbTokenCipher ? decryptSecret(row.dbTokenCipher) ?? undefined : undefined, dbName: row.dbName,
   status: row.status === 'suspended' ? 'suspended' : 'active', createdAt: row.createdAt, isMain: false,
+  canAddUsers: Number(row.canAddUsers ?? 0) === 1, canAddSites: Number(row.canAddSites ?? 0) === 1,
+  createdBy: row.createdBy ?? '', createdByUser: row.createdByUser ?? '',
 });
 
 // Short cache: every request looks up its site, and sites change rarely. Shared through globalThis so the
@@ -92,19 +119,21 @@ export async function siteForHost(host: string | null | undefined, { fresh = fal
   return (await siteByDomain(target.domain, fresh)) ?? mainSite();
 }
 
-export async function insertSite(site: Omit<Site, 'isMain' | 'dbToken'> & { dbToken?: string }) {
+export async function insertSite(site: Omit<Site, 'isMain' | 'dbToken' | 'canAddUsers' | 'canAddSites'> & { dbToken?: string }) {
   await ensureTable();
   const cipher = site.dbToken ? encryptSecret(site.dbToken) : '';
-  await mainClient.$executeRaw`INSERT INTO Site (slug, name, ownerEmail, domain, dbUrl, dbTokenCipher, dbName, status, createdAt)
-    VALUES (${site.slug}, ${site.name}, ${site.ownerEmail}, ${site.domain}, ${site.dbUrl}, ${cipher}, ${site.dbName}, ${site.status}, ${site.createdAt})`;
+  // New sites start locked down: their admins can't add users or create sites until the main admin allows it.
+  await mainClient.$executeRaw`INSERT INTO Site (slug, name, ownerEmail, domain, dbUrl, dbTokenCipher, dbName, status, createdAt, canAddUsers, canAddSites, createdBy, createdByUser)
+    VALUES (${site.slug}, ${site.name}, ${site.ownerEmail}, ${site.domain}, ${site.dbUrl}, ${cipher}, ${site.dbName}, ${site.status}, ${site.createdAt}, 0, 0, ${site.createdBy}, ${site.createdByUser})`;
   forgetSites();
 }
 
-export async function updateSite(slug: string, changes: Partial<Pick<Site, 'name' | 'domain' | 'status'>>) {
-  const site = await siteBySlug(slug);
+export async function updateSite(slug: string, changes: Partial<Pick<Site, 'name' | 'domain' | 'status' | 'canAddUsers' | 'canAddSites'>>) {
+  const site = await siteBySlug(slug, true);
   if (!site || site.isMain) return null;
   const next = { ...site, ...changes };
-  await mainClient.$executeRaw`UPDATE Site SET name = ${next.name}, domain = ${next.domain}, status = ${next.status} WHERE slug = ${slug}`;
+  await mainClient.$executeRaw`UPDATE Site SET name = ${next.name}, domain = ${next.domain}, status = ${next.status},
+    canAddUsers = ${next.canAddUsers ? 1 : 0}, canAddSites = ${next.canAddSites ? 1 : 0} WHERE slug = ${slug}`;
   forgetSites();
   return next;
 }

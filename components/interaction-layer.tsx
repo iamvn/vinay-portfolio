@@ -76,6 +76,9 @@ export function InteractionLayer({
   available: boolean;
   availability: string;
 }) {
+  // "Savi Bharti" → "SB": each site shows its owner's initials.
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const initials = (words.length >= 2 ? `${words[0][0]}${words[words.length - 1][0]}` : (words[0] ?? 'P').slice(0, 2)).toUpperCase();
   const [active, setActive] = useState('home');
   const [profileOpen, setProfileOpen] = useState(false);
   const gameMode = useSyncExternalStore(subscribeToGameMode, readGameMode, () => true);
@@ -258,7 +261,7 @@ export function InteractionLayer({
           <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
           <div className="mobile-menu-panel absolute inset-y-0 right-0 flex w-[86%] max-w-sm flex-col overflow-y-auto border-l border-white/10 bg-[#050b11] px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-slate-100 shadow-2xl">
             <div className="flex items-center justify-between">
-              <span className="text-2xl font-black italic text-lime-300">VB</span>
+              <span className="text-2xl font-black italic text-lime-300">{initials}</span>
               <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close menu" className="flex size-11 items-center justify-center rounded-full border border-white/10 text-slate-300">
                 <Icon name="close" size={20} />
               </button>
@@ -270,7 +273,7 @@ export function InteractionLayer({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={profileImage} alt={`${name} profile`} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-xl font-black text-white">VB</div>
+                  <div className="flex h-full w-full items-center justify-center text-xl font-black text-white">{initials}</div>
                 )}
               </div>
               <div className="min-w-0">
@@ -342,7 +345,7 @@ export function InteractionLayer({
       <aside className="fixed left-0 top-0 z-30 hidden h-screen w-64 border-r border-white/10 bg-[#050b11]/95 p-5 backdrop-blur lg:block">
         <div className="flex items-center justify-between">
           <div className="text-3xl font-black italic text-lime-300">
-            VB
+            {initials}
           </div>
 
           <span className="rounded-full border border-lime-300/30 px-2 py-1 text-[9px] font-bold text-lime-300">
@@ -361,7 +364,7 @@ export function InteractionLayer({
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-3xl font-black text-white">
-                VB
+                {initials}
               </div>
             )}
           </div>

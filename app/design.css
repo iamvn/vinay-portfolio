@@ -126,10 +126,12 @@
   --color-slate-600: color-mix(in oklab, var(--d-muted) 60%, var(--d-bg));
   --color-slate-800: var(--d-surface-2);
   --color-slate-900: var(--d-surface);
+  --color-slate-950: var(--d-surface);
   --color-white: var(--d-text);
 }
 .d-recolor .d-classic .bg-\[\#030609\] { background-color: var(--d-bg); }
 .d-recolor .d-classic .bg-\[\#030609\]\/80 { background-color: color-mix(in oklab, var(--d-bg) 80%, transparent); }
+.d-recolor .d-classic .bg-\[\#030609\]\/85 { background-color: color-mix(in oklab, var(--d-bg) 85%, transparent); }
 .d-recolor .d-classic :is(.bg-\[\#050c12\], .bg-\[\#050b11\]) { background-color: var(--d-surface-2); }
 .d-recolor .d-classic .bg-\[\#050b11\]\/95 { background-color: color-mix(in oklab, var(--d-surface-2) 95%, transparent); }
 .d-recolor .d-classic .bg-\[\#071018\] { background-color: var(--d-surface); }

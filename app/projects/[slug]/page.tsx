@@ -7,6 +7,7 @@ import { parseCopy, toProject } from '@/lib/portfolio-repository';
 import { absoluteUrl, clip, jsonLd } from '@/lib/seo';
 import { currentSiteUrl } from '@/lib/sites/url';
 import { currentUser } from '@/lib/auth/server';
+import { PageTheme } from '@/components/design/page-theme';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,7 +112,7 @@ export default async function ProjectPage({ params }: Props) {
 
   const button = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-black sm:min-h-11 sm:py-2 sm:text-xs';
 
-  return <>
+  return <PageTheme>
     {!isDraft && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }} />}
     {/* Sticky bar: always one tap back to the projects, on every screen size. */}
     <header className="site-header sticky top-0 z-30 border-b border-white/10 bg-[#030609]/85 pt-[env(safe-area-inset-top)] backdrop-blur">
@@ -222,5 +223,5 @@ export default async function ProjectPage({ params }: Props) {
       </p>
     </div>
   </main>
-  </>;
+  </PageTheme>;
 }

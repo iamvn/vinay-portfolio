@@ -5,7 +5,8 @@ import { passwordProblem } from '@/lib/auth/password';
 import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/sites/hosts';
 import { insertSite, listSites, siteBySlug } from '@/lib/sites/registry';
 import { createSiteDatabase, deleteSiteDatabase, prepareSiteDatabase } from '@/lib/sites/provision';
-import { platformInfo, publicSite, requirePlatformAdmin } from '@/lib/sites/platform';
+import { canSeeSite, platformInfo, publicSite, requirePlatformAdmin } from '@/lib/sites/platform';
+import { actorLabel, listActivity, logActivity } from '@/lib/sites/activity';
 import { rootDomain } from '@/lib/sites/hosts';
 import { addProjectDomain, vercelApiConfigured } from '@/lib/sites/vercel';
 
@@ -19,12 +20,16 @@ const createSchema = z.object({
   ownerPassword: z.string(),
 }).strict();
 
-/** All sites (main site admins only). */
+/**
+ * The sites this admin manages: every site for the main site's admins (plus what other sites' admins did),
+ * only their own sites for an admin of a site that's allowed to create sites.
+ */
 export async function GET(request: Request) {
-  const { error } = await requirePlatformAdmin(request);
+  const { site: manager, error } = await requirePlatformAdmin(request);
   if (error) return error;
-  const sites = await listSites();
-  return NextResponse.json({ sites: sites.map((site) => publicSite(site, request)), platform: platformInfo(request) });
+  const sites = (await listSites()).filter((site) => canSeeSite(manager, site));
+  const activity = manager.isMain ? await listActivity() : [];
+  return NextResponse.json({ sites: sites.map((site) => publicSite(site, request)), platform: platformInfo(request, manager), activity });
 }
 
 /**
@@ -32,7 +37,7 @@ export async function GET(request: Request) {
  * owner's name and email), and the owner's admin account. Body: { slug, name, ownerEmail, ownerPassword }.
  */
 export async function POST(request: Request) {
-  const { error: denied } = await requirePlatformAdmin(request);
+  const { user, site: manager, error: denied } = await requirePlatformAdmin(request);
   if (denied) return denied;
   const { data, error } = await parseBody(request, createSchema);
   if (error) return error;
@@ -44,7 +49,8 @@ export async function POST(request: Request) {
   let database: Awaited<ReturnType<typeof createSiteDatabase>> | null = null;
   try {
     database = await createSiteDatabase(data.slug);
-    await prepareSiteDatabase(database, { name: data.name, email: data.ownerEmail, password: data.ownerPassword });
+    // The new site starts as a copy of the site it was created from.
+    await prepareSiteDatabase(database, { name: data.name, email: data.ownerEmail, password: data.ownerPassword }, manager.isMain ? undefined : manager);
     // No domain of your own yet: give the site a free <address>.vercel.app on this project (when the Vercel API is set up).
     let domain: string | null = null;
     let note: string | undefined;
@@ -54,9 +60,13 @@ export async function POST(request: Request) {
       if (added.ok) domain = free;
       else note = `${added.message} You can set another address under the site's custom domain.`;
     }
-    const site = { slug: data.slug, name: data.name, ownerEmail: data.ownerEmail, domain, ...database, status: 'active' as const, createdAt: new Date().toISOString() };
+    const site = {
+      slug: data.slug, name: data.name, ownerEmail: data.ownerEmail, domain, ...database, status: 'active' as const, createdAt: new Date().toISOString(),
+      createdBy: manager.isMain ? '' : manager.slug, createdByUser: actorLabel(user),
+    };
     await insertSite(site);
-    return NextResponse.json({ ...publicSite({ ...site, isMain: false }, request), note }, { status: 201 });
+    await logActivity(manager, actorLabel(user), 'site.created', { slug: site.slug, name: site.name, ownerEmail: site.ownerEmail, ...(domain ? { domain } : {}) });
+    return NextResponse.json({ ...publicSite({ ...site, isMain: false, canAddUsers: false, canAddSites: false }, request), note }, { status: 201 });
   } catch (err) {
     console.error('Creating site failed:', err);
     // Don't leave a half-made database behind.
