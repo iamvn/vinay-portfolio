@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
+    "@myriaddreamin/typst-ts-node-compiler": "^0.7.0",
     "@prisma/adapter-libsql": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@puckeditor/core": "^0.23.0",

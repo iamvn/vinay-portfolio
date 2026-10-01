@@ -12,6 +12,7 @@ import { prisma } from './prisma';
 import { decryptSecret } from './ai/crypto';
 import { callProvider, ProviderError, type ProviderConfig, type ProviderKind } from './ai/providers';
 import { getAssistantSettings } from './ai/settings';
+import { currentSite } from './sites/context';
 
 export type { ChatMessage } from './ai/providers';
 import type { ChatMessage } from './ai/providers';
@@ -112,6 +113,8 @@ export async function usableProviders(): Promise<UsableProvider[]> {
     return [{ id: row.id, name: row.name, kind: row.kind as ProviderKind, baseUrl: row.baseUrl, model: row.model, apiKey, temperature: Number.isFinite(temperature) ? temperature : undefined }];
   });
   if (configured.length || rows.length) return configured;
+  // The environment key belongs to the platform owner: other sites must add their own provider.
+  if (!(await currentSite()).isMain) return [];
   // Nothing set up in the admin panel: use the environment variable (earlier setup).
   if (process.env.ANTHROPIC_API_KEY) {
     return [{ id: null, name: 'Anthropic (environment)', kind: 'anthropic', baseUrl: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com', model: process.env.ASSISTANT_MODEL || 'claude-haiku-4-5-20251001', apiKey: process.env.ANTHROPIC_API_KEY }];

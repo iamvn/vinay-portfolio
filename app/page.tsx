@@ -6,6 +6,7 @@ import { assistantEnabled } from '@/lib/assistant';
 import { getPublished } from '@/lib/design/store';
 import { DesignedPage } from '@/components/design/designed-page';
 import { homeDescription, homeTitle, jsonLd, personJsonLd } from '@/lib/seo';
+import { currentSiteUrl } from '@/lib/sites/url';
 
 // Read the database on every request so API edits show up immediately.
 export const dynamic = 'force-dynamic';
@@ -30,7 +31,7 @@ export default async function HomePage() {
   return (
     <>
       {/* Structured data for search engines. It renders nothing on the page. */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(personJsonLd(data)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(personJsonLd(data, await currentSiteUrl())) }} />
       {design
         ? <DesignedPage data={design.data} portfolio={data} assistant={assistant} />
         : <PortfolioHome data={data} assistant={assistant} />}

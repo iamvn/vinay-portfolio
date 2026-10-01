@@ -1,7 +1,11 @@
 import type { MetadataRoute } from 'next';
-import { SITE_URL } from '@/lib/seo';
+import { currentSiteUrl } from '@/lib/sites/url';
 
-export default function robots(): MetadataRoute.Robots {
+// Per site: each site's robots.txt points at its own sitemap.
+export const dynamic = 'force-dynamic';
+
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const base = await currentSiteUrl();
   return {
     rules: {
       userAgent: '*',
@@ -9,7 +13,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: ['/', '/api/profile-image', '/api/projects/*/image', '/api/resume'],
       disallow: ['/admin', '/login', '/api/'],
     },
-    sitemap: `${SITE_URL}/sitemap.xml`,
-    host: SITE_URL,
+    sitemap: `${base}/sitemap.xml`,
+    host: base,
   };
 }

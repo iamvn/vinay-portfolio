@@ -1,11 +1,12 @@
 import type { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
-import { SITE_URL } from '@/lib/seo';
+import { currentSiteUrl } from '@/lib/sites/url';
 
 // Built from the database on each request so new projects appear without a redeploy.
 export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const SITE_URL = await currentSiteUrl();
   const projects = await prisma.project.findMany({ where: { published: true }, orderBy: { id: 'asc' }, select: { slug: true, type: true, externalUrl: true } }).catch(() => []);
   return [
     { url: `${SITE_URL}/`, changeFrequency: 'weekly', priority: 1 },

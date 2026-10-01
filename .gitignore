@@ -14,3 +14,6 @@ tsconfig.tsbuildinfo
 # Local SQLite database
 prisma/*.db
 prisma/*.db-journal
+
+# Per-site SQLite databases (local development of the multi-site platform)
+prisma/sites/

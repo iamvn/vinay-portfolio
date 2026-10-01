@@ -4,7 +4,7 @@ import type { PortfolioData } from './schemas';
 // Set NEXT_PUBLIC_SITE_URL if the site moves to another domain.
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://vinay-bharti.vercel.app').replace(/\/+$/, '');
 
-export const absoluteUrl = (path: string) => (/^https?:\/\//i.test(path) ? path : `${SITE_URL}${path.startsWith('/') ? '' : '/'}${path}`);
+export const absoluteUrl = (path: string, base = SITE_URL) => (/^https?:\/\//i.test(path) ? path : `${base}${path.startsWith('/') ? '' : '/'}${path}`);
 
 type Profile = PortfolioData['profile'];
 type Skills = PortfolioData['skills'];
@@ -49,7 +49,7 @@ function address(location: string) {
 }
 
 /** Person + WebSite structured data, generated only from what the portfolio actually shows. */
-export function personJsonLd(data: PortfolioData) {
+export function personJsonLd(data: PortfolioData, SITE = SITE_URL) {
   const { profile, skills, experience } = data;
   const links = profile.socialLinks ?? {};
   const sameAs = [links.github, links.linkedin, links.instagram].filter((link): link is string => Boolean(link));
@@ -57,12 +57,12 @@ export function personJsonLd(data: PortfolioData) {
   const employer = current?.company.replace(/\s*\(.*\)\s*$/, '').trim();
   const person = {
     '@type': 'Person',
-    '@id': `${SITE_URL}/#person`,
+    '@id': `${SITE}/#person`,
     name: profile.name,
     jobTitle: profile.role,
-    url: `${SITE_URL}/`,
+    url: `${SITE}/`,
     description: profile.summary,
-    ...(profile.profileImage ? { image: absoluteUrl(profile.profileImage) } : {}),
+    ...(profile.profileImage ? { image: absoluteUrl(profile.profileImage, SITE) } : {}),
     ...(links.email ? { email: links.email.startsWith('mailto:') ? links.email : `mailto:${links.email}` } : {}),
     ...(address(profile.location) ? { address: address(profile.location) } : {}),
     ...(employer ? { worksFor: { '@type': 'Organization', name: employer } } : {}),
@@ -73,8 +73,8 @@ export function personJsonLd(data: PortfolioData) {
     '@context': 'https://schema.org',
     '@graph': [
       person,
-      { '@type': 'WebSite', '@id': `${SITE_URL}/#website`, url: `${SITE_URL}/`, name: `${profile.name} — ${profile.role}`, author: { '@id': `${SITE_URL}/#person` }, inLanguage: 'en' },
-      { '@type': 'ProfilePage', '@id': `${SITE_URL}/#profilepage`, url: `${SITE_URL}/`, name: homeTitle(profile, skills), mainEntity: { '@id': `${SITE_URL}/#person` }, isPartOf: { '@id': `${SITE_URL}/#website` } },
+      { '@type': 'WebSite', '@id': `${SITE}/#website`, url: `${SITE}/`, name: `${profile.name} — ${profile.role}`, author: { '@id': `${SITE}/#person` }, inLanguage: 'en' },
+      { '@type': 'ProfilePage', '@id': `${SITE}/#profilepage`, url: `${SITE}/`, name: homeTitle(profile, skills), mainEntity: { '@id': `${SITE}/#person` }, isPartOf: { '@id': `${SITE}/#website` } },
     ],
   };
 }

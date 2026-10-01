@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { userFromToken } from '@/lib/auth/session';
 import { tokenFromRequest } from '@/lib/auth/token';
+import { runWithSite } from '@/lib/sites/context';
+import { siteForHost, type Site } from '@/lib/sites/registry';
 import { TAB_LABELS, blockedForReadOnly, canUseTab, isReadOnly, tabForRequest } from '@/lib/auth/permissions';
 
 /**
@@ -42,9 +44,41 @@ function sameOrigin(request: NextRequest) {
   }
 }
 
+/** A small standalone page for "no site here" / "site paused". */
+function statusPage(status: number, title: string, text: string) {
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${title}</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#030609;color:#e2e8f0;font:16px/1.6 system-ui,sans-serif;padding:24px}main{max-width:28rem;text-align:center}h1{font-size:1.4rem;margin:0 0 .5rem;color:#bef264}p{margin:0;color:#94a3b8}</style></head>
+<body><main><h1>${title}</h1><p>${text}</p></main></body></html>`;
+  return new NextResponse(html, { status, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
+}
+
+/**
+ * Every request first finds its site from the host name (see lib/sites): unknown subdomains get a 404,
+ * suspended sites a "paused" page. The rest runs with that site, so the database, login and settings
+ * used are that site's own.
+ */
 export async function proxy(request: NextRequest) {
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
+  let site: Site | null;
+  try {
+    site = await siteForHost(host, { fresh: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Could not look up this site.' }, { status: 500 });
+  }
+  if (!site) return statusPage(404, 'No site here yet', 'There is no portfolio at this address. Check the spelling of the link.');
+  if (site.status === 'suspended') return statusPage(503, 'This site is paused', 'This portfolio is temporarily unavailable. Please check back later.');
+  const found = site;
+  return runWithSite(found, () => guard(request, found));
+}
+
+async function guard(request: NextRequest, site: Site) {
   const { pathname } = request.nextUrl;
   const isApi = pathname.startsWith('/api/');
+  const protectedPath = isApi || pathname === '/admin' || pathname.startsWith('/admin/');
+  if (!protectedPath) return NextResponse.next();
+  // The platform (creating and managing sites) only exists on the main site.
+  if (pathname.startsWith('/api/platform') && !site.isMain) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   if (isApi && isPublic(request.method, pathname)) return NextResponse.next();
 
   const { token, viaCookie } = tokenFromRequest(request);
@@ -89,5 +123,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin', '/admin/:path*', '/api/:path*'],
+  // Everything except Next.js build files: every page needs its site (or a 404 for unknown subdomains).
+  matcher: ['/((?!_next/static|_next/image).*)'],
 };

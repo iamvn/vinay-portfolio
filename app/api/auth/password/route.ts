@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { currentSite } from '@/lib/sites/context';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { handleDbError, jsonError, parseBody } from '@/lib/api-utils';
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
       where: { id: user.id },
       data: { passwordHash: await hashPassword(data.newPassword), tokenVersion: { increment: 1 } },
     });
-    const { token, expiresAt } = await createToken(updated.id, updated.tokenVersion);
+    const { token, expiresAt } = await createToken(updated.id, updated.tokenVersion, (await currentSite()).slug);
     const apiToken = updated.role === 'admin' ? { token, expiresAt: expiresAt.toISOString() } : {};
     const response = NextResponse.json({ ok: true, ...apiToken });
     response.cookies.set(sessionCookie(token));

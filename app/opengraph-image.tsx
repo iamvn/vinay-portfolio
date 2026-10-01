@@ -1,15 +1,16 @@
 import { ImageResponse } from 'next/og';
 import { getPortfolioFromDatabase } from '@/lib/portfolio-repository';
-import { SITE_URL, mainTechnologies } from '@/lib/seo';
+import { mainTechnologies } from '@/lib/seo';
+import { currentSiteUrl } from '@/lib/sites/url';
 
 // The preview card shown when the site is shared on LinkedIn, X, WhatsApp, Slack, etc.
 // Built from the profile on each request so it always matches the site.
 export const dynamic = 'force-dynamic';
-export const alt = 'Vinay Bharti — Senior Software Engineer portfolio';
+export const alt = 'Portfolio preview';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-const FALLBACK = { name: 'Vinay Bharti', role: 'Senior Software Engineer', location: 'Pune, India', tech: ['React', 'Next.js', 'TypeScript', 'AI Engineering'] };
+const FALLBACK = { name: 'Portfolio', role: '', location: '', tech: [] as string[] };
 
 async function load() {
   try {
@@ -23,6 +24,7 @@ async function load() {
 
 export default async function OpengraphImage() {
   const { name, role, location, tech } = await load();
+  const address = (await currentSiteUrl().catch(() => '')).replace(/^https?:\/\//, '');
   return new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 72, background: 'linear-gradient(135deg, #030609 0%, #0b1620 60%, #10202b 100%)', color: '#f8fafc', fontFamily: 'sans-serif' }}>
@@ -41,7 +43,7 @@ export default async function OpengraphImage() {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: 26 }}>
           <div>{location}</div>
-          <div>{SITE_URL.replace(/^https?:\/\//, '')}</div>
+          <div>{address}</div>
         </div>
       </div>
     ),

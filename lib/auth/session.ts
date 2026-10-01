@@ -1,6 +1,7 @@
 import { readToken, tokenFromRequest } from './token';
 import { allowedTabs, isReadOnly, parsePermissions } from './permissions';
 import { findSessionUser } from './permissions-store';
+import { currentSite } from '@/lib/sites/context';
 
 export type SessionUser = { id: number; email: string; name: string; role: string; tokenVersion: number; permissions: string; readOnly: boolean };
 
@@ -8,6 +9,8 @@ export type SessionUser = { id: number; email: string; name: string; role: strin
 export async function userFromToken(token: string | null | undefined): Promise<SessionUser | null> {
   const claims = await readToken(token);
   if (!claims) return null;
+  // A login only works on the site it was made on (each site has its own users with their own ids).
+  if (claims.site !== (await currentSite()).slug) return null;
   const user = await findSessionUser(Number(claims.sub));
   return user && user.tokenVersion === claims.ver ? user : null;
 }

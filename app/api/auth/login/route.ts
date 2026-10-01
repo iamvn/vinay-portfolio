@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { currentSite } from '@/lib/sites/context';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { handleDbError, jsonError, parseBody } from '@/lib/api-utils';
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
       return jsonError('Incorrect email or password.', 401);
     }
     clearLoginFailures(key);
-    const { token, expiresAt } = await createToken(user.id, user.tokenVersion);
+    const { token, expiresAt } = await createToken(user.id, user.tokenVersion, (await currentSite()).slug);
     // Only admins get the token in the body (for curl/scripts); editors use the session cookie only.
     const apiToken = user.role === 'admin' ? { token, expiresAt: expiresAt.toISOString() } : {};
     const response = NextResponse.json({ user: publicUser((await findSessionUser(user.id)) ?? user), ...apiToken });

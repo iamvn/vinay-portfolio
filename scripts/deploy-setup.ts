@@ -11,6 +11,7 @@ import { migrate } from '../lib/db-migrate';
 import { replacePortfolio } from '../lib/portfolio-repository';
 import { prisma } from '../lib/prisma';
 import { portfolioSchema } from '../lib/schemas';
+import { listSites } from '../lib/sites/registry';
 
 async function main() {
   const { url, authToken, configured, persistent, deploymentBranch } = databaseConfig();
@@ -35,6 +36,20 @@ async function main() {
     console.log('✓ Tables ready');
   } finally {
     db.close();
+  }
+
+  // Every other site's database gets the same upgrades (they're also upgraded on first use).
+  const sites = await listSites().catch(() => []);
+  for (const site of sites) {
+    const siteDb = createClient({ url: site.dbUrl, authToken: site.dbToken });
+    try {
+      await migrate(siteDb);
+      console.log(`✓ Site ${site.slug}: tables ready`);
+    } catch (error) {
+      console.warn(`⚠ Site ${site.slug}: could not update tables (${error instanceof Error ? error.message : error}). It will retry on first use.`);
+    } finally {
+      siteDb.close();
+    }
   }
 
   // Default data is only ever loaded into a database that has no profile at all (a brand-new database).

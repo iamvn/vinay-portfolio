@@ -4,7 +4,8 @@ import { notFound, redirect } from 'next/navigation';
 import { ArticleBody } from '@/components/article-body';
 import { prisma } from '@/lib/prisma';
 import { parseCopy, toProject } from '@/lib/portfolio-repository';
-import { SITE_URL, absoluteUrl, clip, jsonLd } from '@/lib/seo';
+import { absoluteUrl, clip, jsonLd } from '@/lib/seo';
+import { currentSiteUrl } from '@/lib/sites/url';
 import { currentUser } from '@/lib/auth/server';
 
 export const dynamic = 'force-dynamic';
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const url = `/projects/${project.slug}`;
   // Projects without a cover image fall back to the site-wide preview card.
   const images = project.image
-    ? [{ url: absoluteUrl(project.image), alt: `${project.title} cover` }]
+    ? [{ url: absoluteUrl(project.image, await currentSiteUrl()), alt: `${project.title} cover` }]
     : [{ url: '/opengraph-image', width: 1200, height: 630, alt: `${name} — ${profile?.role ?? 'portfolio'}` }];
   return {
     title,
@@ -81,6 +82,7 @@ export default async function ProjectPage({ params }: Props) {
   const next = index >= 0 && pages.length > 1 ? pages[(index + 1) % pages.length] : pages.find((item) => item.slug !== project.slug) ?? null;
 
   // Structured data for search engines (breadcrumbs + the project itself). It renders nothing on the page.
+  const SITE_URL = await currentSiteUrl();
   const pageUrl = `${SITE_URL}/projects/${project.slug}`;
   const structuredData = {
     '@context': 'https://schema.org',
@@ -99,7 +101,7 @@ export default async function ProjectPage({ params }: Props) {
         url: pageUrl,
         ...(isArticle ? { headline: project.title } : { name: project.title }),
         description: project.description,
-        ...(project.image ? { image: absoluteUrl(project.image) } : {}),
+        ...(project.image ? { image: absoluteUrl(project.image, SITE_URL) } : {}),
         ...(project.stack.length ? { keywords: project.stack.join(', ') } : {}),
         ...(profile?.name ? { author: { '@type': 'Person', '@id': `${SITE_URL}/#person`, name: profile.name, url: `${SITE_URL}/` } } : {}),
         ...(project.liveUrl || project.repoUrl ? { sameAs: [project.liveUrl, project.repoUrl].filter(Boolean) } : {}),

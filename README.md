@@ -85,7 +85,7 @@ other errors return `{ "error" }` with 404 (not found), 409 (duplicate), 413 (fi
   admin gives them (below) plus their own password, and can't see or manage users or use API tokens (403).
   New users are editors unless you pick Admin.
 - **Per-user tab access:** in Admin → Users & security, each editor has an **Access** box with a checkbox per tab
-  (Profile, Experience, Skills, Projects, Site text, Design, Resume, Insights, AI assistant, Backup). Ticking or
+  (Profile, Experience, Skills, Projects, Site text, Design, Resume, Resume builder, Insights, AI assistant, Backup). Ticking or
   unticking saves immediately; **Reset to default** goes back to the editor default (Profile, Experience, Skills,
   Projects, Site text, Resume, Backup). The same checkboxes appear when adding a user. Admins always have every tab,
   and everyone keeps "My account" (their own password). Access is enforced on the server too: `proxy.ts` returns 403
@@ -221,6 +221,92 @@ Admins can redesign the homepage without code in **Admin → Design**, using the
 API (admin session or token): `GET /api/design`, `PUT /api/design` `{ data }` (save draft),
 `POST /api/design/publish` (`{}` = publish draft, or `{ data }`), `DELETE /api/design/publish` (classic),
 `POST /api/design/template` `{ id }`, `POST /api/design/restore` `{ index }`, `DELETE /api/design` (revert draft to live).
+
+## Resume builder (ATS-friendly, Overleaf-style)
+
+Admin → **Resume builder** makes PDF resumes from the portfolio content. It's an admin tab like the others
+(admins always have it; tick **Resume builder** under a user's Access to give it to an editor).
+
+- **One resume per job.** "New resume" fills name, links, experience, skills and projects from the other tabs;
+  each resume then has its own content, template and job description. Duplicate, delete, download from the list.
+- **Templates:** Classic (LaTeX look), Modern (Inter, accent headings), Compact (fits more on a page), Minimal.
+  All are ATS-safe: one column, real selectable text with embedded fonts, standard section names, dates on the
+  job line, simple bullets. A4 or US Letter.
+- **Editor** (`/admin/resume-builder/<id>`, autosaves, Undo): Content form on the left, live preview on the right
+  (Edit / Preview switch on phones). Sections can be reordered or hidden; "Reload content from portfolio" refreshes it.
+- **Code tab (like Overleaf):** the resume is [Typst](https://typst.app/docs) code, generated from the form. Edit it
+  for full control (line numbers, errors with line links); the first edit switches the resume to *custom code*, and
+  "Regenerate from form" switches back.
+- **ATS score:** paste the job description to get a 0–100 score: 60% keyword match (missing / found keywords from the
+  posting) + 40% format checks (contact details, quantified bullets, action verbs, weak phrases, bullet length,
+  sections, dates, length…), each with a tip. Runs instantly in the browser.
+- **Tailor with AI:** suggestions for headline, summary, bullets per role and skill order for that job, shown next
+  to the current text and applied one by one or all at once. The model is instructed never to invent experience,
+  numbers or skills. Uses the providers from Admin → AI assistant (the public "Ask my resume" switch can stay off).
+- **Download:** PDF, LaTeX `.tex` (pdfLaTeX, "Jake's resume" structure), **Open in Overleaf**, or the Typst `.typ` file.
+  LaTeX is generated from the form content (custom Typst edits aren't converted).
+- **Publish to site:** makes the resume the PDF visitors get from "Download resume" (replaces Admin → Resume's file).
+
+How it works: Typst compiles on the server inside the app (`@myriaddreamin/typst-ts-node-compiler`, Apache-2.0,
+typically 10–200 ms), so there's no external service and resume data never leaves your deployment (except the AI
+step, which goes to your chosen provider). Fonts: Typst's built-in fonts plus Inter (`assets/fonts`, OFL). Resumes
+are stored in the `ResumeDocument` table, created automatically on first use. Code lives in `lib/resume-builder/`
+and `components/resume-builder/`.
+
+| Method & path | |
+| --- | --- |
+| `GET /api/resume-builder` · `POST /api/resume-builder` | list · create `{ name, template?, copyFrom? }` |
+| `GET` / `PUT` / `DELETE /api/resume-builder/:id` | one resume · save `{ name?, template?, data?, code?, jobDescription? }` · delete |
+| `POST /api/resume-builder/compile` | `{ source }` → `{ ok, pages, svg, warnings }` or `{ ok: false, errors }` |
+| `GET /api/resume-builder/:id/download?format=pdf\|tex\|typ` | file download |
+| `POST /api/resume-builder/:id/publish` | make it the site's resume PDF |
+| `POST /api/resume-builder/tailor` | `{ data, jobDescription }` → AI suggestions |
+
+## Multi-site platform (SaaS)
+
+One deployment serves many portfolios. Your site is the **main site**; in Admin → **Sites** (main site admins only)
+you create a site for someone else, e.g. *Savi Bharti* at `savi-bharti.yourdomain.com`. Each site is a full copy of
+the product: its own content, design/theme, resume builder, users, login, AI keys and analytics. Nothing one site
+does affects another.
+
+- **Addresses:** `ROOT_DOMAIN=yourdomain.com` → main site at `yourdomain.com` / `www.yourdomain.com`, other sites at
+  `<address>.yourdomain.com`. A site can also get its own custom domain (Sites → Custom domain). `*.vercel.app`
+  and `localhost` always serve the main site; unknown subdomains get a 404 page, paused sites a "paused" page.
+- **Data:** every site has its **own database** (Turso in production, `prisma/sites/<address>.db` locally). The list
+  of sites lives in the main site's database (`Site` table). Code still uses `prisma` as before: `lib/prisma.ts`
+  sends each query to the current request's site (`lib/sites/`). New sites' tables are created and upgraded
+  automatically (on first use and on every deploy).
+- **New site = copy of the main site:** content, projects, experience, skills, site text and design are copied;
+  the name and email become the owner's. Your photo, uploaded resume, social links, private assistant notes, users,
+  AI keys, resumes and analytics are not copied. The owner gets an admin account (email + the temporary password you set).
+- **Logins are per site:** a session or API token only works on the site it was created on.
+- **SEO per site:** canonical URLs, sitemap, robots.txt, share image, favicon initials and structured data use each
+  site's own address and name. The `ANTHROPIC_API_KEY` fallback is main-site only (other sites add their own provider).
+- **Manage:** pause/resume, set a custom domain, delete (type the address to confirm; deletes its database).
+
+### Deploying on Vercel
+
+1. **Domain:** buy one (e.g. `vinaybharti.dev`), add it to the Vercel project together with the wildcard
+   `*.vinaybharti.dev` (Project → Settings → Domains). Wildcard domains need the domain to use **Vercel's nameservers**
+   (`ns1.vercel-dns.com`, `ns2.vercel-dns.com`); Vercel then issues certificates for every subdomain automatically.
+2. **Environment variables** (Production + Preview):
+   - `ROOT_DOMAIN=vinaybharti.dev` and `NEXT_PUBLIC_SITE_URL=https://vinaybharti.dev`
+   - `TURSO_API_TOKEN` (Turso dashboard → Settings → API Tokens, or `turso auth api-tokens mint platform`),
+     `TURSO_ORG` (your organisation slug), optionally `TURSO_GROUP` (default `default`).
+   - Keep `DATABASE_URL` / `DATABASE_AUTH_TOKEN` pointing at **your** permanent database (it holds your site + the site list).
+3. Redeploy. Create a site in Admin → Sites; it's live at `https://<address>.vinaybharti.dev` within seconds.
+4. **Custom domains for a site:** add the domain in Vercel (Domains), ask the owner to point DNS to Vercel
+   (`A 76.76.21.21` for the apex or `CNAME cname.vercel-dns.com`), then enter it under that site in Admin → Sites.
+5. **Plan:** Vercel's Hobby plan is for personal, non-commercial use; charge users → Vercel Pro. Check Turso's plan
+   limits for the number of databases.
+
+Local development: sites open at `http://<address>.localhost:3000` (browsers resolve `*.localhost` automatically).
+
+| Method & path | |
+| --- | --- |
+| `GET /api/platform/sites` · `POST /api/platform/sites` | main site admins · create `{ slug, name, ownerEmail, ownerPassword }` |
+| `PATCH /api/platform/sites/:slug` | `{ name?, status?: "active" \| "suspended", domain? }` |
+| `DELETE /api/platform/sites/:slug` | `{ confirm: "<slug>" }` — deletes the site and its database |
 
 ## Deploying to Vercel
 

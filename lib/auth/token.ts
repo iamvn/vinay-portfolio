@@ -3,7 +3,8 @@ import { SignJWT, jwtVerify } from 'jose';
 export const SESSION_COOKIE = 'portfolio_session';
 export const SESSION_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
-export type TokenClaims = { sub: string; ver: number };
+/** `site`: which site the login belongs to (tokens from before multi-site have none = the main site). */
+export type TokenClaims = { sub: string; ver: number; site: string };
 
 function secretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -14,9 +15,9 @@ function secretKey() {
 }
 
 /** Signed session token (JWT, HS256). `ver` must match the user's tokenVersion to stay valid. */
-export async function createToken(userId: number, tokenVersion: number) {
+export async function createToken(userId: number, tokenVersion: number, site: string) {
   const expiresAt = new Date(Date.now() + SESSION_SECONDS * 1000);
-  const token = await new SignJWT({ ver: tokenVersion })
+  const token = await new SignJWT({ ver: tokenVersion, site })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(String(userId))
     .setIssuedAt()
@@ -31,7 +32,7 @@ export async function readToken(token: string | undefined | null): Promise<Token
   try {
     const { payload } = await jwtVerify(token, secretKey(), { algorithms: ['HS256'] });
     if (typeof payload.sub !== 'string' || typeof payload.ver !== 'number') return null;
-    return { sub: payload.sub, ver: payload.ver };
+    return { sub: payload.sub, ver: payload.ver, site: typeof payload.site === 'string' ? payload.site : 'main' };
   } catch {
     return null;
   }

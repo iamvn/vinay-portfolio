@@ -155,3 +155,16 @@ model Setting {
   key   String @id
   value String
 }
+
+// Resumes made in Admin → Resume builder (one per job application, say). data = JSON content;
+// code = edited Typst code (null while the resume is generated from the form). See lib/resume-builder.
+model ResumeDocument {
+  id             Int     @id @default(autoincrement())
+  name           String
+  template       String  @default("classic")
+  data           String
+  code           String?
+  jobDescription String  @default("")
+  createdAt      String
+  updatedAt      String
+}
