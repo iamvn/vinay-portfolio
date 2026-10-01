@@ -262,6 +262,35 @@ and `components/resume-builder/`.
 | `POST /api/resume-builder/:id/publish` | make it the site's resume PDF |
 | `POST /api/resume-builder/tailor` | `{ data, jobDescription }` → AI suggestions |
 
+## Career tools: evidence, applications, kit and interview prep
+
+Built on one idea: every claim should come from **your own career data** (Admin → Profile, Experience, Projects,
+Skills, plus what you write on a resume). `lib/career/evidence.ts` turns that into evidence used everywhere below.
+
+- **Requirement → evidence map** (Resume builder → ATS score): for each skill the job asks for, where the resume
+  *proves* it: **Strong** (used in a bullet), **Partial** (only listed), **In profile** (provable, not on this resume),
+  **Missing**. One-click actions: move a buried required bullet to the top, add the matching bullet from your profile
+  to that role, show a hidden project, add a backed skill. "I have this…" for missing ones needs a confirmation.
+- **Truth guard:** AI suggestions ("Tailor with AI"), the application kit, and keyword one-click adds are checked
+  against your evidence. New technologies or numbers are flagged **⚠ needs your confirmation**: "Apply all" applies
+  only backed suggestions; flagged ones need a deliberate second click. The AI also receives your profile, so it can
+  use real facts that aren't on the resume yet, and is told never to invent employers, skills or numbers.
+- **Job analyzer** (`POST /api/applications/analyze`): paste a job link or the text. Reads JSON-LD `JobPosting`
+  (Greenhouse, Lever, Workday, many career sites) or the page text; extracts role, company, location, work mode,
+  seniority, years and required vs nice-to-have skills, and which ones your profile proves. Server fetching is
+  locked to public http(s) hosts (private/metadata addresses blocked, redirects re-checked, 10 s / 3 MB limits).
+  LinkedIn and JavaScript-only pages usually can't be read: paste the text.
+- **Applications tab** (new tab "Applications", per-user access like other tabs): board Saved → Applied →
+  Interviewing → Offer (+ Rejected/Withdrawn), details, contacts, next step with date, notes, timeline. "Create
+  tailored resume" makes a resume from your profile with the job text. **Moving to Applied saves the exact resume
+  version sent**, which interview prep uses even if you edit the resume later. Stored per site (`JobApplication`).
+- **Application kit:** cover letter, recruiter message, LinkedIn note (≤300 chars), application email; tone and
+  recipient; editable, copyable, each with the truth-guard check.
+- **Interview prep:** 10–14 questions from the sent resume and the job: about your claims and numbers, the job's
+  required skills, your gaps (answered honestly), behavioural; with follow-ups, tips, evidence and your own notes.
+
+Kit and interview prep use the AI providers from Admin → AI assistant (each site uses its own).
+
 ## Multi-site platform (SaaS)
 
 One deployment serves many portfolios. Your site is the **main site**; in Admin → **Sites** (main site admins only)

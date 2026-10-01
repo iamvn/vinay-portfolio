@@ -4,6 +4,7 @@ import { currentUser } from '@/lib/auth/server';
 import { canUseTab, isReadOnly } from '@/lib/auth/permissions';
 import { getResume } from '@/lib/resume-builder/store';
 import { ResumeEditor } from '@/components/resume-builder/editor';
+import { careerEvidence } from '@/lib/career/profile';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Resume builder', robots: { index: false, follow: false } };
@@ -17,5 +18,7 @@ export default async function ResumeEditorPage({ params }: { params: Promise<{ i
   const resumeId = Number(id);
   const resume = Number.isInteger(resumeId) && resumeId > 0 ? await getResume(resumeId) : null;
   if (!resume) notFound();
-  return <ResumeEditor initial={resume} readOnly={isReadOnly(user)} />;
+  // Your profile, as evidence for the requirement map and the truth guard.
+  const evidence = await careerEvidence().catch(() => []);
+  return <ResumeEditor initial={resume} readOnly={isReadOnly(user)} evidence={evidence} />;
 }

@@ -95,13 +95,17 @@ export type JobInfo = {
 };
 
 export function readJob(jobDescription: string): JobInfo {
-  const lines = jobDescription.split(/\r?\n/).map((line) => line.replace(/^[\s•●▪◦\-–*•]+/, '').trim()).filter(Boolean);
+  // Bulleted lines ("- Strong experience with React…") are content, never section headings.
+  const rawLines = jobDescription.split(/\r?\n/).filter((line) => line.trim());
+  const bulleted = new Set<number>();
+  const lines = rawLines.map((line, i) => { if (/^\s*[•●▪◦\-–*•]/.test(line)) bulleted.add(i); return line.replace(/^[\s•●▪◦\-–*•]+/, '').trim(); });
   let skipping = false;
   let preferred = false;
   let title: string | null = null;
   const relevant: JobInfo['relevant'] = [];
-  for (const line of lines) {
-    const heading = isHeading(line) ? line.replace(/:$/, '') : null;
+  for (const [index, line] of lines.entries()) {
+    if (!line) continue;
+    const heading = !bulleted.has(index) && isHeading(line) ? line.replace(/:$/, '') : null;
     if (heading) {
       if (!title && TITLE_LINE.test(heading) && !/^(position|job|role)\b/i.test(heading)) { title = heading; skipping = false; continue; }
       if (SKIP_HEADING.test(heading)) { skipping = true; continue; }

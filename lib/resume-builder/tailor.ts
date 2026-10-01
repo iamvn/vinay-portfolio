@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { usableProviders } from '@/lib/assistant';
 import { callProvider, ProviderError } from '@/lib/ai/providers';
 import type { ResumeData } from './types';
+import type { EvidenceItem } from '@/lib/career/evidence';
 
 /**
  * "Tailor with AI": asks the AI providers from Admin → AI assistant to rewrite the summary, bullets and
@@ -26,8 +27,9 @@ export class TailorError extends Error {
 const RULES = `You are an expert technical recruiter and resume writer. You tailor a candidate's resume to one job description so it scores well in applicant tracking systems (ATS) and reads well to recruiters.
 
 Strict rules:
-- NEVER invent facts. Do not add employers, titles, dates, degrees, numbers, metrics, technologies or achievements that are not in the resume. You may rephrase, reorder, merge, shorten, and use the job's wording for things the candidate genuinely did.
-- If the resume already contains a number, you may keep it; never create new numbers.
+- NEVER invent facts. Do not add employers, titles, dates, degrees, numbers, metrics, technologies or achievements that are not in the resume or the candidate's <profile>. You may rephrase, reorder, merge, shorten, and use the job's wording for things the candidate genuinely did.
+- <profile> is the candidate's own career record (each line says where it comes from). You may bring a fact from it into the matching role (same company) or summary when it helps for this job.
+- If the resume or profile already contains a number, you may keep it; never create new numbers.
 - Bullets: start with a strong past-tense action verb, 12–30 words, no "I/my", no "responsible for/worked on". Keep the most relevant bullets for the job first. Keep 3–6 bullets for recent roles, 2–3 for older roles.
 - Skills: reorder so the job's must-haves come first; you may only use skills already in the resume (you may rename a group).
 - missingKeywords: important skills/terms from the job that the resume does NOT show evidence of (the candidate may add them only if true).
@@ -60,10 +62,11 @@ function parseAnswer(answer: string): TailorSuggestion {
   return parsed.data;
 }
 
-export async function tailorResume(data: ResumeData, jobDescription: string): Promise<{ suggestion: TailorSuggestion; provider: string }> {
+export async function tailorResume(data: ResumeData, jobDescription: string, profile: EvidenceItem[] = []): Promise<{ suggestion: TailorSuggestion; provider: string }> {
   const providers = await usableProviders();
   if (!providers.length) throw new TailorError('No AI provider is set up. Add one in Admin → AI assistant (the "Ask my resume" switch can stay off).', 503);
-  const context = `<resume>\n${JSON.stringify(resumeForPrompt(data), null, 1)}\n</resume>\n\n<job>\n${jobDescription.slice(0, 12_000)}\n</job>`;
+  const profileLines = profile.filter((item) => item.kind !== 'summary').map((item) => `[${item.source}] ${item.text.slice(0, 500)}`).join('\n').slice(0, 10_000);
+  const context = `<resume>\n${JSON.stringify(resumeForPrompt(data), null, 1)}\n</resume>\n\n<profile>\n${profileLines}\n</profile>\n\n<job>\n${jobDescription.slice(0, 12_000)}\n</job>`;
   let lastError = 'The AI providers are unavailable right now.';
   for (const provider of providers) {
     try {

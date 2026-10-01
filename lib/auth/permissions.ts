@@ -8,12 +8,12 @@
  * "Users & security" is special: everyone sees it as "My account" (to change their own password), but
  * managing users and API tokens stays admin-only.
  */
-export const TAB_IDS = ['profile', 'experience', 'skills', 'projects', 'copy', 'design', 'resume', 'builder', 'insights', 'ai', 'backup'] as const;
+export const TAB_IDS = ['profile', 'experience', 'skills', 'projects', 'copy', 'design', 'resume', 'builder', 'applications', 'insights', 'ai', 'backup'] as const;
 export type TabId = (typeof TAB_IDS)[number];
 
 export const TAB_LABELS: Record<TabId, string> = {
   profile: 'Profile', experience: 'Experience', skills: 'Skills', projects: 'Projects', copy: 'Site text',
-  design: 'Design', resume: 'Resume', builder: 'Resume builder', insights: 'Insights', ai: 'AI assistant', backup: 'Backup',
+  design: 'Design', resume: 'Resume', builder: 'Resume builder', applications: 'Applications', insights: 'Insights', ai: 'AI assistant', backup: 'Backup',
 };
 
 /** What an editor gets when no admin has chosen tabs for them (the access editors always had). */
@@ -64,6 +64,7 @@ const ALWAYS_GATED: [RegExp, TabId][] = [
   [/^\/api\/insights$/, 'insights'],
   [/^\/api\/ai(\/.*)?$/, 'ai'],
   [/^\/api\/resume-builder(\/.*)?$/, 'builder'],
+  [/^\/api\/applications(\/.*)?$/, 'applications'],
 ];
 
 /**

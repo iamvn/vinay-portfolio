@@ -168,3 +168,27 @@ model ResumeDocument {
   createdAt      String
   updatedAt      String
 }
+
+/// Job applications (Admin → Applications). JSON columns: analysis, snapshot, contacts, kit, interview, timeline.
+model JobApplication {
+  id             Int     @id @default(autoincrement())
+  company        String  @default("")
+  role           String  @default("")
+  location       String  @default("")
+  url            String  @default("")
+  status         String  @default("saved")
+  jobDescription String  @default("")
+  analysis       String  @default("")
+  resumeId       Int?
+  snapshot       String  @default("")
+  notes          String  @default("")
+  contacts       String  @default("[]")
+  nextStep       String  @default("")
+  nextStepAt     String  @default("")
+  appliedAt      String  @default("")
+  kit            String  @default("{}")
+  interview      String  @default("")
+  timeline       String  @default("[]")
+  createdAt      String
+  updatedAt      String
+}

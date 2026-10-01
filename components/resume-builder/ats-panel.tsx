@@ -6,6 +6,8 @@ import type { AtsReport, CheckStatus, KeywordResult } from '@/lib/resume-builder
 import { addSkills, applyAllFixes, buildFixes, gainOf, mentionInSummary, type Fix } from '@/lib/resume-builder/ats-fixes';
 import { CATEGORY_LABELS, type KeywordCategory } from '@/lib/resume-builder/keywords';
 import type { ResumeData } from '@/lib/resume-builder/types';
+import { profileProof, type EvidenceItem } from '@/lib/career/evidence';
+import { EvidenceMap } from './evidence-map';
 
 type Update = (change: (data: ResumeData) => ResumeData) => void;
 
@@ -125,11 +127,14 @@ function FixCard({ fix, data, update, notify }: { fix: Fix; data: ResumeData; up
 const ORDER: KeywordCategory[] = ['language', 'frontend', 'backend', 'data', 'cloud', 'testing', 'tools', 'ai', 'concept', 'soft', 'domain', 'other'];
 const SUMMARY_ONLY = new Set<KeywordCategory>(['soft', 'domain', 'other']);
 
-function MissingKeywords({ report, data, jobDescription, pages, update, notify }: {
-  report: AtsReport; data: ResumeData; jobDescription: string; pages: number | null; update: Update; notify: Notify;
+function MissingKeywords({ report, data, jobDescription, pages, update, notify, profile }: {
+  report: AtsReport; data: ResumeData; jobDescription: string; pages: number | null; update: Update; notify: Notify; profile: EvidenceItem[];
 }) {
   const readOnly = useReadOnly();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Truth guard: keywords with no evidence in your profile need an explicit "yes, I have these".
+  const [confirm, setConfirm] = useState<{ list: KeywordResult[]; where: 'skills' | 'summary' } | null>(null);
+  const proof = useMemo(() => new Map(report.keywords.map((k) => [k.term, profileProof(k.term, profile)])), [report.keywords, profile]);
   const missing = report.keywords.filter((k) => !k.found);
   const found = report.keywords.filter((k) => k.found);
   const groups = ORDER.map((category) => ({ category, items: missing.filter((k) => k.category === category) })).filter((g) => g.items.length);
@@ -140,7 +145,10 @@ function MissingKeywords({ report, data, jobDescription, pages, update, notify }
   const summaryGain = toSummary.length ? gainOf(data, mentionInSummary(toSummary), jobDescription, pages) : 0;
   const toggle = (k: KeywordResult) => setSelected((s) => { const next = new Set(s); if (next.has(k.term)) next.delete(k.term); else next.add(k.term); return next; });
 
-  function add(list: KeywordResult[], where: 'skills' | 'summary') {
+  function add(list: KeywordResult[], where: 'skills' | 'summary', confirmed = false) {
+    const unproven = list.filter((k) => !proof.get(k.term));
+    if (unproven.length && !confirmed) { setConfirm({ list, where }); return; }
+    setConfirm(null);
     update(where === 'skills' ? addSkills(list) : mentionInSummary(list));
     setSelected((s) => { const next = new Set(s); for (const k of list) next.delete(k.term); return next; });
     notify(`Added ${list.map((k) => k.label).join(', ')} to your ${where}. Undo in the top bar reverts it.`);
@@ -151,7 +159,7 @@ function MissingKeywords({ report, data, jobDescription, pages, update, notify }
       <div className="flex items-start gap-2">
         <div className="flex-1">
           <p className="text-sm font-bold text-white">Keywords from the job · {found.length}/{report.keywords.length} on your resume</p>
-          {missing.length > 0 && <p className="mt-0.5 text-xs leading-5 text-slate-400">Tick the ones you <b className="text-slate-200">really have</b> and add them in one click. Technical skills go into your Skills section (the right group is picked for you); soft skills and domain words go into your summary.</p>}
+          {missing.length > 0 && <p className="mt-0.5 text-xs leading-5 text-slate-400">Tick the ones you <b className="text-slate-200">really have</b> and add them in one click. <span className="text-cyan-200">◆</span> = your profile already proves it. Technical skills go into your Skills section (the right group is picked for you); soft skills and domain words go into your summary.</p>}
         </div>
       </div>
 
@@ -173,6 +181,7 @@ function MissingKeywords({ report, data, jobDescription, pages, update, notify }
                   className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold transition ${on ? 'border-lime-300 bg-lime-300/15 text-lime-100' : 'border-red-400/30 bg-red-400/[.07] text-red-100 hover:border-red-300/60'}`}>
                   <span aria-hidden="true" className={`grid size-4 place-items-center rounded border text-[10px] ${on ? 'border-lime-300 bg-lime-300 text-black' : 'border-red-300/50'}`}>{on ? '✓' : ''}</span>
                   {k.label}{k.weight >= 6 && <span className="text-[10px] text-red-300">★</span>}
+                  {proof.get(k.term) && <span className="text-[10px] text-cyan-200" title={`Backed by ${proof.get(k.term)!.source}`}>◆</span>}
                 </button>
               );
             })}
@@ -180,7 +189,23 @@ function MissingKeywords({ report, data, jobDescription, pages, update, notify }
         </div>
       ))}
 
-      {picked.length > 0 && (
+      {confirm && (
+        <div role="alert" className="space-y-2 rounded-lg border border-yellow-300/40 bg-yellow-300/[.07] p-3 text-xs leading-5 text-yellow-50">
+          <p>
+            <b>{confirm.list.filter((k) => !proof.get(k.term)).map((k) => k.label).join(', ')}</b> {confirm.list.filter((k) => !proof.get(k.term)).length === 1 ? 'isn’t' : 'aren’t'} anywhere in your profile or resume.
+            Add only what you really have: recruiters ask about every skill you list.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button tone="primary" onClick={() => add(confirm.list, confirm.where, true)}>Yes, I have {confirm.list.length === 1 ? 'it' : 'all of these'}</Button>
+            {confirm.list.some((k) => proof.get(k.term)) && (
+              <Button onClick={() => add(confirm.list.filter((k) => proof.get(k.term)), confirm.where, true)}>Add only the {confirm.list.filter((k) => proof.get(k.term)).length} backed by my profile</Button>
+            )}
+            <button type="button" onClick={() => setConfirm(null)} className="text-xs font-bold text-slate-300 hover:text-white">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {picked.length > 0 && !confirm && (
         <div className="sticky bottom-0 -mx-3 flex flex-wrap items-center gap-2 border-t border-white/10 bg-slate-950/95 px-3 pt-3 pb-1 sm:-mx-4 sm:px-4">
           {toSkills.length > 0 && <Button tone="primary" onClick={() => add(toSkills, 'skills')}>Add {toSkills.length} to Skills {skillsGain > 0 ? `· +${skillsGain}` : ''}</Button>}
           {toSummary.length > 0 && <Button tone="primary" onClick={() => add(toSummary, 'summary')}>Mention {toSummary.length} in summary {summaryGain > 0 ? `· +${summaryGain}` : ''}</Button>}
@@ -201,9 +226,9 @@ function MissingKeywords({ report, data, jobDescription, pages, update, notify }
 
 // ---------- panel ----------
 
-export function AtsPanel({ report, jobDescription, onJobDescription, data, update, pages, notify, customCode }: {
+export function AtsPanel({ report, jobDescription, onJobDescription, data, update, pages, notify, customCode, profile }: {
   report: AtsReport; jobDescription: string; onJobDescription: (value: string) => void;
-  data: ResumeData; update: Update; pages: number | null; notify: Notify; customCode: boolean;
+  data: ResumeData; update: Update; pages: number | null; notify: Notify; customCode: boolean; profile: EvidenceItem[];
 }) {
   const readOnly = useReadOnly();
   const hasJob = report.keywordScore !== null;
@@ -246,6 +271,10 @@ export function AtsPanel({ report, jobDescription, onJobDescription, data, updat
         </p>
       )}
 
+      {hasJob && report.keywords.length > 0 && (
+        <EvidenceMap keywords={report.keywords} data={data} profile={profile} update={update} notify={notify} />
+      )}
+
       {fixes.length > 0 && (
         <section className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -262,7 +291,7 @@ export function AtsPanel({ report, jobDescription, onJobDescription, data, updat
       )}
 
       {hasJob && report.keywords.length > 0 && (
-        <MissingKeywords report={report} data={data} jobDescription={jobDescription} pages={pages} update={update} notify={notify} />
+        <MissingKeywords report={report} data={data} jobDescription={jobDescription} pages={pages} update={update} notify={notify} profile={profile} />
       )}
 
       <section className="space-y-2">

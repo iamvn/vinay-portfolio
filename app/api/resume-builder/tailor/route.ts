@@ -4,6 +4,7 @@ import { jsonError, parseBody } from '@/lib/api-utils';
 import { requireTab } from '@/lib/auth/roles';
 import { TailorError, tailorResume } from '@/lib/resume-builder/tailor';
 import { resumeDataSchema } from '@/lib/resume-builder/types';
+import { careerEvidence } from '@/lib/career/profile';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -20,7 +21,8 @@ export async function POST(request: Request) {
   const { data, error } = await parseBody(request, schema);
   if (error) return error;
   try {
-    return NextResponse.json(await tailorResume(data.data, data.jobDescription));
+    const profile = await careerEvidence().catch(() => []);
+    return NextResponse.json(await tailorResume(data.data, data.jobDescription, profile));
   } catch (err) {
     if (err instanceof TailorError) return jsonError(err.message, err.status);
     console.error(err);

@@ -12,6 +12,7 @@ import { AtsPanel, ScoreRing } from './ats-panel';
 import { CodePanel, type Problem } from './code-panel';
 import { ContentForm } from './content-form';
 import { TailorPanel } from './tailor-panel';
+import type { EvidenceItem } from '@/lib/career/evidence';
 
 type Tab = 'content' | 'code' | 'ats' | 'ai';
 type SaveState = 'saved' | 'dirty' | 'saving' | 'error';
@@ -39,7 +40,7 @@ function openInOverleaf(tex: string, name: string) {
   form.remove();
 }
 
-export function ResumeEditor({ initial, readOnly }: { initial: ResumeDocument; readOnly: boolean }) {
+export function ResumeEditor({ initial, readOnly, evidence = [] }: { initial: ResumeDocument; readOnly: boolean; evidence?: EvidenceItem[] }) {
   const router = useRouter();
   const [name, setName] = useState(initial.name);
   const [template, setTemplate] = useState<TemplateId>(initial.template);
@@ -291,10 +292,10 @@ export function ResumeEditor({ initial, readOnly }: { initial: ResumeDocument; r
                   onRegenerate={() => { remember(); setCode(null); markDirty(); notify('Code regenerated from the form.'); }} />
               )}
               {tab === 'ats' && (
-                <AtsPanel report={report} jobDescription={jobDescription} data={data} update={applyContent} pages={preview.pages} notify={notify} customCode={code !== null}
+                <AtsPanel report={report} jobDescription={jobDescription} data={data} update={applyContent} pages={preview.pages} notify={notify} customCode={code !== null} profile={evidence}
                   onJobDescription={(value) => { if (readOnly) return; setJobDescription(value); markDirty(); }} />
               )}
-              {tab === 'ai' && <TailorPanel data={data} jobDescription={jobDescription} update={applyContent} notify={notify} customCode={code !== null} />}
+              {tab === 'ai' && <TailorPanel data={data} jobDescription={jobDescription} update={applyContent} notify={notify} customCode={code !== null} profile={evidence} />}
             </div>
           </section>
 
