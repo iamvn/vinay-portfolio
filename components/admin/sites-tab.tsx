@@ -9,7 +9,6 @@ type SiteRow = {
   canAddUsers: boolean; canAddSites: boolean; siteLimit: number | null; createdBy: string; createdByUser: string;
 };
 type Platform = { isMain: boolean; siteLimit: number | null; sitesCreated: number; rootDomain: string | null; turso: boolean; onVercel: boolean; vercelApi: boolean; exampleUrl: string | null };
-type Activity = { id: number; at: string; site: string; siteName: string; actor: string; kind: 'user.added' | 'site.created' | 'site.deleted'; details: Record<string, string> };
 
 const slugify = (name: string) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
 function generatePassword() {
@@ -114,6 +113,26 @@ function Check({ checked, onChange, label, hint }: { checked: boolean; onChange:
 }
 
 /** Main site only: what this site's admins are allowed to do. Ticked boxes are saved together. */
+/** A small whole-number field with − / + buttons (the browser's own arrows look out of place on the dark theme). */
+function NumberStepper({ id, value, onChange, min, max, disabled, invalid }: {
+  id: string; value: string; onChange: (value: string) => void; min: number; max: number; disabled?: boolean; invalid?: boolean;
+}) {
+  const current = Number.isInteger(Number(value)) && value.trim() !== '' ? Number(value) : min;
+  const step = (by: number) => onChange(String(Math.min(max, Math.max(min, current + by))));
+  const button = 'flex h-full w-9 items-center justify-center text-base font-black text-slate-300 transition-colors hover:bg-white/10 hover:text-lime-200 focus-visible:bg-white/10 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30';
+  return (
+    <div className={`inline-flex h-10 items-stretch overflow-hidden rounded-lg border bg-black/30 transition-colors focus-within:border-cyan-300/70 ${
+      invalid ? 'border-red-400/70' : 'border-white/15 hover:border-white/30'} ${disabled ? 'pointer-events-none' : ''}`}>
+      <button type="button" className={button} onClick={() => step(-1)} disabled={disabled || current <= min} aria-label="One less">−</button>
+      <input id={id} type="text" inputMode="numeric" pattern="[0-9]*" disabled={disabled} value={value} aria-invalid={invalid}
+        onChange={(e) => onChange(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
+        onKeyDown={(e) => { if (e.key === 'ArrowUp') { e.preventDefault(); step(1); } if (e.key === 'ArrowDown') { e.preventDefault(); step(-1); } }}
+        className="w-12 border-x border-white/10 bg-transparent text-center text-sm font-bold tabular-nums text-white outline-none" />
+      <button type="button" className={button} onClick={() => step(1)} disabled={disabled || current >= max} aria-label="One more">+</button>
+    </div>
+  );
+}
+
 type SecurityChanges = { canAddUsers: boolean; canAddSites: boolean; siteLimit: number };
 
 function Security({ site, busy, save }: { site: SiteRow; busy: boolean; save: (changes: SecurityChanges) => void }) {
@@ -129,18 +148,14 @@ function Security({ site, busy, save }: { site: SiteRow; busy: boolean; save: (c
       <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-400">Security</p>
       <div className="space-y-1">
         <Check checked={users} onChange={setUsers} label="Site admins can add users"
-          hint="Lets this site's admins give other people access in Users & security. Each user they add shows up in Activity below." />
+          hint="Lets this site's admins give other people access in Users & security. Each user they add shows up in Activity logs." />
         <Check checked={sites} onChange={setSites} label="Site admins can create sites"
-          hint="Gives this site's admins a Sites tab to create sites of their own (they only see theirs). Each one shows up here and in Activity." />
-        <label className={`ml-8 flex flex-wrap items-center gap-2 text-sm ${sites ? 'text-slate-200' : 'text-slate-500'}`}>
-          Maximum sites they can create
-          <span className="w-24 shrink-0">
-            <input type="number" min={0} max={100} step={1} inputMode="numeric" disabled={!sites} value={limit}
-              onChange={(e) => setLimit(e.target.value)} aria-invalid={!limitValid}
-              className={`${inputClass} ${limitValid ? '' : 'border-red-400/70'}`} />
-          </span>
+          hint="Gives this site's admins a Sites tab to create sites of their own (they only see theirs). Each one shows up here and in Activity logs." />
+        <div className={`ml-8 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm transition-opacity ${sites ? 'text-slate-200' : 'text-slate-500 opacity-60'}`}>
+          <label htmlFor={`limit-${site.slug}`}>Maximum sites they can create</label>
+          <NumberStepper id={`limit-${site.slug}`} value={limit} onChange={setLimit} min={0} max={100} disabled={!sites} invalid={!limitValid} />
           <span className="basis-full text-xs text-slate-500">Default 2. Deleting one of their sites frees a slot. Your own (main) account has no limit.</span>
-        </label>
+        </div>
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
         <Button tone="primary" disabled={busy || !dirty || !limitValid} onClick={() => save({ canAddUsers: users, canAddSites: sites, siteLimit: limitNumber })}>{busy ? 'Saving…' : 'Save security'}</Button>
@@ -222,33 +237,12 @@ function SiteItem({ site, isMain, onChanged, notify }: { site: SiteRow; isMain: 
   );
 }
 
-function describeActivity(item: Activity): ReactNode {
-  const d = item.details;
-  if (item.kind === 'user.added') return <>added user <b>{d.name ? `${d.name} (${d.email})` : d.email}</b> as {d.role === 'admin' ? 'an admin' : 'an editor'}{d.access ? ` (${d.access})` : ''}</>;
-  if (item.kind === 'site.created') return <>created the site <b>{d.name}</b> ({d.domain ?? d.slug}) for {d.ownerEmail}</>;
-  return <>deleted the site <b>{d.name}</b> ({d.slug})</>;
-}
-
-function ActivityLog({ items }: { items: Activity[] }) {
-  if (!items.length) return <p className="text-sm text-slate-400">Nothing yet. When another site&apos;s admin adds a user or creates a site, it appears here.</p>;
-  return (
-    <ul className="divide-y divide-white/5">
-      {items.map((item) => (
-        <li key={item.id} className="py-2.5 text-sm leading-6 text-slate-300">
-          <span className="text-slate-100">{item.actor}</span> <span className="text-slate-500">(admin of <b className="text-lime-200">{item.siteName || item.site}</b>)</span> {describeActivity(item)}
-          <span className="block text-xs text-slate-500">{new Date(item.at).toLocaleString()}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 /** Platform: create and manage other people's portfolio sites (main site admins, or site admins allowed to). */
 export function SitesTab({ notify }: { notify: Notify }) {
-  const [state, setState] = useState<{ sites: SiteRow[]; platform: Platform; activity: Activity[] } | null>(null);
+  const [state, setState] = useState<{ sites: SiteRow[]; platform: Platform } | null>(null);
   const [created, setCreated] = useState<{ site: SiteRow; password: string } | null>(null);
   const load = useCallback(() => {
-    api<{ sites: SiteRow[]; platform: Platform; activity: Activity[] }>('GET', '/api/platform/sites').then(setState).catch((error) => notify(describeError(error), 'error'));
+    api<{ sites: SiteRow[]; platform: Platform }>('GET', '/api/platform/sites').then(setState).catch((error) => notify(describeError(error), 'error'));
   }, [notify]);
   useEffect(load, [load]);
 
@@ -261,6 +255,7 @@ export function SitesTab({ notify }: { notify: Notify }) {
           Give other people their own portfolio, identical to yours: their own address, content, design, resume builder, users and login.
           Nothing they change affects your site, and nothing you change affects theirs. They manage it at <b>their-address/admin</b>.
           {!isMain && ' You only see the sites you created.'}
+          {isMain && <> Everything other sites&apos; admins do (sign-ins, users, sites) is in the <a href="#activity" className="font-bold text-cyan-300 underline">Activity logs</a> tab.</>}
         </p>
         {isMain && <Setup platform={state.platform} />}
       </Card>
@@ -280,12 +275,6 @@ export function SitesTab({ notify }: { notify: Notify }) {
           <ul className="divide-y divide-white/5">{state.sites.map((site) => <SiteItem key={site.slug} site={site} isMain={isMain} onChanged={load} notify={notify} />)}</ul>
         )}
       </Card>
-
-      {isMain && (
-        <Card title="Activity on other sites">
-          <ActivityLog items={state.activity} />
-        </Card>
-      )}
 
       <Card title="New site">
         <CreateSite platform={state.platform} notify={notify} onCreated={(site, password) => { setCreated({ site, password }); load(); notify(`Created ${site.name}'s site.`); }} />

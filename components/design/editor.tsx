@@ -5,6 +5,7 @@ import { Puck, type Data } from '@puckeditor/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PortfolioData } from '@/lib/portfolio';
 import { designConfig, type DesignMetadata } from './config';
+import { invalidateApiCache } from '@/components/admin/api';
 
 type Status =
   | { kind: 'saved'; at: string | null }
@@ -19,6 +20,7 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-di
 
 async function send(method: string, url: string, body: unknown) {
   const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (method !== 'GET') invalidateApiCache(); // the admin panel's cached Design status is now out of date
   const json = await response.json().catch(() => null);
   // Full page loads on purpose: the server re-checks the session, and the heavy editor is torn down.
   // eslint-disable-next-line @next/next/no-location-assign-relative-destination

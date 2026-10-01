@@ -197,7 +197,7 @@ export function ResumeEditor({ initial, readOnly }: { initial: ResumeDocument; r
 
   async function reloadFromPortfolio() {
     try {
-      const fresh = await api<ResumeData>('GET', '/api/resume-builder/from-portfolio');
+      const fresh = await api<ResumeData>('GET', '/api/resume-builder/from-portfolio', undefined, { fresh: true });
       applyContent((d) => ({ ...fresh, education: d.education, extras: d.extras, layout: { ...fresh.layout, order: d.layout.order, hidden: d.layout.hidden, paper: d.layout.paper } }));
       notify('Content reloaded from the portfolio. Undo (top bar) brings back your edits.');
     } catch (error) {

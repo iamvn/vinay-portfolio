@@ -156,5 +156,7 @@ export async function countSitesCreatedBy(slug: string): Promise<number> {
 export async function removeSite(slug: string) {
   await ensureTable();
   await mainClient.$executeRaw`DELETE FROM Site WHERE slug = ${slug}`;
+  // Sites it created now belong to the main site, so they don't count against a new site with the same address.
+  await mainClient.$executeRaw`UPDATE Site SET createdBy = '' WHERE createdBy = ${slug}`;
   forgetSites();
 }

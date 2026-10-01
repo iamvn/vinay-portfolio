@@ -6,6 +6,8 @@ import { ROLES, ownerId, requireAdmin } from '@/lib/auth/roles';
 import { publicUser } from '@/lib/auth/session';
 import { TAB_IDS } from '@/lib/auth/permissions';
 import { setAccess } from '@/lib/auth/permissions-store';
+import { currentSite } from '@/lib/sites/context';
+import { actorLabel, logActivity } from '@/lib/sites/activity';
 
 type Context = { params: Promise<{ id: string }> };
 const NOT_FOUND = 'User not found.';
@@ -39,6 +41,13 @@ export async function PATCH(request: Request, { params }: Context) {
       ? await prisma.user.update({ where: { id }, data: fields })
       : await prisma.user.findUniqueOrThrow({ where: { id } });
     const access = await setAccess(id, { permissions, readOnly });
+    // Changes on other sites are reported to the main site's admin (Activity logs).
+    const details: Record<string, string> = { email: user.email, name: user.name ?? '' };
+    if (data.role) details.role = data.role;
+    if (data.name !== undefined) details.renamed = data.name;
+    if (permissions !== undefined) details.tabs = permissions === null ? 'default' : permissions.join(', ') || 'none';
+    if (readOnly !== undefined) details.readOnly = readOnly ? 'on' : 'off';
+    await logActivity(await currentSite(), actorLabel(me), 'user.updated', details);
     return NextResponse.json(publicUser({ ...user, ...access }));
   } catch (err) {
     return handleDbError(err, NOT_FOUND);
@@ -54,7 +63,8 @@ export async function DELETE(request: Request, { params }: Context) {
   if (me.id === id) return jsonError('You can’t remove your own account.', 400);
   try {
     if (id === (await ownerId())) return jsonError('The owner account can’t be removed.', 403);
-    await prisma.user.delete({ where: { id } });
+    const removed = await prisma.user.delete({ where: { id } });
+    await logActivity(await currentSite(), actorLabel(me), 'user.removed', { email: removed.email, name: removed.name ?? '', role: removed.role });
     return new Response(null, { status: 204 });
   } catch (error) {
     return handleDbError(error, NOT_FOUND);

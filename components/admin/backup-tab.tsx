@@ -22,7 +22,7 @@ function ImportProjects({ notify }: { notify: Notify }) {
     }
     const list = Array.isArray(items) ? items : [items];
     setBusy(true);
-    const existing = new Set((await api<{ slug: string }[]>('GET', '/api/projects').catch(() => [])).map((project) => project.slug));
+    const existing = new Set((await api<{ slug: string }[]>('GET', '/api/projects', undefined, { fresh: true }).catch(() => [])).map((project) => project.slug));
     const outcome: ImportResult = { added: [], updated: [], skipped: [], failed: [] };
     for (const item of list as { slug?: string; title?: string }[]) {
       const name = item?.title || item?.slug || '(untitled)';
@@ -73,7 +73,7 @@ export function BackupTab({ notify, onReplaced }: { notify: Notify; onReplaced: 
   const [busy, setBusy] = useState(false);
 
   const load = () =>
-    api('GET', '/api/portfolio').then((data) => setText(JSON.stringify(data, null, 2))).catch((error) => notify(describeError(error), 'error'));
+    api('GET', '/api/portfolio', undefined, { fresh: true }).then((data) => setText(JSON.stringify(data, null, 2))).catch((error) => notify(describeError(error), 'error'));
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);

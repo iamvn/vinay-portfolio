@@ -23,7 +23,7 @@ const patchSchema = z.object({
 
 /** Rename, suspend/resume, set a custom domain, or (main site's admins) change the site's security settings. */
 export async function PATCH(request: Request, { params }: Context) {
-  const { site: manager, error: denied } = await requirePlatformAdmin(request);
+  const { user, site: manager, error: denied } = await requirePlatformAdmin(request);
   if (denied) return denied;
   const { slug } = await params;
   const { data, error } = await parseBody(request, patchSchema);
@@ -42,6 +42,17 @@ export async function PATCH(request: Request, { params }: Context) {
     }
     const site = await updateSite(slug, { ...data, ...(nextDomain !== undefined ? { domain: nextDomain } : {}) });
     if (site && nextDomain !== undefined && before.domain && before.domain !== nextDomain && vercelApiConfigured()) await removeProjectDomain(before.domain);
+    if (site) {
+      // What changed, in words, for the activity log.
+      const changes: Record<string, string> = { slug: site.slug, name: site.name };
+      if (site.name !== before.name) changes.renamed = `${before.name} → ${site.name}`;
+      if (site.status !== before.status) changes.status = site.status === 'active' ? 'resumed' : 'paused';
+      if (site.domain !== before.domain) changes.domain = site.domain ?? 'removed';
+      if (site.canAddUsers !== before.canAddUsers) changes.canAddUsers = site.canAddUsers ? 'on' : 'off';
+      if (site.canAddSites !== before.canAddSites) changes.canAddSites = site.canAddSites ? 'on' : 'off';
+      if (site.siteLimit !== before.siteLimit) changes.siteLimit = String(site.siteLimit);
+      if (Object.keys(changes).length > 2) await logActivity(manager, actorLabel(user), 'site.updated', changes, { includeMain: true });
+    }
     return site ? NextResponse.json(publicSite(site, request)) : jsonError('Site not found.', 404);
   } catch (err) {
     if (String(err).includes('UNIQUE')) return jsonError('Another site already uses that domain.', 409);
@@ -64,7 +75,7 @@ export async function DELETE(request: Request, { params }: Context) {
     await deleteSiteDatabase(site);
     await removeSite(slug);
     if (site.domain && vercelApiConfigured()) await removeProjectDomain(site.domain);
-    await logActivity(manager, actorLabel(user), 'site.deleted', { slug: site.slug, name: site.name, ownerEmail: site.ownerEmail });
+    await logActivity(manager, actorLabel(user), 'site.deleted', { slug: site.slug, name: site.name, ownerEmail: site.ownerEmail }, { includeMain: true });
     return new Response(null, { status: 204 });
   } catch (err) {
     console.error(err);

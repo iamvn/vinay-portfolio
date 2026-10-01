@@ -290,9 +290,12 @@ does affects another.
     pause and delete the sites they created (a copy of their site); they can't change any security settings.
   - *Maximum sites they can create* (default 2, 0–100): once they've reached it, "Create site" is disabled and
     the API refuses; deleting one of their sites frees a slot. The main site's admins have no limit.
-  Switching either off applies on the next request. Every user added and site created/deleted by another site's
-  admin appears in **Activity on other sites** (who, on which site, and the details), stored in the main
-  database (`SiteActivity` table). Sites created that way show "Created by …".
+  Switching either off applies on the next request. Sites created that way show "Created by …"; when a site is
+  deleted, the sites it created are handed to the main site.
+- **Activity logs tab (main site admins only):** a searchable table (filter by site and type, 25 per page) of
+  sign-ins, users added/changed/removed and sites created/changed/deleted on other sites, plus the changes you make
+  to sites (pause, domain, security, limits). Stored in the main database (`SiteActivity` table);
+  `GET /api/platform/activity?site=&kind=&q=&limit=&offset=`.
 - **Other pages follow the design:** project pages use the published design's theme (colors, background, buttons),
   so they match the homepage.
 

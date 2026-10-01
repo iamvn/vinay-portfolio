@@ -8,6 +8,7 @@ import { clearLoginFailures, loginLockedFor, recordLoginFailure } from '@/lib/au
 import { publicUser } from '@/lib/auth/session';
 import { findSessionUser } from '@/lib/auth/permissions-store';
 import { createToken, sessionCookie } from '@/lib/auth/token';
+import { actorLabel, logActivity } from '@/lib/sites/activity';
 
 const loginSchema = z.object({ email: z.string().trim().toLowerCase().min(1), password: z.string().min(1) }).strict();
 
@@ -34,7 +35,10 @@ export async function POST(request: Request) {
       return jsonError('Incorrect email or password.', 401);
     }
     clearLoginFailures(key);
-    const { token, expiresAt } = await createToken(user.id, user.tokenVersion, (await currentSite()).slug);
+    const site = await currentSite();
+    const { token, expiresAt } = await createToken(user.id, user.tokenVersion, site.slug);
+    // Sign-ins on other sites appear in the main admin's Activity logs.
+    await logActivity(site, actorLabel(user), 'user.login', { email: user.email, role: user.role });
     // Only admins get the token in the body (for curl/scripts); editors use the session cookie only.
     const apiToken = user.role === 'admin' ? { token, expiresAt: expiresAt.toISOString() } : {};
     const response = NextResponse.json({ user: publicUser((await findSessionUser(user.id)) ?? user), ...apiToken });

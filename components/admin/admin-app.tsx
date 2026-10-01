@@ -11,6 +11,7 @@ import { AiTab } from './ai-tab';
 import { DesignTab } from './design-tab';
 import { ResumeBuilderTab } from './resume-builder-tab';
 import { SitesTab } from './sites-tab';
+import { ActivityTab } from './activity-tab';
 import { UsersTab, type AdminUser } from './users-tab';
 import { ReadOnlyFieldset, ReadOnlyProvider, RequestProgress, type Notify } from './ui';
 
@@ -28,12 +29,13 @@ const TABS = [
   ['backup', 'Backup'],
   ['users', 'Users & security'],
   ['sites', 'Sites'],
+  ['activity', 'Activity logs'],
 ] as const;
 
 type Tab = (typeof TABS)[number][0];
 /** Tabs this user can open: admins get all; others get the tabs an admin enabled, plus "My account". */
-const visibleTabs = (user: AdminUser, platform: boolean) =>
-  TABS.filter(([id]) => (id === 'sites' ? platform : user.role === 'admin' || id === 'users' || (user.tabs ?? []).includes(id as never)));
+const visibleTabs = (user: AdminUser, platform: boolean, platformMain: boolean) =>
+  TABS.filter(([id]) => (id === 'sites' ? platform : id === 'activity' ? platformMain : user.role === 'admin' || id === 'users' || (user.tabs ?? []).includes(id as never)));
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
 
 function subscribeToHash(callback: () => void) {
@@ -70,9 +72,11 @@ function DatabaseNotice({ database }: { database: DatabaseInfo }) {
   return null;
 }
 
-export function AdminApp({ user, database, platform = false, canAddUsers = true }: { user: AdminUser; database?: DatabaseInfo; platform?: boolean; canAddUsers?: boolean }) {
+export function AdminApp({ user, database, platform = false, platformMain = false, canAddUsers = true }: {
+  user: AdminUser; database?: DatabaseInfo; platform?: boolean; platformMain?: boolean; canAddUsers?: boolean;
+}) {
   const hash = useSyncExternalStore(subscribeToHash, () => window.location.hash.slice(1), () => '');
-  const tabs = visibleTabs(user, platform);
+  const tabs = visibleTabs(user, platform, platformMain);
   const can = (id: Tab) => tabs.some(([tab]) => tab === id);
   const tab: Tab = tabs.some(([id]) => id === hash) ? (hash as Tab) : tabs[0][0];
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -166,6 +170,7 @@ export function AdminApp({ user, database, platform = false, canAddUsers = true 
         </ReadOnlyProvider>
         {/* "My account" (password change) always works, even for read-only users. */}
         {tab === 'sites' && platform && <SitesTab notify={notify} />}
+        {tab === 'activity' && platformMain && <ActivityTab notify={notify} />}
         {tab === 'users' && <ReadOnlyProvider value={false}><UsersTab me={user} notify={notify} canAddUsers={canAddUsers} /></ReadOnlyProvider>}
         {database && database.persistent && database.kind !== 'file' && (
           <div className="mt-8 space-y-1 text-center text-[11px] text-slate-500">

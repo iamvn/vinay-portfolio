@@ -17,13 +17,63 @@ export const pendingRequests = {
   get: () => pending,
 };
 
+/**
+ * Browser cache for GET calls, so switching tabs (Profile → Experience → Profile) shows the data at once
+ * instead of asking the server again. It only lives in this browser tab's memory and stays correct because:
+ *   - any change made from this browser (POST/PUT/PATCH/DELETE) clears it, in every open admin tab;
+ *   - entries expire after a few minutes (or sooner for live numbers), in case someone else edits;
+ *   - coming back to the tab after a while clears it too.
+ * Pass { fresh: true } to always ask the server (exports, restores).
+ */
+type CacheEntry = { at: number; data: unknown };
+const cache = new Map<string, CacheEntry>();
+const inFlight = new Map<string, Promise<unknown>>();
+const DEFAULT_TTL = 5 * 60_000;
+// Numbers that change on their own (visits, AI usage): kept only briefly.
+const SHORT_TTL: [RegExp, number][] = [[/^\/api\/(insights|ask|platform\/activity)(\?|$)/, 30_000]];
+const ttlFor = (path: string) => SHORT_TTL.find(([pattern]) => pattern.test(path))?.[1] ?? DEFAULT_TTL;
+const copy = <T,>(data: T): T => (data === null || typeof data !== 'object' ? data : structuredClone(data));
+
+const channel = typeof window !== 'undefined' && 'BroadcastChannel' in window ? new BroadcastChannel('admin-api-cache') : null;
+channel?.addEventListener('message', () => cache.clear());
+
+/** Forget every cached GET (here and in other open admin tabs). Called after any change. */
+export function invalidateApiCache() {
+  cache.clear();
+  channel?.postMessage('invalidate');
+}
+
+if (typeof document !== 'undefined') {
+  let hiddenAt = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) hiddenAt = Date.now();
+    else if (hiddenAt && Date.now() - hiddenAt > 60_000) cache.clear(); // back after a while: re-check the server
+  });
+}
+
 /** Calls one of the portfolio API routes and returns the parsed JSON (or null for 204). */
-export async function api<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
+export async function api<T = unknown>(method: string, path: string, body?: unknown, options: { fresh?: boolean } = {}): Promise<T> {
+  const isRead = method.toUpperCase() === 'GET';
+  if (isRead && !options.fresh) {
+    const hit = cache.get(path);
+    if (hit && Date.now() - hit.at < ttlFor(path)) return copy(hit.data as T);
+    const running = inFlight.get(path); // the same data already on its way (e.g. two tabs asking at once)
+    if (running) return copy((await running) as T);
+  }
   pending += 1;
   emit();
+  const call = request<T>(method, path, body);
+  if (isRead) inFlight.set(path, call);
   try {
-    return await request<T>(method, path, body);
+    const data = await call;
+    if (isRead) cache.set(path, { at: Date.now(), data: copy(data) });
+    else invalidateApiCache(); // something changed: every cached read may be out of date
+    return isRead ? copy(data) : data;
+  } catch (error) {
+    if (!isRead) invalidateApiCache(); // a failed change may still have changed something
+    throw error;
   } finally {
+    if (isRead && inFlight.get(path) === call) inFlight.delete(path);
     pending -= 1;
     emit();
   }
@@ -37,6 +87,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     headers: body === undefined || isForm ? undefined : { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   });
+  if (response.status === 401) cache.clear();
   if (response.status === 401 && typeof window !== 'undefined' && !path.startsWith('/api/auth/password')) {
     // Session expired or was revoked (e.g. password changed elsewhere). A full page load is
     // intended here so the server re-checks the (now missing) session cookie.

@@ -122,7 +122,10 @@ export function Button({ children, onClick, disabled, tone = 'ghost', type = 'bu
   const readOnly = useReadOnly();
   const [working, setWorking] = useState(false);
   const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; }, []);
+  useEffect(() => {
+    mounted.current = true; // also after React's development-mode remount
+    return () => { mounted.current = false; };
+  }, []);
   const click = () => {
     const result = onClick?.();
     if (result && typeof (result as Promise<unknown>).then === 'function') {

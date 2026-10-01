@@ -6,7 +6,7 @@ import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/sites/hosts';
 import { DEFAULT_SITE_LIMIT, countSitesCreatedBy, insertSite, listSites, siteBySlug } from '@/lib/sites/registry';
 import { createSiteDatabase, deleteSiteDatabase, prepareSiteDatabase } from '@/lib/sites/provision';
 import { canSeeSite, platformInfo, publicSite, requirePlatformAdmin } from '@/lib/sites/platform';
-import { actorLabel, listActivity, logActivity } from '@/lib/sites/activity';
+import { actorLabel, logActivity } from '@/lib/sites/activity';
 import { rootDomain } from '@/lib/sites/hosts';
 import { addProjectDomain, vercelApiConfigured } from '@/lib/sites/vercel';
 
@@ -28,9 +28,8 @@ export async function GET(request: Request) {
   const { site: manager, error } = await requirePlatformAdmin(request);
   if (error) return error;
   const sites = (await listSites()).filter((site) => canSeeSite(manager, site));
-  const activity = manager.isMain ? await listActivity() : [];
   const created = manager.isMain ? 0 : sites.length; // other sites only see the sites they created
-  return NextResponse.json({ sites: sites.map((site) => publicSite(site, request)), platform: platformInfo(request, manager, created), activity });
+  return NextResponse.json({ sites: sites.map((site) => publicSite(site, request)), platform: platformInfo(request, manager, created) });
 }
 
 /**
@@ -73,7 +72,7 @@ export async function POST(request: Request) {
       createdBy: manager.isMain ? '' : manager.slug, createdByUser: actorLabel(user),
     };
     await insertSite(site);
-    await logActivity(manager, actorLabel(user), 'site.created', { slug: site.slug, name: site.name, ownerEmail: site.ownerEmail, ...(domain ? { domain } : {}) });
+    await logActivity(manager, actorLabel(user), 'site.created', { slug: site.slug, name: site.name, ownerEmail: site.ownerEmail, ...(domain ? { domain } : {}) }, { includeMain: true });
     return NextResponse.json({ ...publicSite({ ...site, isMain: false, canAddUsers: false, canAddSites: false, siteLimit: DEFAULT_SITE_LIMIT }, request), note }, { status: 201 });
   } catch (err) {
     console.error('Creating site failed:', err);

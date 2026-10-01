@@ -33,6 +33,7 @@ export default async function AdminPage() {
       user={{ ...publicUser(user), owner: user.id === (await ownerId()) }}
       database={site.isMain ? { ...describeDatabase(), lastDeploy: read('system.lastDeploy'), seededAt: read('system.seededAt')?.at ?? null } : undefined}
       platform={admin && (site.isMain || site.canAddSites)}
+      platformMain={admin && site.isMain}
       canAddUsers={site.canAddUsers}
     />
   );
