@@ -12,7 +12,7 @@ import { DesignTab } from './design-tab';
 import { ResumeBuilderTab } from './resume-builder-tab';
 import { SitesTab } from './sites-tab';
 import { UsersTab, type AdminUser } from './users-tab';
-import { ReadOnlyFieldset, ReadOnlyProvider, type Notify } from './ui';
+import { ReadOnlyFieldset, ReadOnlyProvider, RequestProgress, type Notify } from './ui';
 
 const TABS = [
   ['profile', 'Profile'],
@@ -107,6 +107,7 @@ export function AdminApp({ user, database, platform = false, canAddUsers = true 
 
   return (
     <div className="admin-shell min-h-screen bg-[#030609] text-slate-100">
+      <RequestProgress />
       <header className="sticky top-0 z-20 border-b border-white/10 bg-[#030609]/90 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5 sm:py-4">
           <div className="min-w-0">

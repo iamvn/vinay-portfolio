@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { pendingRequests } from './api';
 
 export type Notify = (message: string, tone?: 'success' | 'error') => void;
 
@@ -104,7 +105,8 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
 
 type ButtonProps = {
   children: ReactNode;
-  onClick?: () => void;
+  /** May return a promise: the button then shows a spinner and stays disabled until it settles. */
+  onClick?: () => unknown;
   disabled?: boolean;
   tone?: 'primary' | 'ghost' | 'danger';
   type?: 'button' | 'submit';
@@ -118,15 +120,43 @@ export const buttonBase = 'inline-flex min-h-11 items-center justify-center gap-
 
 export function Button({ children, onClick, disabled, tone = 'ghost', type = 'button', className = '', label, view = false }: ButtonProps) {
   const readOnly = useReadOnly();
+  const [working, setWorking] = useState(false);
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
+  const click = () => {
+    const result = onClick?.();
+    if (result && typeof (result as Promise<unknown>).then === 'function') {
+      setWorking(true);
+      (result as Promise<unknown>).catch(() => null).finally(() => { if (mounted.current) setWorking(false); });
+    }
+  };
   const tones = {
     primary: 'bg-lime-300 text-black hover:bg-lime-200',
     ghost: 'border border-white/15 text-slate-200 hover:border-cyan-300/60 hover:text-white',
     danger: 'border border-red-400/40 text-red-300 hover:bg-red-500/10',
   };
   return (
-    <button type={type} onClick={onClick} disabled={disabled || (readOnly && !view)} aria-label={label} title={label} className={`${buttonBase} ${tones[tone]} ${className}`}>
+    <button type={type} onClick={onClick ? click : undefined} disabled={working || disabled || (readOnly && !view)} aria-busy={working || undefined}
+      aria-label={label} title={label} className={`${buttonBase} ${tones[tone]} ${className}`}>
+      {working && <Spinner />}
       {children}
     </button>
+  );
+}
+
+/** A small spinning ring for buttons and loading states (inherits the text color). */
+export function Spinner({ className = '' }: { className?: string }) {
+  return <span aria-hidden="true" className={`inline-block size-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent ${className}`} />;
+}
+
+/** A thin bar across the top of the admin panel while any API call is running. */
+export function RequestProgress() {
+  const busy = useSyncExternalStore(pendingRequests.subscribe, pendingRequests.get, () => 0) > 0;
+  return (
+    <div aria-hidden={!busy} role={busy ? 'progressbar' : undefined} aria-label={busy ? 'Working…' : undefined}
+      className={`pointer-events-none fixed inset-x-0 top-0 z-[60] h-0.5 overflow-hidden transition-opacity duration-200 ${busy ? 'opacity-100' : 'opacity-0'}`}>
+      <div className="admin-progress h-full w-1/3 bg-gradient-to-r from-lime-300 via-cyan-300 to-lime-300" />
+    </div>
   );
 }
 

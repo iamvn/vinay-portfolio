@@ -6,9 +6,9 @@ import { Button, Card, Field, Loading, PasswordInput, TextInput, buttonBase, inp
 
 type SiteRow = {
   slug: string; name: string; ownerEmail: string; domain: string | null; status: 'active' | 'suspended'; createdAt: string; url: string | null; storage: string;
-  canAddUsers: boolean; canAddSites: boolean; createdBy: string; createdByUser: string;
+  canAddUsers: boolean; canAddSites: boolean; siteLimit: number | null; createdBy: string; createdByUser: string;
 };
-type Platform = { isMain: boolean; rootDomain: string | null; turso: boolean; onVercel: boolean; vercelApi: boolean; exampleUrl: string | null };
+type Platform = { isMain: boolean; siteLimit: number | null; sitesCreated: number; rootDomain: string | null; turso: boolean; onVercel: boolean; vercelApi: boolean; exampleUrl: string | null };
 type Activity = { id: number; at: string; site: string; siteName: string; actor: string; kind: 'user.added' | 'site.created' | 'site.deleted'; details: Record<string, string> };
 
 const slugify = (name: string) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
@@ -53,6 +53,7 @@ function CreateSite({ platform, onCreated, notify }: { platform: Platform; onCre
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const address = slug || 'address';
+  const full = platform.siteLimit !== null && platform.sitesCreated >= platform.siteLimit;
   const preview = platform.rootDomain ? `${address}.${platform.rootDomain}` : platform.exampleUrl?.replace('savi-bharti', address).replace(/^https?:\/\//, '') ?? `${address}.yourdomain.com`;
 
   async function submit(event: FormEvent) {
@@ -88,9 +89,16 @@ function CreateSite({ platform, onCreated, notify }: { platform: Platform; onCre
         Your photo, uploaded resume, social links, private assistant notes, users, AI keys and analytics are <b className="text-slate-200">not</b> copied.
         After that the two sites are completely separate.
       </p>
+      {platform.siteLimit !== null && (
+        <p role={full ? 'alert' : undefined} className={`rounded-xl border px-3 py-2 text-xs leading-5 md:col-span-2 ${full ? 'border-yellow-300/40 bg-yellow-300/10 text-yellow-100' : 'border-white/10 text-slate-400'}`}>
+          {full
+            ? <>You&apos;ve used all <b>{platform.siteLimit}</b> of your sites. Delete one to create another, or ask the platform owner to raise your limit.</>
+            : <>You&apos;ve created <b>{platform.sitesCreated}</b> of <b>{platform.siteLimit}</b> sites allowed.</>}
+        </p>
+      )}
       <div className="flex flex-wrap gap-2 md:col-span-2">
         <Button onClick={() => setPassword(generatePassword())}>Generate password</Button>
-        <Button tone="primary" type="submit" disabled={busy || !name.trim() || !slug || !email || !password}>{busy ? 'Creating site…' : 'Create site'}</Button>
+        <Button tone="primary" type="submit" disabled={full || busy || !name.trim() || !slug || !email || !password}>{busy ? 'Creating site…' : 'Create site'}</Button>
       </div>
     </form>
   );
@@ -106,10 +114,16 @@ function Check({ checked, onChange, label, hint }: { checked: boolean; onChange:
 }
 
 /** Main site only: what this site's admins are allowed to do. Ticked boxes are saved together. */
-function Security({ site, busy, save }: { site: SiteRow; busy: boolean; save: (changes: { canAddUsers: boolean; canAddSites: boolean }) => void }) {
+type SecurityChanges = { canAddUsers: boolean; canAddSites: boolean; siteLimit: number };
+
+function Security({ site, busy, save }: { site: SiteRow; busy: boolean; save: (changes: SecurityChanges) => void }) {
+  const savedLimit = site.siteLimit ?? 2;
   const [users, setUsers] = useState(site.canAddUsers);
   const [sites, setSites] = useState(site.canAddSites);
-  const dirty = users !== site.canAddUsers || sites !== site.canAddSites;
+  const [limit, setLimit] = useState(String(savedLimit));
+  const limitNumber = Number(limit);
+  const limitValid = limit.trim() !== '' && Number.isInteger(limitNumber) && limitNumber >= 0 && limitNumber <= 100;
+  const dirty = users !== site.canAddUsers || sites !== site.canAddSites || (limitValid && limitNumber !== savedLimit);
   return (
     <div className="rounded-xl border border-white/10 bg-white/[.02] p-3">
       <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-400">Security</p>
@@ -118,10 +132,19 @@ function Security({ site, busy, save }: { site: SiteRow; busy: boolean; save: (c
           hint="Lets this site's admins give other people access in Users & security. Each user they add shows up in Activity below." />
         <Check checked={sites} onChange={setSites} label="Site admins can create sites"
           hint="Gives this site's admins a Sites tab to create sites of their own (they only see theirs). Each one shows up here and in Activity." />
+        <label className={`ml-8 flex flex-wrap items-center gap-2 text-sm ${sites ? 'text-slate-200' : 'text-slate-500'}`}>
+          Maximum sites they can create
+          <span className="w-24 shrink-0">
+            <input type="number" min={0} max={100} step={1} inputMode="numeric" disabled={!sites} value={limit}
+              onChange={(e) => setLimit(e.target.value)} aria-invalid={!limitValid}
+              className={`${inputClass} ${limitValid ? '' : 'border-red-400/70'}`} />
+          </span>
+          <span className="basis-full text-xs text-slate-500">Default 2. Deleting one of their sites frees a slot. Your own (main) account has no limit.</span>
+        </label>
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
-        <Button tone="primary" disabled={busy || !dirty} onClick={() => save({ canAddUsers: users, canAddSites: sites })}>{busy ? 'Saving…' : 'Save security'}</Button>
-        <Button disabled={busy || !dirty} onClick={() => { setUsers(site.canAddUsers); setSites(site.canAddSites); }}>Cancel</Button>
+        <Button tone="primary" disabled={busy || !dirty || !limitValid} onClick={() => save({ canAddUsers: users, canAddSites: sites, siteLimit: limitNumber })}>{busy ? 'Saving…' : 'Save security'}</Button>
+        <Button disabled={busy || !dirty} onClick={() => { setUsers(site.canAddUsers); setSites(site.canAddSites); setLimit(String(savedLimit)); }}>Cancel</Button>
       </div>
     </div>
   );
@@ -156,6 +179,9 @@ function SiteItem({ site, isMain, onChanged, notify }: { site: SiteRow; isMain: 
             <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${site.status === 'active' ? 'bg-lime-300/10 text-lime-200' : 'bg-yellow-300/10 text-yellow-200'}`}>{site.status === 'active' ? 'Live' : 'Paused'}</span>
           </p>
           <p className="truncate text-xs text-slate-400">{site.url ? site.url.replace(/^https?:\/\//, '') : site.slug} · owner {site.ownerEmail} · {site.storage} · since {new Date(site.createdAt).toLocaleDateString()}</p>
+          {isMain && site.canAddSites && (
+            <p className="truncate text-xs text-slate-400">Can create up to {site.siteLimit} site{site.siteLimit === 1 ? '' : 's'}</p>
+          )}
           {isMain && site.createdBy && (
             <p className="truncate text-xs text-cyan-200">Created by {site.createdByUser || 'an admin'} from the site “{site.createdBy}”</p>
           )}
@@ -177,7 +203,7 @@ function SiteItem({ site, isMain, onChanged, notify }: { site: SiteRow; isMain: 
         </Button>
       </div>
       {isMain && (
-        <Security key={`${site.canAddUsers}-${site.canAddSites}`} site={site} busy={busy}
+        <Security key={`${site.canAddUsers}-${site.canAddSites}-${site.siteLimit}`} site={site} busy={busy}
           save={(changes) => run('PATCH', changes, `Saved security for ${site.name}.`)} />
       )}
       {!deleting ? (

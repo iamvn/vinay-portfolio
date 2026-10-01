@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { jsonError, parseBody } from '@/lib/api-utils';
 import { passwordProblem } from '@/lib/auth/password';
 import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/sites/hosts';
-import { insertSite, listSites, siteBySlug } from '@/lib/sites/registry';
+import { DEFAULT_SITE_LIMIT, countSitesCreatedBy, insertSite, listSites, siteBySlug } from '@/lib/sites/registry';
 import { createSiteDatabase, deleteSiteDatabase, prepareSiteDatabase } from '@/lib/sites/provision';
 import { canSeeSite, platformInfo, publicSite, requirePlatformAdmin } from '@/lib/sites/platform';
 import { actorLabel, listActivity, logActivity } from '@/lib/sites/activity';
@@ -29,7 +29,8 @@ export async function GET(request: Request) {
   if (error) return error;
   const sites = (await listSites()).filter((site) => canSeeSite(manager, site));
   const activity = manager.isMain ? await listActivity() : [];
-  return NextResponse.json({ sites: sites.map((site) => publicSite(site, request)), platform: platformInfo(request, manager), activity });
+  const created = manager.isMain ? 0 : sites.length; // other sites only see the sites they created
+  return NextResponse.json({ sites: sites.map((site) => publicSite(site, request)), platform: platformInfo(request, manager, created), activity });
 }
 
 /**
@@ -41,6 +42,13 @@ export async function POST(request: Request) {
   if (denied) return denied;
   const { data, error } = await parseBody(request, createSchema);
   if (error) return error;
+  // Other sites' admins may only create up to their site limit (set by the main admin). Deleting one frees a slot.
+  if (!manager.isMain) {
+    const created = await countSitesCreatedBy(manager.slug);
+    if (created >= manager.siteLimit) {
+      return jsonError(`You've reached your limit of ${manager.siteLimit} site${manager.siteLimit === 1 ? '' : 's'}. Delete one to create another, or ask the platform owner to raise the limit.`, 403);
+    }
+  }
   if (RESERVED_SLUGS.has(data.slug)) return jsonError(`"${data.slug}" is reserved. Pick another address.`, 400);
   const problem = passwordProblem(data.ownerPassword);
   if (problem) return jsonError(problem, 400);
@@ -66,7 +74,7 @@ export async function POST(request: Request) {
     };
     await insertSite(site);
     await logActivity(manager, actorLabel(user), 'site.created', { slug: site.slug, name: site.name, ownerEmail: site.ownerEmail, ...(domain ? { domain } : {}) });
-    return NextResponse.json({ ...publicSite({ ...site, isMain: false, canAddUsers: false, canAddSites: false }, request), note }, { status: 201 });
+    return NextResponse.json({ ...publicSite({ ...site, isMain: false, canAddUsers: false, canAddSites: false, siteLimit: DEFAULT_SITE_LIMIT }, request), note }, { status: 201 });
   } catch (err) {
     console.error('Creating site failed:', err);
     // Don't leave a half-made database behind.

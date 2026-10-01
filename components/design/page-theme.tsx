@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { getPublished } from '@/lib/design/store';
+import { getPublished, type StoredDesign } from '@/lib/design/store';
 import { recolorsClassic, themeVars, type RootProps } from '@/lib/design/theme';
 
 /**
@@ -7,8 +7,9 @@ import { recolorsClassic, themeVars, type RootProps } from '@/lib/design/theme';
  * When a design is published in Admin → Design, this wraps them in the design's theme so they match the
  * homepage: its colors, background effect and button style. Without a published design nothing changes.
  */
-export async function PageTheme({ children }: { children: ReactNode }) {
-  const design = await getPublished();
+export async function PageTheme({ children, design: given }: { children: ReactNode; design?: StoredDesign | null }) {
+  // Pass the design in when the page already loads it (in parallel with its other data) to save a round trip.
+  const design = given === undefined ? await getPublished() : given;
   if (!design) return <>{children}</>;
   const props = ((design.data as { root?: { props?: Partial<RootProps> } }).root?.props ?? {}) as Partial<RootProps>;
   const classes = [

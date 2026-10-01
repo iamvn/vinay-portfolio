@@ -61,7 +61,10 @@ export async function proxy(request: NextRequest) {
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
   let site: Site | null;
   try {
-    site = await siteForHost(host, { fresh: true });
+    // Cached for a few seconds (lib/sites/registry.ts): looking the site up in the database on every request,
+    // pages, images and API calls alike, made everything slower. Changes made on this server apply at once;
+    // other servers pick up a pause/delete within seconds. Permission checks read the site fresh themselves.
+    site = await siteForHost(host);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Could not look up this site.' }, { status: 500 });

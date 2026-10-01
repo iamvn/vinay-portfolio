@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { jsonError, parseBody } from '@/lib/api-utils';
-import { removeSite, siteBySlug, updateSite } from '@/lib/sites/registry';
+import { MAX_SITE_LIMIT, removeSite, siteBySlug, updateSite } from '@/lib/sites/registry';
 import { deleteSiteDatabase } from '@/lib/sites/provision';
 import { canSeeSite, publicSite, requirePlatformAdmin } from '@/lib/sites/platform';
 import { actorLabel, logActivity } from '@/lib/sites/activity';
@@ -18,6 +18,7 @@ const patchSchema = z.object({
   // Security (main site's admins only): may this site's admins add users / create sites?
   canAddUsers: z.boolean(),
   canAddSites: z.boolean(),
+  siteLimit: z.number().int().min(0).max(MAX_SITE_LIMIT),
 }).partial().strict();
 
 /** Rename, suspend/resume, set a custom domain, or (main site's admins) change the site's security settings. */
@@ -27,7 +28,7 @@ export async function PATCH(request: Request, { params }: Context) {
   const { slug } = await params;
   const { data, error } = await parseBody(request, patchSchema);
   if (error) return error;
-  if (!manager.isMain && (data.canAddUsers !== undefined || data.canAddSites !== undefined)) {
+  if (!manager.isMain && (data.canAddUsers !== undefined || data.canAddSites !== undefined || data.siteLimit !== undefined)) {
     return jsonError('Only the platform owner can change security settings.', 403);
   }
   try {

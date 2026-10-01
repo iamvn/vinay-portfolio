@@ -21,6 +21,8 @@ export type Site = {
   /** Security (set by the main site's admin): may this site's admins add users / create sites of their own? */
   canAddUsers: boolean;
   canAddSites: boolean;
+  /** How many sites this site's admins may create (when canAddSites). Deleting one frees a slot. */
+  siteLimit: number;
   /** Who created it: '' = the main site, otherwise the slug of the site whose admin created it. */
   createdBy: string;
   /** Name and email of the admin who created it. */
@@ -29,17 +31,22 @@ export type Site = {
 
 export function mainSite(): Site {
   const { url, authToken } = databaseConfig();
-  return { slug: MAIN_SLUG, name: 'Main site', ownerEmail: '', domain: null, dbUrl: url, dbToken: authToken, dbName: '', status: 'active', createdAt: '', isMain: true, canAddUsers: true, canAddSites: true, createdBy: '', createdByUser: '' };
+  return { slug: MAIN_SLUG, name: 'Main site', ownerEmail: '', domain: null, dbUrl: url, dbToken: authToken, dbName: '', status: 'active', createdAt: '', isMain: true, canAddUsers: true, canAddSites: true, siteLimit: Infinity, createdBy: '', createdByUser: '' };
 }
 
 const CREATE = `CREATE TABLE IF NOT EXISTS Site (slug TEXT PRIMARY KEY, name TEXT NOT NULL, ownerEmail TEXT NOT NULL DEFAULT '', domain TEXT UNIQUE, dbUrl TEXT NOT NULL, dbTokenCipher TEXT NOT NULL DEFAULT '', dbName TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'active', createdAt TEXT NOT NULL)`;
 let ready: Promise<unknown> | null = null;
+/** Default for how many sites another site's admins may create (the main admin can change it per site). */
+export const DEFAULT_SITE_LIMIT = 2;
+export const MAX_SITE_LIMIT = 100;
+
 // Columns added after the first version: added to older Site tables on first use.
 const LATER_COLUMNS = [
   "canAddUsers INTEGER NOT NULL DEFAULT 0",
   "canAddSites INTEGER NOT NULL DEFAULT 0",
   "createdBy TEXT NOT NULL DEFAULT ''",
   "createdByUser TEXT NOT NULL DEFAULT ''",
+  `siteLimit INTEGER NOT NULL DEFAULT ${DEFAULT_SITE_LIMIT}`,
 ];
 async function createTable() {
   await mainClient.$executeRawUnsafe(CREATE);
@@ -53,13 +60,14 @@ const ensureTable = () => (ready ??= createTable().catch((error) => { ready = nu
 
 type Row = {
   slug: string; name: string; ownerEmail: string; domain: string | null; dbUrl: string; dbTokenCipher: string; dbName: string; status: string; createdAt: string;
-  canAddUsers: number | bigint | null; canAddSites: number | bigint | null; createdBy: string | null; createdByUser: string | null;
+  canAddUsers: number | bigint | null; canAddSites: number | bigint | null; siteLimit: number | bigint | null; createdBy: string | null; createdByUser: string | null;
 };
 const toSite = (row: Row): Site => ({
   slug: row.slug, name: row.name, ownerEmail: row.ownerEmail, domain: row.domain || null, dbUrl: row.dbUrl,
   dbToken: row.dbTokenCipher ? decryptSecret(row.dbTokenCipher) ?? undefined : undefined, dbName: row.dbName,
   status: row.status === 'suspended' ? 'suspended' : 'active', createdAt: row.createdAt, isMain: false,
   canAddUsers: Number(row.canAddUsers ?? 0) === 1, canAddSites: Number(row.canAddSites ?? 0) === 1,
+  siteLimit: row.siteLimit === null || row.siteLimit === undefined ? DEFAULT_SITE_LIMIT : Number(row.siteLimit),
   createdBy: row.createdBy ?? '', createdByUser: row.createdByUser ?? '',
 });
 
@@ -119,23 +127,30 @@ export async function siteForHost(host: string | null | undefined, { fresh = fal
   return (await siteByDomain(target.domain, fresh)) ?? mainSite();
 }
 
-export async function insertSite(site: Omit<Site, 'isMain' | 'dbToken' | 'canAddUsers' | 'canAddSites'> & { dbToken?: string }) {
+export async function insertSite(site: Omit<Site, 'isMain' | 'dbToken' | 'canAddUsers' | 'canAddSites' | 'siteLimit'> & { dbToken?: string }) {
   await ensureTable();
   const cipher = site.dbToken ? encryptSecret(site.dbToken) : '';
   // New sites start locked down: their admins can't add users or create sites until the main admin allows it.
-  await mainClient.$executeRaw`INSERT INTO Site (slug, name, ownerEmail, domain, dbUrl, dbTokenCipher, dbName, status, createdAt, canAddUsers, canAddSites, createdBy, createdByUser)
-    VALUES (${site.slug}, ${site.name}, ${site.ownerEmail}, ${site.domain}, ${site.dbUrl}, ${cipher}, ${site.dbName}, ${site.status}, ${site.createdAt}, 0, 0, ${site.createdBy}, ${site.createdByUser})`;
+  await mainClient.$executeRaw`INSERT INTO Site (slug, name, ownerEmail, domain, dbUrl, dbTokenCipher, dbName, status, createdAt, canAddUsers, canAddSites, siteLimit, createdBy, createdByUser)
+    VALUES (${site.slug}, ${site.name}, ${site.ownerEmail}, ${site.domain}, ${site.dbUrl}, ${cipher}, ${site.dbName}, ${site.status}, ${site.createdAt}, 0, 0, ${DEFAULT_SITE_LIMIT}, ${site.createdBy}, ${site.createdByUser})`;
   forgetSites();
 }
 
-export async function updateSite(slug: string, changes: Partial<Pick<Site, 'name' | 'domain' | 'status' | 'canAddUsers' | 'canAddSites'>>) {
+export async function updateSite(slug: string, changes: Partial<Pick<Site, 'name' | 'domain' | 'status' | 'canAddUsers' | 'canAddSites' | 'siteLimit'>>) {
   const site = await siteBySlug(slug, true);
   if (!site || site.isMain) return null;
   const next = { ...site, ...changes };
   await mainClient.$executeRaw`UPDATE Site SET name = ${next.name}, domain = ${next.domain}, status = ${next.status},
-    canAddUsers = ${next.canAddUsers ? 1 : 0}, canAddSites = ${next.canAddSites ? 1 : 0} WHERE slug = ${slug}`;
+    canAddUsers = ${next.canAddUsers ? 1 : 0}, canAddSites = ${next.canAddSites ? 1 : 0}, siteLimit = ${next.siteLimit} WHERE slug = ${slug}`;
   forgetSites();
   return next;
+}
+
+/** How many sites a site's admins have created (what counts against its site limit). */
+export async function countSitesCreatedBy(slug: string): Promise<number> {
+  await ensureTable();
+  const rows = await mainClient.$queryRaw<{ n: number | bigint }[]>`SELECT COUNT(*) AS n FROM Site WHERE createdBy = ${slug}`;
+  return Number(rows[0]?.n ?? 0);
 }
 
 export async function removeSite(slug: string) {

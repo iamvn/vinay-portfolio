@@ -8,6 +8,7 @@ import { absoluteUrl, clip, jsonLd } from '@/lib/seo';
 import { currentSiteUrl } from '@/lib/sites/url';
 import { currentUser } from '@/lib/auth/server';
 import { PageTheme } from '@/components/design/page-theme';
+import { getPublished } from '@/lib/design/store';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,11 +56,13 @@ function readingMinutes(...texts: string[]) {
 
 export default async function ProjectPage({ params }: Props) {
   const { slug } = await params;
-  const [row, copyRow, profile, published] = await Promise.all([
+  const [row, copyRow, profile, published, design, SITE_URL] = await Promise.all([
     prisma.project.findUnique({ where: { slug } }),
     prisma.siteCopy.findUnique({ where: { id: 1 } }),
     prisma.profile.findUnique({ where: { id: 1 }, select: { name: true, socialLinks: true } }),
     prisma.project.findMany({ where: { published: true }, orderBy: { id: 'asc' }, select: { slug: true, title: true, type: true, externalUrl: true } }),
+    getPublished(),
+    currentSiteUrl(),
   ]);
   if (!row) notFound();
   const project = toProject(row);
@@ -83,7 +86,6 @@ export default async function ProjectPage({ params }: Props) {
   const next = index >= 0 && pages.length > 1 ? pages[(index + 1) % pages.length] : pages.find((item) => item.slug !== project.slug) ?? null;
 
   // Structured data for search engines (breadcrumbs + the project itself). It renders nothing on the page.
-  const SITE_URL = await currentSiteUrl();
   const pageUrl = `${SITE_URL}/projects/${project.slug}`;
   const structuredData = {
     '@context': 'https://schema.org',
@@ -112,7 +114,7 @@ export default async function ProjectPage({ params }: Props) {
 
   const button = 'inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-black sm:min-h-11 sm:py-2 sm:text-xs';
 
-  return <PageTheme>
+  return <PageTheme design={design}>
     {!isDraft && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }} />}
     {/* Sticky bar: always one tap back to the projects, on every screen size. */}
     <header className="site-header sticky top-0 z-30 border-b border-white/10 bg-[#030609]/85 pt-[env(safe-area-inset-top)] backdrop-blur">

@@ -288,6 +288,8 @@ does affects another.
     `POST /api/users` is refused there.
   - *Site admins can create sites* (off by default): gives that site's admins their own Sites tab. They only see,
     pause and delete the sites they created (a copy of their site); they can't change any security settings.
+  - *Maximum sites they can create* (default 2, 0–100): once they've reached it, "Create site" is disabled and
+    the API refuses; deleting one of their sites frees a slot. The main site's admins have no limit.
   Switching either off applies on the next request. Every user added and site created/deleted by another site's
   admin appears in **Activity on other sites** (who, on which site, and the details), stored in the main
   database (`SiteActivity` table). Sites created that way show "Created by …".

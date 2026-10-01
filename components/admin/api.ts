@@ -8,8 +8,28 @@ export class ApiError extends Error {
   }
 }
 
+// How many API calls are running right now: the admin panel shows a progress bar while it's above 0.
+let pending = 0;
+const listeners = new Set<() => void>();
+const emit = () => listeners.forEach((listener) => listener());
+export const pendingRequests = {
+  subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
+  get: () => pending,
+};
+
 /** Calls one of the portfolio API routes and returns the parsed JSON (or null for 204). */
 export async function api<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
+  pending += 1;
+  emit();
+  try {
+    return await request<T>(method, path, body);
+  } finally {
+    pending -= 1;
+    emit();
+  }
+}
+
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const isForm = body instanceof FormData;
   const response = await fetch(path, {
     method,

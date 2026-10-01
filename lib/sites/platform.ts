@@ -48,11 +48,14 @@ export function siteLink(site: Pick<Site, 'slug' | 'domain'>, request: Request) 
 export const publicSite = (site: Site, request: Request) => ({
   slug: site.slug, name: site.name, ownerEmail: site.ownerEmail, domain: site.domain, status: site.status, createdAt: site.createdAt,
   url: siteLink(site, request), storage: site.dbName ? 'turso' : site.dbUrl.startsWith('file:') ? 'local file' : 'database',
-  canAddUsers: site.canAddUsers, canAddSites: site.canAddSites, createdBy: site.createdBy, createdByUser: site.createdByUser,
+  canAddUsers: site.canAddUsers, canAddSites: site.canAddSites, siteLimit: site.isMain ? null : site.siteLimit, createdBy: site.createdBy, createdByUser: site.createdByUser,
 });
 
-export const platformInfo = (request: Request, manager: Site) => ({
+export const platformInfo = (request: Request, manager: Site, created = 0) => ({
   isMain: manager.isMain,
+  // Other sites' admins: how many sites they may create, and how many they have (null = no limit, main site).
+  siteLimit: manager.isMain ? null : manager.siteLimit,
+  sitesCreated: created,
   rootDomain: rootDomain() || null,
   turso: Boolean(process.env.TURSO_API_TOKEN?.trim() && process.env.TURSO_ORG?.trim()),
   onVercel: Boolean(process.env.VERCEL),

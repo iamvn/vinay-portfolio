@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { currentSiteUrl } from '@/lib/sites/url';
 import './globals.css';
 import { SiteAnalytics } from '@/components/site-analytics';
+import { NavProgress } from '@/components/nav-progress';
 
 // Site-wide defaults, per site (each site has its own address and owner). Pages refine these.
 export async function generateMetadata(): Promise<Metadata> {
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
       </head>
       <body className="scanlines">
+        <NavProgress />
         {children}
         <SiteAnalytics />
       </body>

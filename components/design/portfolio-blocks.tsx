@@ -4,6 +4,7 @@
  * Server-safe: no hooks here (interactive parts live in client components).
  */
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import type { PortfolioData } from '@/lib/portfolio';
 import { safeHref, safeSrc } from '@/lib/design/theme';
 import { Icon } from '../icons';
@@ -257,6 +258,14 @@ export function Skills(props: SkillsProps & { portfolio: Portfolio }) {
 
 export type ProjectsProps = { layout: 'grid' | 'list'; columns: '2' | '3'; filter: 'all' | 'featured'; limit: number; showStack: boolean; eyebrow: string; title: string; align: 'left' | 'center' };
 
+/** A project's page opens inside the site (fast, no full reload); "link" projects open their link in a new tab. */
+function ProjectLink({ project, className, label, children }: { project: Project; className?: string; label?: string; children: ReactNode }) {
+  const href = projectHref(project);
+  if (href.startsWith('/')) return <Link href={href} className={className} aria-label={label}>{children}</Link>;
+  const tab = project.type === 'link' ? { target: '_blank', rel: 'noopener noreferrer' } : {};
+  return <a href={href} {...tab} className={className} aria-label={label}>{children}</a>;
+}
+
 const projectHref = (project: Project) => (project.type === 'link' ? safeHref(project.externalUrl) ?? '#' : `/projects/${project.slug}`);
 
 function ProjectCover({ project, label, className }: { project: Project; label: string; className: string }) {
@@ -275,11 +284,10 @@ export function Projects(props: ProjectsProps & { portfolio: Portfolio }) {
   const labels = copy.projects;
   let list = props.filter === 'featured' ? projects.filter((project) => project.featured) : [...projects].sort((a, b) => Number(b.featured) - Number(a.featured));
   if (props.limit > 0) list = list.slice(0, props.limit);
-  const external = (project: Project) => (project.type === 'link' ? { target: '_blank', rel: 'noopener noreferrer' } : {});
   const actionLabel = (project: Project) => (project.type === 'article' ? labels.readArticle : project.type === 'link' ? labels.openLink : labels.enter);
   const links = (project: Project) => (
     <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-4 text-xs">
-      <a href={projectHref(project)} {...external(project)} className="d-link inline-flex min-h-11 items-center md:min-h-0">{actionLabel(project)}</a>
+      <ProjectLink project={project} className="d-link inline-flex min-h-11 items-center md:min-h-0">{actionLabel(project)}</ProjectLink>
       {safeHref(project.liveUrl) && <a href={safeHref(project.liveUrl)} target="_blank" rel="noopener noreferrer" className="d-accent-2 inline-flex min-h-11 items-center font-bold no-underline md:min-h-0">{labels.live}</a>}
       {safeHref(project.repoUrl) && <a href={safeHref(project.repoUrl)} target="_blank" rel="noopener noreferrer" className="d-muted inline-flex min-h-11 items-center font-bold no-underline md:min-h-0">{labels.github}</a>}
     </div>
@@ -296,7 +304,7 @@ export function Projects(props: ProjectsProps & { portfolio: Portfolio }) {
         <div className="grid gap-4">
           {list.map((project) => (
             <article key={project.slug} className="d-card grid gap-5 p-4 md:grid-cols-[16rem_1fr] md:p-5">
-              <a href={projectHref(project)} {...external(project)} aria-label={project.title}><ProjectCover project={project} label={labels.featured} className="aspect-video" /></a>
+              <ProjectLink project={project} label={project.title}><ProjectCover project={project} label={labels.featured} className="aspect-video" /></ProjectLink>
               <div className="flex min-w-0 flex-col">
                 <h3 className="text-lg font-black">{project.title}</h3>
                 <p className="d-muted mt-2 text-sm leading-6">{project.description}</p>
@@ -309,7 +317,7 @@ export function Projects(props: ProjectsProps & { portfolio: Portfolio }) {
         <div className={`grid gap-4 sm:grid-cols-2 ${props.columns === '3' ? 'lg:grid-cols-3' : ''}`}>
           {list.map((project) => (
             <article key={project.slug} className="d-card flex flex-col p-4 transition hover:-translate-y-1">
-              <a href={projectHref(project)} {...external(project)} aria-label={project.title}><ProjectCover project={project} label={labels.featured} className="aspect-video" /></a>
+              <ProjectLink project={project} label={project.title}><ProjectCover project={project} label={labels.featured} className="aspect-video" /></ProjectLink>
               <h3 className="mt-4 text-base font-black">{project.title}</h3>
               <p className="d-muted mt-2 text-sm leading-6">{project.description}</p>
               {stack(project)}{links(project)}

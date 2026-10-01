@@ -30,7 +30,10 @@ export async function clientForSite(site: Site): Promise<PrismaClient> {
   let entry = clients.get(site.slug);
   if (!entry || entry.key !== key) {
     if (entry) void entry.client.$disconnect().catch(() => null);
-    const ready = prepare(site).catch((error) => { clients.delete(site.slug); throw error; });
+    const preparing = prepare(site).catch((error) => { clients.delete(site.slug); throw error; });
+    // On Vercel every deploy already upgrades all sites' databases (scripts/deploy-setup.ts) and new sites are
+    // set up when created, so a cold server doesn't make the first visitor wait for it: it runs in the background.
+    const ready = process.env.VERCEL ? Promise.resolve(void preparing.catch((error) => console.error(error))) : preparing;
     entry = { client: makeClient(site.dbUrl, site.dbToken), key, ready };
     clients.set(site.slug, entry);
   }
