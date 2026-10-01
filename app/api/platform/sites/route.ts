@@ -6,6 +6,8 @@ import { RESERVED_SLUGS, SLUG_PATTERN } from '@/lib/sites/hosts';
 import { insertSite, listSites, siteBySlug } from '@/lib/sites/registry';
 import { createSiteDatabase, deleteSiteDatabase, prepareSiteDatabase } from '@/lib/sites/provision';
 import { platformInfo, publicSite, requirePlatformAdmin } from '@/lib/sites/platform';
+import { rootDomain } from '@/lib/sites/hosts';
+import { addProjectDomain, vercelApiConfigured } from '@/lib/sites/vercel';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -43,9 +45,18 @@ export async function POST(request: Request) {
   try {
     database = await createSiteDatabase(data.slug);
     await prepareSiteDatabase(database, { name: data.name, email: data.ownerEmail, password: data.ownerPassword });
-    const site = { slug: data.slug, name: data.name, ownerEmail: data.ownerEmail, domain: null, ...database, status: 'active' as const, createdAt: new Date().toISOString() };
+    // No domain of your own yet: give the site a free <address>.vercel.app on this project (when the Vercel API is set up).
+    let domain: string | null = null;
+    let note: string | undefined;
+    if (!rootDomain() && vercelApiConfigured()) {
+      const free = `${data.slug}.vercel.app`;
+      const added = await addProjectDomain(free);
+      if (added.ok) domain = free;
+      else note = `${added.message} You can set another address under the site's custom domain.`;
+    }
+    const site = { slug: data.slug, name: data.name, ownerEmail: data.ownerEmail, domain, ...database, status: 'active' as const, createdAt: new Date().toISOString() };
     await insertSite(site);
-    return NextResponse.json(publicSite({ ...site, isMain: false }, request), { status: 201 });
+    return NextResponse.json({ ...publicSite({ ...site, isMain: false }, request), note }, { status: 201 });
   } catch (err) {
     console.error('Creating site failed:', err);
     // Don't leave a half-made database behind.

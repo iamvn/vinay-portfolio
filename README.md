@@ -284,7 +284,21 @@ does affects another.
   site's own address and name. The `ANTHROPIC_API_KEY` fallback is main-site only (other sites add their own provider).
 - **Manage:** pause/resume, set a custom domain, delete (type the address to confirm; deletes its database).
 
-### Deploying on Vercel
+### Free option (no domain to buy): one `*.vercel.app` address per site
+
+Vercel lets one project have several free `something.vercel.app` addresses (if the name isn't taken), so each
+site can live at e.g. `savi-bharti.vercel.app`, saved as that site's **custom domain**. `vinay-bharti.vercel.app`
+and any address not assigned to a site keep serving the main site.
+
+- **Automatic:** set `VERCEL_API_TOKEN` (vercel.com → Account Settings → Tokens), `VERCEL_PROJECT` (project name)
+  and, for team projects, `VERCEL_TEAM_ID`. Creating a site then claims `<address>.vercel.app` on the project;
+  changing or deleting it updates Vercel too. If the name is taken you'll get a note: set another under Custom domain.
+- **Manual:** Vercel → Project → Settings → Domains → add `savi-bharti.vercel.app`, then enter the same under the
+  site in Admin → Sites → Custom domain.
+- Still needed on Vercel: `TURSO_API_TOKEN` + `TURSO_ORG` (each site's database; Turso's free plan includes a number of databases).
+- Leave `ROOT_DOMAIN` unset until you buy a domain.
+
+### Deploying on Vercel with your own domain
 
 1. **Domain:** buy one (e.g. `vinaybharti.dev`), add it to the Vercel project together with the wildcard
    `*.vinaybharti.dev` (Project → Settings → Domains). Wildcard domains need the domain to use **Vercel's nameservers**

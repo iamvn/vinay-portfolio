@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/auth/roles';
 import { currentSite } from './context';
 import { MAIN_SLUG, rootDomain, siteAddress } from './hosts';
 import type { Site } from './registry';
+import { vercelApiConfigured } from './vercel';
 
 /** Managing sites is only possible on the main site, by its admins. */
 export async function requirePlatformAdmin(request: Request) {
@@ -30,6 +31,7 @@ export const platformInfo = (request: Request) => ({
   rootDomain: rootDomain() || null,
   turso: Boolean(process.env.TURSO_API_TOKEN?.trim() && process.env.TURSO_ORG?.trim()),
   onVercel: Boolean(process.env.VERCEL),
+  vercelApi: vercelApiConfigured(),
   exampleUrl: siteLink({ slug: 'savi-bharti', domain: null }, request),
   mainSlug: MAIN_SLUG,
 });

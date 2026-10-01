@@ -5,7 +5,7 @@ import { api, describeError } from './api';
 import { Button, Card, Field, Loading, PasswordInput, TextInput, buttonBase, inputClass, type Notify } from './ui';
 
 type SiteRow = { slug: string; name: string; ownerEmail: string; domain: string | null; status: 'active' | 'suspended'; createdAt: string; url: string | null; storage: string };
-type Platform = { rootDomain: string | null; turso: boolean; onVercel: boolean; exampleUrl: string | null };
+type Platform = { rootDomain: string | null; turso: boolean; onVercel: boolean; vercelApi: boolean; exampleUrl: string | null };
 
 const slugify = (name: string) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
 function generatePassword() {
@@ -19,7 +19,9 @@ function Setup({ platform }: { platform: Platform }) {
       ok: Boolean(platform.rootDomain),
       text: platform.rootDomain
         ? <>Sites live at <b>&lt;address&gt;.{platform.rootDomain}</b>.</>
-        : <>No <code>ROOT_DOMAIN</code> set yet. {platform.onVercel ? 'Add your domain and a wildcard (*.yourdomain.com) in Vercel, then set ROOT_DOMAIN.' : <>Locally, sites open at <b>&lt;address&gt;.localhost:3000</b>.</>}</>,
+        : platform.vercelApi
+          ? <>No domain of your own: each new site gets a free <b>&lt;address&gt;.vercel.app</b>, added to your Vercel project automatically.</>
+          : <>No <code>ROOT_DOMAIN</code> set. Free option: give each site a <b>&lt;address&gt;.vercel.app</b> custom domain (add it in Vercel → Domains, or set VERCEL_API_TOKEN + VERCEL_PROJECT to do it automatically).{platform.onVercel ? '' : <> Locally, sites open at <b>&lt;address&gt;.localhost:3000</b>.</>}</>,
     },
     {
       ok: platform.turso || !platform.onVercel,
@@ -53,8 +55,9 @@ function CreateSite({ platform, onCreated, notify }: { platform: Platform; onCre
     event.preventDefault();
     setBusy(true);
     try {
-      const site = await api<SiteRow>('POST', '/api/platform/sites', { slug, name, ownerEmail: email, ownerPassword: password });
+      const site = await api<SiteRow & { note?: string }>('POST', '/api/platform/sites', { slug, name, ownerEmail: email, ownerPassword: password });
       onCreated(site, password);
+      if (site.note) notify(site.note, 'error');
       setName(''); setSlug(''); setSlugTouched(false); setEmail(''); setPassword('');
     } catch (error) {
       notify(describeError(error), 'error');
@@ -127,8 +130,8 @@ function SiteItem({ site, onChanged, notify }: { site: SiteRow; onChanged: () =>
         )}
       </div>
       <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
-        <Field label="Custom domain (optional)" hint="Also add it to the Vercel project; they point DNS to Vercel.">
-          <input className={inputClass} value={domain} placeholder="savibharti.com" onChange={(e) => setDomain(e.target.value.trim().toLowerCase())} />
+        <Field label="Custom domain (optional)" hint="Free: savi-bharti.vercel.app (if nobody has it). Own domain: savibharti.com with DNS pointed to Vercel.">
+          <input className={inputClass} value={domain} placeholder={`${site.slug}.vercel.app`} onChange={(e) => setDomain(e.target.value.trim().toLowerCase())} />
         </Field>
         <Button disabled={busy || domain === (site.domain ?? '')} onClick={() => run('PATCH', { domain: domain || null }, domain ? `${site.name} now also answers at ${domain}.` : 'Custom domain removed.')}>Save domain</Button>
         <Button disabled={busy} onClick={() => run('PATCH', { status: site.status === 'active' ? 'suspended' : 'active' }, site.status === 'active' ? `${site.name} is paused.` : `${site.name} is live again.`)}>

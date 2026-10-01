@@ -80,7 +80,13 @@ async function siteByDomain(domain: string, fresh = false): Promise<Site | null>
  */
 export async function siteForHost(host: string | null | undefined, { fresh = false } = {}): Promise<Site | null> {
   const target = parseHost(host);
-  if (target.kind === 'main') return mainSite();
+  if (target.kind === 'main') {
+    // Free per-site addresses: extra *.vercel.app domains on the same project (e.g. savi-bharti.vercel.app),
+    // saved as that site's custom domain. Every other vercel.app / localhost address is the main site.
+    const name = (host ?? '').toLowerCase().replace(/:\d+$/, '');
+    if (name.endsWith('.vercel.app')) return (await siteByDomain(name, fresh)) ?? mainSite();
+    return mainSite();
+  }
   if (target.kind === 'sub') return siteBySlug(target.slug, fresh);
   // A custom domain: a site's own domain, otherwise the main site (e.g. the main site's own domain).
   return (await siteByDomain(target.domain, fresh)) ?? mainSite();
