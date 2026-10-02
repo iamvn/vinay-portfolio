@@ -11,6 +11,7 @@ import { TAB_LABELS, blockedForReadOnly, canUseTab, isReadOnly, tabForRequest } 
  * Public (no login needed):
  *   - POST /api/auth/login, POST /api/auth/logout
  *   - POST /api/contact                       (the site's contact form)
+ *   - POST /api/forms                         (forms built in Admin → Design)
  *   - POST /api/track                         (anonymous contact-click counts)
  *   - GET/POST /api/ask                       (the "Ask my resume" assistant)
  *   - GET  /api/resume, /api/profile-image,
@@ -21,6 +22,7 @@ import { TAB_LABELS, blockedForReadOnly, canUseTab, isReadOnly, tabForRequest } 
 const PUBLIC_API: { method: string; pattern: RegExp }[] = [
   { method: 'POST', pattern: /^\/api\/auth\/(login|logout)$/ },
   { method: 'POST', pattern: /^\/api\/contact$/ },
+  { method: 'POST', pattern: /^\/api\/forms$/ }, // forms built in Admin → Design
   { method: 'POST', pattern: /^\/api\/track$/ },
   { method: 'POST', pattern: /^\/api\/ask$/ },
   { method: 'GET', pattern: /^\/api\/ask$/ },

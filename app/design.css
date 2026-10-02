@@ -154,3 +154,29 @@
 
 /* "Your blocks" drop area inside Hero / Contact sections: takes no space until something is added. */
 .d-slot-extra:not(:empty) { display: grid; gap: .75rem; margin-top: 1.5rem; }
+
+/* ---------- Box (div) blocks: responsive grid columns, stacking on phones, outlines while editing ---------- */
+.d-box { box-sizing: border-box; min-width: 0; }
+.d-box-grid { display: grid; grid-template-columns: var(--g-sm, minmax(0, 1fr)); }
+@media (min-width: 768px) { .d-box-grid { grid-template-columns: var(--g-md, var(--g-sm)); } }
+@media (min-width: 1024px) { .d-box-grid { grid-template-columns: var(--g-lg, var(--g-md)); } }
+@media (max-width: 767px) { .d-box-stack { flex-direction: column !important; } }
+/* While designing, every box shows a faint dashed outline so nested layouts are easy to see and target. */
+.d-box-editing { outline: 1px dashed color-mix(in srgb, var(--d-text) 22%, transparent); outline-offset: -1px; }
+/* Blocks inside a Box fill it like they do inside other containers. */
+.d-box .d-prim { width: auto; max-width: none; margin-inline: 0; padding-inline: 0; }
+.d-box .d-container { max-width: none; padding-inline: 0; }
+
+/* ---------- Form fields ---------- */
+.d-input {
+  border: 1px solid var(--d-line); border-radius: calc(var(--d-radius) * .7); background: var(--d-bg); color: var(--d-text);
+  padding: .65rem .8rem; font: inherit; font-size: .95rem; min-height: 2.75rem;
+}
+.d-input:focus { outline: 2px solid var(--d-accent); outline-offset: 1px; border-color: transparent; }
+select.d-input[multiple] { padding: .35rem; }
+select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
+/* Editor only (Puck's drop areas carry a _DropZone class): Puck makes every drop area 100% wide and tall;
+   boxes size like on the live page instead, so a flex row really shows boxes side by side while designing.
+   Sizes you set (width/height) are inline styles and still win. */
+.d-box[class*="_DropZone_"] { width: auto; height: auto; }
+.d-box[class*="_DropZone_"]:not([class*="hasChildren"]) { min-width: 120px; min-height: 64px; }

@@ -54,10 +54,12 @@ export async function POST(request: Request) {
   if (await siteBySlug(data.slug)) return jsonError(`A site called "${data.slug}" already exists.`, 409);
 
   let database: Awaited<ReturnType<typeof createSiteDatabase>> | null = null;
+  // One timestamp for the site and its starting design (design saved before it = copied from elsewhere).
+  const createdAt = new Date().toISOString();
   try {
     database = await createSiteDatabase(data.slug);
     // The new site starts as a copy of the site it was created from.
-    await prepareSiteDatabase(database, { name: data.name, email: data.ownerEmail, password: data.ownerPassword }, manager.isMain ? undefined : manager);
+    await prepareSiteDatabase(database, { name: data.name, email: data.ownerEmail, password: data.ownerPassword, createdAt }, manager.isMain ? undefined : manager);
     // No domain of your own yet: give the site a free <address>.vercel.app on this project (when the Vercel API is set up).
     let domain: string | null = null;
     let note: string | undefined;
@@ -68,7 +70,7 @@ export async function POST(request: Request) {
       else note = `${added.message} You can set another address under the site's custom domain.`;
     }
     const site = {
-      slug: data.slug, name: data.name, ownerEmail: data.ownerEmail, domain, ...database, status: 'active' as const, createdAt: new Date().toISOString(),
+      slug: data.slug, name: data.name, ownerEmail: data.ownerEmail, domain, ...database, status: 'active' as const, createdAt,
       createdBy: manager.isMain ? '' : manager.slug, createdByUser: actorLabel(user),
     };
     await insertSite(site);

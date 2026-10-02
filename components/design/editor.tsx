@@ -6,6 +6,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PortfolioData } from '@/lib/portfolio';
 import { designConfig, type DesignMetadata } from './config';
 import { invalidateApiCache } from '@/components/admin/api';
+import { HintedFieldLabel } from './hints';
+import { DesignTour, HelpButton, selectedBlock, type Block } from './tour';
+import type { AppState } from '@puckeditor/core';
 
 type Status =
   | { kind: 'saved'; at: string | null }
@@ -97,6 +100,11 @@ export function DesignEditor({ initialData, savedAt, isLive, portfolio, readOnly
 
   // "Revert to live" asks for a second click, then throws away the draft and reloads what visitors see.
   const [confirmRevert, setConfirmRevert] = useState(false);
+  // What the guided tour watches (page data + selected block), from every editor action.
+  const [tourView, setTourView] = useState<{ data: Data; selected: Block | null }>({ data: initialData, selected: null });
+  const onAction = useCallback((_action: unknown, appState: AppState) => {
+    setTourView({ data: appState.data, selected: selectedBlock(appState) });
+  }, []);
   useEffect(() => {
     if (!confirmRevert) return;
     const timer = setTimeout(() => setConfirmRevert(false), 4000);
@@ -140,6 +148,7 @@ export function DesignEditor({ initialData, savedAt, isLive, portfolio, readOnly
         data={initialData}
         metadata={metadata}
         onChange={onChange}
+        onAction={readOnly ? undefined : onAction}
         onPublish={onPublish}
         permissions={readOnly ? LOCKED : undefined}
         headerTitle={live ? 'Homepage design · custom design is live' : 'Homepage design · built-in classic is live'}
@@ -149,8 +158,10 @@ export function DesignEditor({ initialData, savedAt, isLive, portfolio, readOnly
           { width: 1280, height: 'auto', label: 'Desktop' },
         ]}
         overrides={{
+          fieldLabel: HintedFieldLabel,
           headerActions: ({ children }) => (
             <>
+              {!readOnly && <HelpButton className={small} />}
               <span role="status" aria-live="polite" className={`hidden max-w-64 truncate text-xs md:inline ${status.kind === 'error' ? 'font-semibold text-red-600' : status.kind === 'published' ? 'font-semibold text-green-700' : 'text-slate-500'}`} title={statusText}>{statusText}</span>
               <button type="button" onClick={backToAdmin} className={small}>← Admin</button>
               {!readOnly && <button type="button" onClick={revertToLive} className={`${small} ${confirmRevert ? 'border-red-400 bg-red-50 text-red-700' : ''}`} title="Throw away draft changes and load the design visitors see now">
@@ -163,6 +174,7 @@ export function DesignEditor({ initialData, savedAt, isLive, portfolio, readOnly
           ),
         }}
       />
+      {!readOnly && <DesignTour data={tourView.data} selected={tourView.selected} />}
     </div>
   );
 }

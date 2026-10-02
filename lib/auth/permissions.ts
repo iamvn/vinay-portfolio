@@ -62,6 +62,7 @@ const ALWAYS_GATED: [RegExp, TabId][] = [
   [/^\/api\/portfolio$/, 'backup'],
   [/^\/api\/design(\/.*)?$/, 'design'],
   [/^\/api\/insights$/, 'insights'],
+  [/^\/api\/forms(\/.*)?$/, 'insights'], // reading/deleting form messages (sending is public)
   [/^\/api\/ai(\/.*)?$/, 'ai'],
   [/^\/api\/resume-builder(\/.*)?$/, 'builder'],
   [/^\/api\/applications(\/.*)?$/, 'applications'],

@@ -262,6 +262,39 @@ and `components/resume-builder/`.
 | `POST /api/resume-builder/:id/publish` | make it the site's resume PDF |
 | `POST /api/resume-builder/tailor` | `{ data, jobDescription }` → AI suggestions |
 
+## Design editor: build pages from scratch
+
+Admin → Design (Puck) has, besides the ready-made sections, blocks to build any layout like Shopify/Webflow:
+
+- **Box (div)**: the universal container. Layout **Block / Flex / Grid**, with only the relevant options shown:
+  flex direction (row, column, reversed), wrap, justify, align, gap, stack on phones; grid columns per screen size
+  (`3`, or a template like `1fr 2fr` / `240px 1fr`), row/column gap. Size: width, min/max width, height, min/max
+  height (px, %, rem, vh…), limit to page width, center. Spacing: padding (separate phone padding), margin.
+  Look: theme or custom background, gradient, background image + overlay, text color/align, border width/style/color,
+  corner radius, shadow, opacity. As a flex item: grow, shrink, base width, align self, order. Advanced: HTML tag
+  (`section`, `header`…), anchor id, show on desktop/phone, overflow, sticky. Boxes nest freely (up to 12 levels);
+  while editing each box shows a faint dashed outline.
+- **Basic:** Heading, Text, Button, **Link**, Image, **Icon**, **Video** (YouTube/Vimeo/Loom links or .mp4),
+  List, **Quote**, **FAQ / accordion**, Tags, Badge.
+- **Forms:** a **Form** with **Input** (text/email/phone/number/url/date), **Text area**, **Dropdown / multi-select**,
+  **Checkboxes / radio buttons**; half/full width fields. Messages go to `POST /api/forms` (public, rate limited,
+  spam trap) and appear in **Admin → Insights → Form messages** (stored per site, newest 2000 kept).
+
+### Help for non-technical users
+
+- **? Help** (top bar of Admin → Design) opens four short, hands-on tours: *Your first 2 minutes*, *Two boxes side by
+  side*, *Style any block* and *Build a contact form*. Each step spotlights the real part of the editor; hands-on
+  steps ("drag a Heading onto the page") watch the editor's state and move on by themselves once done. The first
+  tour starts automatically on someone's first visit (remembered per browser; Esc or *Skip tour* closes it).
+  `components/design/tour.tsx`; it reads page data and the selection through Puck's `onAction`.
+- **ⓘ hints**: layout and style settings have an ⓘ next to their name with a plain-words explanation and, for layout
+  settings, a tiny picture (row vs column, justify, align, wrap, gap, grid columns, corner radius).
+  `components/design/hints.tsx`, wired as Puck's `fieldLabel` override. Labels say what they do
+  ("Spread along the row (justify)", "Space between items (gap, px)").
+- **Quick add** (first group in Blocks): ready-made, fully editable layouts built from Boxes: banner with button,
+  text + image columns, three feature cards, stats row, contact form card, FAQ and testimonials. Each drop gets fresh
+  block ids. `components/design/starters.ts`.
+
 ## Career tools: evidence, applications, kit and interview prep
 
 Built on one idea: every claim should come from **your own career data** (Admin → Profile, Experience, Projects,

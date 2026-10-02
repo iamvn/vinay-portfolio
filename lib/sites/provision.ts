@@ -78,7 +78,7 @@ async function copyTable(from: Client, to: Client, table: string, where = '') {
  */
 export async function prepareSiteDatabase(
   site: { dbUrl: string; dbToken?: string },
-  owner: { name: string; email: string; password: string },
+  owner: { name: string; email: string; password: string; createdAt?: string },
   from?: { dbUrl: string; dbToken?: string },
 ) {
   const target = createClient({ url: site.dbUrl, authToken: site.dbToken });
@@ -87,7 +87,13 @@ export async function prepareSiteDatabase(
   try {
     await migrate(target);
     for (const table of COPIED_TABLES) await copyTable(source, target, table);
-    await copyTable(source, target, 'Setting', "WHERE key LIKE 'design.%'");
+    // Only the starting design (what's live + the draft), never the publish history or who saved it.
+    await copyTable(source, target, 'Setting', "WHERE key IN ('design.published', 'design.draft')");
+    const now = owner.createdAt ?? new Date().toISOString();
+    await target.execute({
+      sql: "UPDATE Setting SET value = json_set(value, '$.savedBy', ?, '$.savedAt', ?) WHERE key IN ('design.published', 'design.draft') AND json_valid(value)",
+      args: [owner.email, now],
+    });
     // The copy is a starting point: your identity is replaced with the new owner's.
     const links = JSON.stringify({ email: owner.email, github: null, linkedin: null, instagram: null });
     await target.execute({ sql: "UPDATE Profile SET name = ?, socialLinks = ?, profileImage = '', assistantNotes = '' WHERE id = 1", args: [owner.name, links] });

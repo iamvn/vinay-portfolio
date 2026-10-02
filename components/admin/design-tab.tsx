@@ -85,7 +85,7 @@ export function DesignTab({ notify }: { notify: Notify }) {
       >
         <p className="text-sm text-slate-300">
           {live
-            ? <>Visitors see your custom design, published {when(live.savedAt)} by {live.savedBy}.</>
+            ? <>Visitors see your custom design, published {when(live.savedAt)}{live.savedBy ? <> by {live.savedBy}</> : ' (the starting design this site was created with)'}.</>
             : <>Visitors see the built-in classic design. Open the editor (it starts from an editable copy of it) or pick a template, then press <b>Publish</b>.</>}
         </p>
         {status.draft && (
@@ -129,7 +129,7 @@ export function DesignTab({ notify }: { notify: Notify }) {
           <ul className="divide-y divide-white/5">
             {status.history.map((version) => (
               <li key={version.index} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <span className="text-sm text-slate-300">{when(version.savedAt)} <span className="text-slate-500">· {version.savedBy}</span></span>
+                <span className="text-sm text-slate-300">{when(version.savedAt)} {version.savedBy && <span className="text-slate-500">· {version.savedBy}</span>}</span>
                 <ConfirmButton onConfirm={() => run(() => api('POST', '/api/design/restore', { index: version.index }), 'Loaded into your draft. Open the editor to review and publish.')} disabled={busy} className="border-white/15! text-slate-200!" confirmLabel="Replaces draft: tap again">Load into draft</ConfirmButton>
               </li>
             ))}

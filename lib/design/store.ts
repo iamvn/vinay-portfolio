@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { currentSite } from '@/lib/sites/context';
 import type { DesignData } from './templates';
 import type { DesignBlockName } from '@/components/design/config';
 
@@ -12,20 +13,23 @@ const KEYS = { draft: 'design.draft', published: 'design.published', history: 'd
 const HISTORY_SIZE = 5;
 const MAX_BYTES = 400_000;
 const MAX_BLOCKS = 400;
-const MAX_DEPTH = 6;
+const MAX_DEPTH = 12; // boxes inside boxes inside sections…
 
 /** Block types a design may contain, and which of their props hold nested blocks. */
 export const BLOCK_TYPES = [
   'ClassicShell', 'ClassicHero', 'ClassicAbout', 'ClassicSkills', 'ClassicProjects', 'ClassicExperience', 'ClassicContact', 'ClassicFooter',
   'NavBar', 'Hero', 'HiringSnapshot', 'Stats', 'Skills', 'Projects', 'Experience', 'Contact', 'SocialLinks', 'ResumeButton', 'Footer',
   'Section', 'Flex', 'Grid', 'Columns', 'Card', 'Spacer', 'Divider', 'Heading', 'Text', 'Button', 'Image', 'List', 'Tags', 'Badge', 'ContactButtons',
+  'Box', 'Link', 'Icon', 'Video', 'Quote', 'Faq', 'Form', 'InputField', 'TextAreaField', 'SelectField', 'ChoicesField',
+  'QuickBanner', 'QuickTextImage', 'QuickFeatures', 'QuickStats', 'QuickContact', 'QuickFaq', 'QuickTestimonials',
 ] as const;
 // Compile-time check: the allow-list above must name every block in the editor config, and nothing else.
 type Missing = Exclude<DesignBlockName, (typeof BLOCK_TYPES)[number]> | Exclude<(typeof BLOCK_TYPES)[number], DesignBlockName>;
 export const BLOCK_LIST_COMPLETE: [Missing] extends [never] ? true : Missing = true;
 
 const SLOT_FIELDS: Record<string, string[]> = {
-  ClassicShell: ['content'], ClassicHero: ['extra'], ClassicContact: ['extra'], Hero: ['extra'], Contact: ['extra'], Flex: ['items'], Grid: ['items'], Section: ['content'], Card: ['content'], Columns: ['column1', 'column2', 'column3', 'column4'] };
+  ClassicShell: ['content'], ClassicHero: ['extra'], ClassicContact: ['extra'], Hero: ['extra'], Contact: ['extra'], Flex: ['items'], Grid: ['items'], Section: ['content'], Card: ['content'], Box: ['content'], Form: ['fields'],
+  QuickBanner: ['content'], QuickTextImage: ['content'], QuickFeatures: ['content'], QuickStats: ['content'], QuickContact: ['content'], QuickFaq: ['content'], QuickTestimonials: ['content'], Columns: ['column1', 'column2', 'column3', 'column4'] };
 
 export type StoredDesign = { data: DesignData; savedAt: string; savedBy: string; template?: string };
 
@@ -37,11 +41,29 @@ async function read(key: string): Promise<unknown> {
 const write = (key: string, value: unknown) =>
   prisma.setting.upsert({ where: { key }, create: { key, value: JSON.stringify(value) }, update: { value: JSON.stringify(value) } });
 
-export const getDraft = async () => (await read(KEYS.draft)) as StoredDesign | null;
-export const getPublished = async () => (await read(KEYS.published).catch(() => null)) as StoredDesign | null;
+export const getDraft = async () => own((await read(KEYS.draft)) as StoredDesign | null, await createdAt());
+/**
+ * When the site was created, for sites other than the main one. Anything saved before that was copied from
+ * the site it was created from (sites made before copying was fixed carried its history and names along).
+ */
+async function createdAt(): Promise<string | null> {
+  const site = await currentSite().catch(() => null);
+  return site && !site.isMain && site.createdAt ? site.createdAt : null;
+}
+/** A copied design keeps its layout but not who saved it: that was someone on another site. */
+const own = (design: StoredDesign | null, since: string | null): StoredDesign | null =>
+  design && since && design.savedAt < since ? { ...design, savedBy: '' } : design;
+
+export const getPublished = async () => own((await read(KEYS.published).catch(() => null)) as StoredDesign | null, await createdAt());
+/** This site's own published versions (never ones copied from another site). */
 export async function getHistory() {
   const value = await read(KEYS.history);
-  return Array.isArray(value) ? (value as StoredDesign[]) : [];
+  const history = Array.isArray(value) ? (value as StoredDesign[]) : [];
+  const since = await createdAt();
+  if (!since) return history;
+  const kept = history.filter((version) => version.savedAt >= since);
+  if (kept.length !== history.length) await write(KEYS.history, kept).catch(() => {}); // clean up copied entries once
+  return kept;
 }
 
 export async function saveDraft(data: DesignData, by: string, template?: string) {

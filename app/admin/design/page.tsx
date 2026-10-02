@@ -7,6 +7,7 @@ import { DEFAULT_TEMPLATE_ID, templateById } from '@/lib/design/templates';
 import { getPortfolioFromDatabase } from '@/lib/portfolio-repository';
 import { resolvePortfolio } from '@/lib/placeholders';
 import { DesignEditor } from '@/components/design/editor';
+import { migrateDesign } from '@/components/design/style-panel';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Design editor', robots: { index: false, follow: false } };
@@ -19,7 +20,8 @@ export default async function DesignEditorPage() {
   const [draft, published, portfolio] = await Promise.all([getDraft(), getPublished(), getPortfolioFromDatabase()]);
   return (
     <DesignEditor
-      initialData={draft?.data ?? templateById(DEFAULT_TEMPLATE_ID)!.data}
+      // Older designs kept block styles in one "appearance" object: moved into the Design groups here.
+      initialData={migrateDesign(draft?.data ?? templateById(DEFAULT_TEMPLATE_ID)!.data)}
       savedAt={draft?.savedAt ?? null}
       isLive={Boolean(published)}
       portfolio={resolvePortfolio(portfolio)}

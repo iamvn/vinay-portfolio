@@ -12,9 +12,16 @@ import {
   type ContactProps, type ExperienceProps, type HeroProps, type NavProps, type ProjectsProps, type SkillsProps,
 } from './portfolio-blocks';
 import { ClassicAbout, ClassicContact, ClassicExperience, ClassicFooter, ClassicHero, ClassicProjects, ClassicShell, ClassicSkills } from '../classic-sections';
-import { DEFAULT_APPEARANCE, Styled, appearanceField, colorField, spacingField, sidesVars, type Appearance, type Sides } from './appearance';
+import { colorField, spacingField, sidesVars, type Sides } from './appearance';
+import { STYLE_DEFAULTS, STYLE_KEYS, StyledBlock, styleFields, viewField, type StyleProps } from './style-panel';
+import { addStarters } from './starters';
 import { BUTTON_ACTIONS, IMAGE_SOURCES, TAG_SOURCES, TEXT_SOURCES, boundTags, boundText } from '@/lib/design/bindings';
 import { ContactButtons } from './contact-buttons';
+import {
+  Box, ChoicesBlock, FaqBlock, FormBlock, IconBlock, InputBlock, LinkBlock, QuoteBlock, SelectBlock, TextAreaBlock, VideoBlock,
+  type BoxProps, type ChoicesProps, type FaqProps, type FormProps, type IconProps, type InputProps, type LinkProps, type QuoteProps,
+  type SelectProps, type TextAreaProps, type VideoProps,
+} from './builder-blocks';
 
 /** Passed to Puck as `metadata`: the live content blocks render. */
 export type DesignMetadata = { portfolio: PortfolioData; assistant: boolean };
@@ -61,6 +68,20 @@ type Components = {
   Badge: { source: string; text: string; dot: boolean; style: 'pill' | 'plain'; align: Align };
   ContactButtons: { buttonLabel: string; align: 'left' | 'center' };
   List: { items: { text: string }[]; style: 'bullets' | 'checks' | 'numbers' };
+  // Build from scratch (components/design/builder-blocks.tsx)
+  Box: BoxProps;
+  Link: LinkProps;
+  Icon: IconProps;
+  Video: VideoProps;
+  Quote: QuoteProps;
+  Faq: FaqProps;
+  Form: FormProps;
+  InputField: InputProps;
+  TextAreaField: TextAreaProps;
+  SelectField: SelectProps;
+  ChoicesField: ChoicesProps;
+  // Quick add: ready-made Box layouts (components/design/starters.ts)
+  QuickBanner: BoxProps; QuickTextImage: BoxProps; QuickFeatures: BoxProps; QuickStats: BoxProps; QuickContact: BoxProps; QuickFaq: BoxProps; QuickTestimonials: BoxProps;
 };
 
 // ---------- reusable field definitions ----------
@@ -95,10 +116,13 @@ export type DesignBlockName = keyof Components;
 
 export const designConfig: Config<Components, RootProps> = {
   categories: {
-    containers: { title: 'Containers (drop blocks inside)', components: ['Section', 'Flex', 'Grid', 'Columns', 'Card'] },
-    elements: { title: 'Elements (text, images, buttons, your data)', components: ['Heading', 'Text', 'Button', 'Image', 'Tags', 'Badge', 'ContactButtons', 'SocialLinks', 'ResumeButton', 'List', 'Spacer', 'Divider'] },
-    portfolio: { title: 'Ready-made sections (live content)', components: ['NavBar', 'Hero', 'HiringSnapshot', 'Stats', 'Skills', 'Projects', 'Experience', 'Contact', 'Footer'] },
-    classic: { title: 'Classic (original site)', components: ['ClassicShell', 'ClassicHero', 'ClassicAbout', 'ClassicSkills', 'ClassicProjects', 'ClassicExperience', 'ClassicContact', 'ClassicFooter'] },
+    quick: { title: 'Quick add: ready-made layouts', components: ['QuickBanner', 'QuickTextImage', 'QuickFeatures', 'QuickStats', 'QuickContact', 'QuickFaq', 'QuickTestimonials'], defaultExpanded: true },
+    layout: { title: 'Layout: boxes & containers', components: ['Box', 'Section', 'Flex', 'Grid', 'Columns', 'Card', 'Spacer', 'Divider'], defaultExpanded: true },
+    basic: { title: 'Basic elements', components: ['Heading', 'Text', 'Button', 'Link', 'Image', 'Icon', 'Video', 'List', 'Quote', 'Faq', 'Tags', 'Badge'], defaultExpanded: true },
+    forms: { title: 'Forms', components: ['Form', 'InputField', 'TextAreaField', 'SelectField', 'ChoicesField'], defaultExpanded: true },
+    yourData: { title: 'Your details (live)', components: ['ContactButtons', 'SocialLinks', 'ResumeButton'], defaultExpanded: true },
+    portfolio: { title: 'Ready-made sections (live content)', components: ['NavBar', 'Hero', 'HiringSnapshot', 'Stats', 'Skills', 'Projects', 'Experience', 'Contact', 'Footer'], defaultExpanded: true },
+    classic: { title: 'Classic (original site)', components: ['ClassicShell', 'ClassicHero', 'ClassicAbout', 'ClassicSkills', 'ClassicProjects', 'ClassicExperience', 'ClassicContact', 'ClassicFooter'], defaultExpanded: false },
   },
 
   root: {
@@ -387,10 +411,10 @@ export const designConfig: Config<Components, RootProps> = {
       fields: {
         items: { type: 'slot', label: 'Items' },
         direction: { type: 'radio', label: 'Direction', options: [{ label: 'Row →', value: 'row' }, { label: 'Stack ↓', value: 'column' }] },
-        gap: { type: 'number', label: 'Gap between items (px)', min: 0, max: 200 },
-        align: { type: 'select', label: 'Align items (cross axis)', options: [{ label: 'Stretch', value: 'stretch' }, { label: 'Start', value: 'start' }, { label: 'Center', value: 'center' }, { label: 'End', value: 'end' }] },
-        justify: { type: 'select', label: 'Distribute (main axis)', options: [{ label: 'Start', value: 'start' }, { label: 'Center', value: 'center' }, { label: 'End', value: 'end' }, { label: 'Space between', value: 'between' }, { label: 'Space around', value: 'around' }] },
-        wrap: { type: 'radio', label: 'Wrap to next line', options: [{ label: 'Yes', value: true }, { label: 'No', value: false }] },
+        gap: { type: 'number', label: 'Space between items (gap, px)', min: 0, max: 200 },
+        align: { type: 'select', label: 'Line up across (align items)', options: [{ label: 'Stretch', value: 'stretch' }, { label: 'Start', value: 'start' }, { label: 'Center', value: 'center' }, { label: 'End', value: 'end' }] },
+        justify: { type: 'select', label: 'Spread along the row (justify)', options: [{ label: 'Start', value: 'start' }, { label: 'Center', value: 'center' }, { label: 'End', value: 'end' }, { label: 'Space between', value: 'between' }, { label: 'Space around', value: 'around' }] },
+        wrap: { type: 'radio', label: 'Wrap onto the next line (wrap)', options: [{ label: 'Yes', value: true }, { label: 'No', value: false }] },
         stackOnMobile: { type: 'radio', label: 'On phones', options: [{ label: 'Stack items', value: true }, { label: 'Keep direction', value: false }] },
       },
       defaultProps: { items: [], direction: 'row', gap: 16, align: 'center', justify: 'start', wrap: true, stackOnMobile: false },
@@ -413,7 +437,7 @@ export const designConfig: Config<Components, RootProps> = {
         columns: { type: 'select', label: 'Columns (desktop)', options: ['1', '2', '3', '4', '5', '6'].map((value) => ({ label: value, value })) },
         columnsTablet: { type: 'select', label: 'Columns (tablet)', options: ['1', '2', '3', '4'].map((value) => ({ label: value, value })) },
         columnsMobile: { type: 'radio', label: 'Columns (phone)', options: [{ label: '1', value: '1' }, { label: '2', value: '2' }] },
-        gap: { type: 'number', label: 'Gap (px)', min: 0, max: 200 },
+        gap: { type: 'number', label: 'Space between items (gap, px)', min: 0, max: 200 },
         align: { type: 'select', label: 'Align items', options: [{ label: 'Stretch', value: 'stretch' }, { label: 'Top', value: 'start' }, { label: 'Center', value: 'center' }, { label: 'Bottom', value: 'end' }] },
       },
       defaultProps: { items: [], columns: '3', columnsTablet: '2', columnsMobile: '1', gap: 16, align: 'stretch' },
@@ -650,6 +674,21 @@ export const designConfig: Config<Components, RootProps> = {
         );
       },
     },
+
+    /* ======================= Build from scratch ======================= */
+    Box,
+    Link: LinkBlock,
+    Icon: IconBlock,
+    Video: VideoBlock,
+    Quote: QuoteBlock,
+    Faq: FaqBlock,
+    Form: FormBlock,
+    InputField: InputBlock,
+    TextAreaField: TextAreaBlock,
+    SelectField: SelectBlock,
+    ChoicesField: ChoicesBlock,
+    // Filled in by addStarters (below) once every block's defaults are complete.
+    QuickBanner: Box, QuickTextImage: Box, QuickFeatures: Box, QuickStats: Box, QuickContact: Box, QuickFaq: Box, QuickTestimonials: Box,
   },
 };
 
@@ -658,13 +697,37 @@ for (const component of Object.values(designConfig.components) as { fields?: Rec
   for (const field of Object.values(component.fields ?? {})) if (field.type === 'slot') field.disallow = ['ClassicShell'];
 }
 
-// Every block gets the same "Style" settings (colors, background, spacing, width, corners…), applied by <Styled>.
-for (const [name, component] of Object.entries(designConfig.components) as [string, { fields?: Record<string, unknown>; defaultProps?: Record<string, unknown>; render: (props: never) => React.ReactNode }][]) {
+// Box has its own complete design panel; form fields sit in the form's grid, so no extra wrapper around them.
+const NO_STYLE_WRAPPER = new Set(['Box', 'InputField', 'TextAreaField', 'SelectField', 'ChoicesField', 'QuickBanner', 'QuickTextImage', 'QuickFeatures', 'QuickStats', 'QuickContact', 'QuickFaq', 'QuickTestimonials']);
+
+// Every block gets the same Design settings (spacing, size, colors, border, flex/grid item, visibility), applied by
+// <StyledBlock>. A "Content | Design" switch at the top of each block's panel shows one side or the other.
+for (const [name, component] of Object.entries(designConfig.components) as [string, {
+  fields?: Record<string, { type: string; visible?: boolean }>; defaultProps?: Record<string, unknown>; render: (props: never) => React.ReactNode;
+  resolveFields?: unknown;
+}][]) {
+  if (NO_STYLE_WRAPPER.has(name)) continue;
   const render = component.render;
   const panel = name.startsWith('Classic');
-  component.fields = { ...(component.fields ?? {}), appearance: appearanceField };
-  component.defaultProps = { ...(component.defaultProps ?? {}), appearance: DEFAULT_APPEARANCE };
-  component.render = ((props: { appearance?: Appearance; puck: { isEditing: boolean } }) => (
-    <Styled appearance={props.appearance} editing={props.puck.isEditing} panel={panel}>{render(props as never)}</Styled>
+  const own = component.fields ?? {};
+  const contentKeys = Object.entries(own).filter(([, field]) => field.type !== 'slot').map(([key]) => key);
+  const hasContent = contentKeys.length > 0;
+  component.fields = { ...(hasContent ? { _view: viewField } : {}), ...own, ...styleFields } as never;
+  component.defaultProps = { ...(component.defaultProps ?? {}), ...STYLE_DEFAULTS, _view: 'content' };
+  if (hasContent) {
+    component.resolveFields = ((data: { props?: StyleProps }, { fields }: { fields: Record<string, { type: string; visible?: boolean }> }) => {
+      const design = data.props?._view === 'design';
+      return Object.fromEntries(Object.entries(fields).map(([key, field]) => {
+        if (key === '_view' || field.type === 'slot') return [key, field];
+        const isStyle = (STYLE_KEYS as readonly string[]).includes(key);
+        return [key, { ...field, visible: isStyle ? design : !design }];
+      }));
+    }) as never;
+  }
+  component.render = ((props: StyleProps & { puck: { isEditing: boolean } }) => (
+    <StyledBlock props={props} editing={props.puck.isEditing} panel={panel}>{render(props as never)}</StyledBlock>
   )) as never;
 }
+
+// Quick add: ready-made layouts, built from the blocks above (after their defaults are complete).
+addStarters(designConfig as never);
