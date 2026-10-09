@@ -2,13 +2,13 @@
  * Puck configuration for Admin → Design: every block a design can use, its settings, and the site-wide theme.
  * Used by both the editor (client) and the live homepage (server), so render functions must stay hook-free.
  */
-import type { Config, Slot } from '@puckeditor/core';
+import type { ComponentConfig, Config, Slot } from '@puckeditor/core';
 import type { PortfolioData } from '@/lib/portfolio';
 import { DEFAULT_ROOT, FONTS, PALETTE_FIELDS, THEME_PRESETS, recolorsClassic, safeHref, safeSrc, themeVars, type RootProps } from '@/lib/design/theme';
 import { AskAssistant } from '../ask-assistant';
 import { Icon } from '../icons';
 import {
-  Contact, Experience, Footer, Hero, Hiring, NavBar, Projects, Skills, SocialIcons, Stats,
+  Contact, Experience, Footer, Hero, Hiring, NavBar, PROJECTS_DEFAULTS, Projects, Skills, SocialIcons, Stats,
   type ContactProps, type ExperienceProps, type HeroProps, type NavProps, type ProjectsProps, type SkillsProps,
 } from './portfolio-blocks';
 import { ClassicAbout, ClassicContact, ClassicExperience, ClassicFooter, ClassicHero, ClassicProjects, ClassicShell, ClassicSkills } from '../classic-sections';
@@ -17,6 +17,9 @@ import { STYLE_DEFAULTS, STYLE_KEYS, StyledBlock, styleFields, viewField, type S
 import { addStarters } from './starters';
 import { BUTTON_ACTIONS, IMAGE_SOURCES, TAG_SOURCES, TEXT_SOURCES, boundTags, boundText } from '@/lib/design/bindings';
 import { ContactButtons } from './contact-buttons';
+import { PROJECT_BLOCKS, PROJECT_BLOCK_NAMES } from './project-blocks';
+import type { ProjectView } from '@/lib/design/project-view';
+import { PdfBlock, type PdfProps } from './pdf-block';
 import {
   Box, ChoicesBlock, FaqBlock, FormBlock, IconBlock, InputBlock, LinkBlock, QuoteBlock, SelectBlock, TextAreaBlock, VideoBlock,
   type BoxProps, type ChoicesProps, type FaqProps, type FormProps, type IconProps, type InputProps, type LinkProps, type QuoteProps,
@@ -24,12 +27,13 @@ import {
 } from './builder-blocks';
 
 /** Passed to Puck as `metadata`: the live content blocks render. */
-export type DesignMetadata = { portfolio: PortfolioData; assistant: boolean };
+export type DesignMetadata = { portfolio: PortfolioData; assistant: boolean; project?: ProjectView };
 const meta = (puck: { metadata: Record<string, unknown> }) => puck.metadata as unknown as DesignMetadata;
 
 type Align = 'left' | 'center' | 'right';
 
-type Components = {
+type ProjectComponents = { [K in keyof typeof PROJECT_BLOCKS]: (typeof PROJECT_BLOCKS)[K] extends ComponentConfig<infer P> ? P : never };
+type Components = ProjectComponents & {
   // Classic (the original site, section by section)
   ClassicShell: { content: Slot; sidebar: boolean; topBar: boolean; panelWidth: 'default' | '5xl' | '6xl' | 'full'; panelPadding: Sides; panelPaddingMobile: Sides; sectionGap: number };
   ClassicHero: { extra: Slot };
@@ -73,6 +77,7 @@ type Components = {
   Link: LinkProps;
   Icon: IconProps;
   Video: VideoProps;
+  Pdf: PdfProps;
   Quote: QuoteProps;
   Faq: FaqProps;
   Form: FormProps;
@@ -113,16 +118,19 @@ function typeStyle(sizePx: number, font: string, tracking: string) {
 
 /** Every block name; lib/design/store.ts checks its allow-list against this at compile time. */
 export type DesignBlockName = keyof Components;
+const PROJECT_CATEGORY = { title: 'This project (live content)', components: [...PROJECT_BLOCK_NAMES.filter((n) => n !== 'ProjectClassic'), 'Pdf', 'ProjectClassic'] as (keyof Components)[], defaultExpanded: true };
 
 export const designConfig: Config<Components, RootProps> = {
   categories: {
     quick: { title: 'Quick add: ready-made layouts', components: ['QuickBanner', 'QuickTextImage', 'QuickFeatures', 'QuickStats', 'QuickContact', 'QuickFaq', 'QuickTestimonials'], defaultExpanded: true },
     layout: { title: 'Layout: boxes & containers', components: ['Box', 'Section', 'Flex', 'Grid', 'Columns', 'Card', 'Spacer', 'Divider'], defaultExpanded: true },
-    basic: { title: 'Basic elements', components: ['Heading', 'Text', 'Button', 'Link', 'Image', 'Icon', 'Video', 'List', 'Quote', 'Faq', 'Tags', 'Badge'], defaultExpanded: true },
+    basic: { title: 'Basic elements', components: ['Heading', 'Text', 'Button', 'Link', 'Image', 'Icon', 'Video', 'Pdf', 'List', 'Quote', 'Faq', 'Tags', 'Badge'], defaultExpanded: true },
     forms: { title: 'Forms', components: ['Form', 'InputField', 'TextAreaField', 'SelectField', 'ChoicesField'], defaultExpanded: true },
     yourData: { title: 'Your details (live)', components: ['ContactButtons', 'SocialLinks', 'ResumeButton'], defaultExpanded: true },
     portfolio: { title: 'Ready-made sections (live content)', components: ['NavBar', 'Hero', 'HiringSnapshot', 'Stats', 'Skills', 'Projects', 'Experience', 'Contact', 'Footer'], defaultExpanded: true },
     classic: { title: 'Classic (original site)', components: ['ClassicShell', 'ClassicHero', 'ClassicAbout', 'ClassicSkills', 'ClassicProjects', 'ClassicExperience', 'ClassicContact', 'ClassicFooter'], defaultExpanded: false },
+    // Only for project page designs (see projectDesignConfig below).
+    project: { ...PROJECT_CATEGORY, visible: false },
   },
 
   root: {
@@ -283,15 +291,43 @@ export const designConfig: Config<Components, RootProps> = {
     Projects: {
       label: 'Projects',
       fields: {
-        layout: { type: 'radio', label: 'Layout', options: [{ label: 'Grid', value: 'grid' }, { label: 'List', value: 'list' }] },
-        columns: { type: 'radio', label: 'Columns (grid)', options: [{ label: '2', value: '2' }, { label: '3', value: '3' }] },
-        filter: { type: 'radio', label: 'Show', options: [{ label: 'All published', value: 'all' }, { label: 'Featured only', value: 'featured' }] },
+        layout: { type: 'select', label: 'Projects layout', options: [{ label: 'Grid of cards', value: 'grid' }, { label: 'Gallery (image tiles)', value: 'gallery' }, { label: 'List (image beside text)', value: 'list' }, { label: 'Alternating rows (big images)', value: 'zigzag' }, { label: 'Carousel (swipe sideways)', value: 'carousel' }, { label: 'Compact index (one line each)', value: 'compact' }] },
+        columns: { type: 'radio', label: 'Cards per row (desktop)', options: [{ label: '1', value: '1' }, { label: '2', value: '2' }, { label: '3', value: '3' }, { label: '4', value: '4' }] },
+        columnsMobile: { type: 'radio', label: 'Cards per row (phones)', options: [{ label: '1', value: '1' }, { label: '2', value: '2' }] },
+        filter: { type: 'select', label: 'Which projects', options: [{ label: 'All published', value: 'all' }, { label: 'Featured only', value: 'featured' }, { label: 'One type only', value: 'type' }, { label: 'With a tag', value: 'tag' }, { label: 'Ones I pick', value: 'pick' }] },
+        typeFilter: { type: 'radio', label: 'Type', options: [{ label: 'Case studies', value: 'case-study' }, { label: 'Articles', value: 'article' }, { label: 'PDF portfolios', value: 'pdf' }, { label: 'Links', value: 'link' }] },
+        tag: { type: 'text', label: 'Tag (exactly as in the project, e.g. React)' },
+        pick: { type: 'array', label: 'Projects, in this order', arrayFields: { slug: { type: 'select', label: 'Project', options: [] } }, defaultItemProps: { slug: '' }, getItemSummary: (item) => item.slug || 'Choose a project' },
+        sort: { type: 'radio', label: 'Projects order', options: [{ label: 'Featured first', value: 'featured' }, { label: 'As in Admin', value: 'order' }, { label: 'A → Z', value: 'title' }] },
         limit: { type: 'number', label: 'Max projects (0 = all)', min: 0, max: 50 },
-        showStack: yesNo('Tech stack tags'),
+        image: { type: 'select', label: 'Image', options: [{ label: 'Wide (16:9)', value: 'video' }, { label: 'Extra wide (21:9)', value: 'wide' }, { label: 'Square', value: 'square' }, { label: 'Portrait (4:5)', value: 'portrait' }, { label: 'No image', value: 'hide' }] },
+        cardStyle: { type: 'radio', label: 'Card', options: [{ label: 'Box', value: 'card' }, { label: 'No box', value: 'plain' }] },
+        cardAlign: { type: 'radio', label: 'Text in cards', options: [{ label: 'Left', value: 'left' }, { label: 'Center', value: 'center' }] },
+        showDescription: yesNo('Short description'),
+        showStack: yesNo('Tags'),
+        showLinks: yesNo('Buttons (open, live, code)'),
+        showType: yesNo('Type label (Case study, PDF…)'),
+        hover: { type: 'radio', label: 'On hover', options: [{ label: 'Lift', value: 'lift' }, { label: 'Zoom image', value: 'zoom' }, { label: 'Nothing', value: 'none' }] },
         align: align2Field,
         eyebrow: fromSiteText('Small label'), title: fromSiteText('Title'),
       },
-      defaultProps: { layout: 'grid', columns: '3', filter: 'all', limit: 0, showStack: true, align: 'left', eyebrow: '', title: '' },
+      defaultProps: { layout: 'grid', columns: '3', filter: 'all', limit: 0, showStack: true, align: 'left', eyebrow: '', title: '', ...PROJECTS_DEFAULTS },
+      // Only the settings that apply to the chosen layout and filter; "Ones I pick" lists your projects.
+      resolveFields: (data, { fields, metadata }) => {
+        const p = { ...PROJECTS_DEFAULTS, ...data.props };
+        const hide = new Set<string>();
+        if (p.filter !== 'type') hide.add('typeFilter');
+        if (p.filter !== 'tag') hide.add('tag');
+        if (p.filter !== 'pick') hide.add('pick'); else hide.add('sort');
+        if (!['grid', 'gallery'].includes(p.layout)) { hide.add('columns'); hide.add('columnsMobile'); }
+        if (p.layout === 'compact') ['image', 'cardStyle', 'cardAlign', 'showStack', 'showLinks', 'hover'].forEach((k) => hide.add(k));
+        if (p.layout === 'gallery') ['cardStyle', 'cardAlign', 'showStack', 'showLinks'].forEach((k) => hide.add(k));
+        const projects = ((metadata as unknown as DesignMetadata | undefined)?.portfolio?.projects ?? []).map((project) => ({ label: project.title, value: project.slug }));
+        return Object.fromEntries(Object.entries(fields).map(([key, field]) => {
+          if (key === 'pick') return [key, { ...field, arrayFields: { slug: { type: 'select', label: 'Project', options: [{ label: 'Choose a project…', value: '' }, ...projects] } }, visible: !hide.has(key) }];
+          return [key, hide.has(key) ? { ...field, visible: false } : field];
+        })) as typeof fields;
+      },
       render: ({ puck, ...props }) => <Projects {...props} portfolio={meta(puck).portfolio} />,
     },
 
@@ -680,6 +716,8 @@ export const designConfig: Config<Components, RootProps> = {
     Link: LinkBlock,
     Icon: IconBlock,
     Video: VideoBlock,
+    Pdf: PdfBlock,
+    ...PROJECT_BLOCKS,
     Quote: QuoteBlock,
     Faq: FaqBlock,
     Form: FormBlock,
@@ -715,12 +753,16 @@ for (const [name, component] of Object.entries(designConfig.components) as [stri
   component.fields = { ...(hasContent ? { _view: viewField } : {}), ...own, ...styleFields } as never;
   component.defaultProps = { ...(component.defaultProps ?? {}), ...STYLE_DEFAULTS, _view: 'content' };
   if (hasContent) {
-    component.resolveFields = ((data: { props?: StyleProps }, { fields }: { fields: Record<string, { type: string; visible?: boolean }> }) => {
+    // The block's own field rules first (e.g. the PDF block hides settings that don't apply), then the switch.
+    type FieldMap = Record<string, { type: string; visible?: boolean }>;
+    const ownResolve = component.resolveFields as ((data: unknown, params: { fields: FieldMap }) => FieldMap | Promise<FieldMap>) | undefined;
+    component.resolveFields = (async (data: { props?: StyleProps }, params: { fields: FieldMap }) => {
+      const fields = ownResolve ? await ownResolve(data, params) : params.fields;
       const design = data.props?._view === 'design';
       return Object.fromEntries(Object.entries(fields).map(([key, field]) => {
         if (key === '_view' || field.type === 'slot') return [key, field];
         const isStyle = (STYLE_KEYS as readonly string[]).includes(key);
-        return [key, { ...field, visible: isStyle ? design : !design }];
+        return [key, { ...field, visible: isStyle ? design : !design && field.visible !== false }];
       }));
     }) as never;
   }
@@ -731,3 +773,9 @@ for (const [name, component] of Object.entries(designConfig.components) as [stri
 
 // Quick add: ready-made layouts, built from the blocks above (after their defaults are complete).
 addStarters(designConfig as never);
+
+/** The editor config for project pages: the same blocks, with "This project" first in the list. */
+export const projectDesignConfig: Config<Components, RootProps> = {
+  ...designConfig,
+  categories: { project: PROJECT_CATEGORY, ...Object.fromEntries(Object.entries(designConfig.categories ?? {}).filter(([key]) => key !== 'project' && key !== 'classic')), classic: designConfig.categories!.classic } as never,
+};

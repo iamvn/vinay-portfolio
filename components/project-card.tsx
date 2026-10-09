@@ -16,7 +16,7 @@ export function projectHref(project: Project) {
 
 export function ProjectCard({ project, labels }: { project: Project; labels: Labels }) {
   const initials = project.title.split(' ').slice(0, 2).map((word) => word[0]).join('').toUpperCase();
-  const primaryLabel = project.type === 'article' ? labels.readArticle : project.type === 'link' ? labels.openLink : labels.enter;
+  const primaryLabel = project.type === 'article' ? labels.readArticle : project.type === 'link' ? labels.openLink : project.type === 'pdf' ? labels.viewPdf : labels.enter;
   const external = { target: '_blank', rel: 'noopener noreferrer' } as const;
 
   const cover = (

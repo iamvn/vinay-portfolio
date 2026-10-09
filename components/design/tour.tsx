@@ -304,5 +304,5 @@ export function DesignTour({ data, selected }: { data: Data; selected: Block | n
 
 /** The "? Help" button for the editor's top bar. */
 export function HelpButton({ className }: { className: string }) {
-  return <button type="button" onClick={() => openTour()} className={`${className} border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100`} aria-label="Help and guided tours">? Help</button>;
+  return <button type="button" onClick={() => openTour()} className={`${className} border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100`} aria-label="Help and guided tours" title="Help and guided tours">?<span className="ml-1 hidden 2xl:inline">Help</span></button>;
 }

@@ -70,6 +70,7 @@ export const copySchema = z.object({
     github: text,
     readArticle: text.default('READ ARTICLE'),
     openLink: text.default('OPEN LINK ↗'),
+    viewPdf: text.default('VIEW PORTFOLIO'),
     live: text.default('LIVE ↗'),
     featured: text.default('★ FEATURED'),
   }).strict(),
@@ -99,12 +100,14 @@ export const experiencePatchSchema = z.object({
 }).partial().strict();
 
 // ---------- Projects ----------
-export const PROJECT_TYPES = ['case-study', 'article', 'link'] as const;
+export const PROJECT_TYPES = ['case-study', 'article', 'link', 'pdf'] as const;
 export type ProjectType = (typeof PROJECT_TYPES)[number];
 
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'must be lowercase words separated by hyphens, e.g. "my-project"');
 const optionalUrl = z.string().trim().refine((value) => value === '' || /^https?:\/\/\S+$/i.test(value), 'must be empty or a full URL starting with https://');
 const optionalText = z.string().trim();
+// An uploaded PDF (Admin → Projects): only this site's documents.
+const optionalPdf = z.string().trim().refine((value) => value === '' || /^\/api\/files\/[a-f0-9-]{36}(\/[^/?#]*)?$/.test(value), 'must be a PDF uploaded to this site');
 
 /** Every project field; all but slug/title/description/stack are optional and default to empty. */
 const projectFields = {
@@ -123,12 +126,16 @@ const projectFields = {
   architecture: optionalText,
   result: optionalText,
   content: optionalText,      // article body: blank line = new paragraph, "## " heading, "- " bullet
+  pdf: optionalPdf,           // an uploaded PDF shown in the viewer (required for type "pdf")
   published: z.boolean(),     // false = draft, hidden from the public site
 };
 
-const requireLinkUrl = (project: { type?: ProjectType; externalUrl?: string }, ctx: z.RefinementCtx) => {
+const requireLinkUrl = (project: { type?: ProjectType; externalUrl?: string; pdf?: string }, ctx: z.RefinementCtx) => {
   if (project.type === 'link' && !project.externalUrl) {
     ctx.addIssue({ code: 'custom', path: ['externalUrl'], message: 'is required when type is "link"' });
+  }
+  if (project.type === 'pdf' && !project.pdf) {
+    ctx.addIssue({ code: 'custom', path: ['pdf'], message: 'is required when type is "pdf": upload the PDF' });
   }
 };
 
@@ -145,6 +152,7 @@ export const projectSchema = z.object({
   architecture: optionalText.optional().default(''),
   result: optionalText.optional().default(''),
   content: optionalText.optional().default(''),
+  pdf: optionalPdf.optional().default(''),
   published: projectFields.published.optional().default(true),
 }).strict().superRefine(requireLinkUrl);
 

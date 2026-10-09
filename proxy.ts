@@ -15,7 +15,8 @@ import { TAB_LABELS, blockedForReadOnly, canUseTab, isReadOnly, tabForRequest } 
  *   - POST /api/track                         (anonymous contact-click counts)
  *   - GET/POST /api/ask                       (the "Ask my resume" assistant)
  *   - GET  /api/resume, /api/profile-image,
- *          /api/projects/<slug>/image         (files shown on the public site)
+ *          /api/projects/<slug>/image,
+ *          /api/files/<id>/<name>             (files shown on the public site)
  * Everything else under /api and /admin requires a valid session cookie or
  * an "Authorization: Bearer <token>" header (Bearer tokens: admins only).
  */
@@ -29,6 +30,8 @@ const PUBLIC_API: { method: string; pattern: RegExp }[] = [
   { method: 'GET', pattern: /^\/api\/resume$/ },
   { method: 'GET', pattern: /^\/api\/profile-image$/ },
   { method: 'GET', pattern: /^\/api\/projects\/[^/]+\/image$/ },
+  { method: 'GET', pattern: /^\/api\/files\/[a-f0-9-]{36}(\/[^/]+)?$/ }, // uploaded PDFs
+  { method: 'GET', pattern: /^\/api\/files\/[a-f0-9-]{36}(\/[^/]+)?$/ }, // uploaded PDFs
 ];
 
 const isPublic = (method: string, path: string) =>

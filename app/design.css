@@ -180,3 +180,6 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
    Sizes you set (width/height) are inline styles and still win. */
 .d-box[class*="_DropZone_"] { width: auto; height: auto; }
 .d-box[class*="_DropZone_"]:not([class*="hasChildren"]) { min-width: 120px; min-height: 64px; }
+
+/* Design editor header: the "· Your design is live" note next to the page title, in the normal font. */
+.design-editor [class*="_PuckHeader-path"] { font-family: inherit; font-size: 12px; font-weight: 600; color: #64748b; }

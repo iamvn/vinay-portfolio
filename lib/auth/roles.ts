@@ -34,6 +34,14 @@ export async function requireTab(request: Request, tab: TabId): Promise<AdminChe
   return { user };
 }
 
+/** Like requireTab, for things several tabs use (e.g. uploaded PDFs: Projects and Design). */
+export async function requireAnyTab(request: Request, tabs: TabId[]): Promise<AdminCheck> {
+  const user = await userFromRequest(request);
+  if (!user) return { error: jsonError('Not logged in.', 401) };
+  if (!tabs.some((tab) => canUseTab(user, tab))) return { error: jsonError(`You need access to ${tabs.map((t) => TAB_LABELS[t]).join(' or ')} for this.`, 403) };
+  return { user };
+}
+
 /** Id of the owner: the oldest admin account. Stable, because the owner can't be demoted or removed. */
 export async function ownerId(): Promise<number | null> {
   const owner = await prisma.user.findFirst({ where: { role: 'admin' }, orderBy: { id: 'asc' }, select: { id: true } });

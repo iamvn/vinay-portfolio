@@ -94,6 +94,8 @@ export async function prepareSiteDatabase(
       sql: "UPDATE Setting SET value = json_set(value, '$.savedBy', ?, '$.savedAt', ?) WHERE key IN ('design.published', 'design.draft') AND json_valid(value)",
       args: [owner.email, now],
     });
+    // Uploaded PDFs stay with the site they were uploaded to (they're large): copied projects don't point at them.
+    await target.execute("UPDATE Project SET pdf = '', type = CASE WHEN type = 'pdf' THEN 'case-study' ELSE type END").catch(() => {});
     // The copy is a starting point: your identity is replaced with the new owner's.
     const links = JSON.stringify({ email: owner.email, github: null, linkedin: null, instagram: null });
     await target.execute({ sql: "UPDATE Profile SET name = ?, socialLinks = ?, profileImage = '', assistantNotes = '' WHERE id = 1", args: [owner.name, links] });

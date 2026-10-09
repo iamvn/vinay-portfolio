@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { PdfField } from '@/components/design/pdf-field';
 import { api, describeError, fromLines, toLines } from './api';
 import { IMAGE_ACCEPT, prepareImage } from './image';
 import { Button, ConfirmButton, Field, Loading, ReadOnlyFieldset, TextArea, TextInput, Toggle, buttonBase, useReadOnly, type Notify } from './ui';
@@ -13,7 +14,7 @@ type Option = { value: string; label: string; help?: string };
 export type FieldDef = {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'lines' | 'checkbox' | 'select' | 'image' | 'heading';
+  type: 'text' | 'textarea' | 'lines' | 'checkbox' | 'select' | 'image' | 'pdf' | 'heading';
   hint?: string;
   placeholder?: string;
   options?: Option[];                       // for "select"
@@ -207,6 +208,11 @@ function FieldsForm({ fields, draft, onChange, uploadUrl, notify, onImageUploade
         return (
           <div key={key} className={wide}>
             {type === 'select' && <ChoiceField field={field} value={draft[key] as string} onChange={set} />}
+            {type === 'pdf' && (
+              <Field group label={label} hint={hint}>
+                <PdfField dark value={draft[key] as string} onChange={set} label={label} />
+              </Field>
+            )}
             {type === 'image' && <ImageField field={field} value={draft[key] as string} onChange={set} uploadUrl={uploadUrl} notify={notify} onUploaded={(url) => onImageUploaded(key, url)} pendingFile={pendingImage} onPendingFile={onPendingImage} />}
             {(type === 'text' || type === 'textarea' || type === 'lines') && (
               <Field label={label} hint={hint ?? (type === 'lines' ? 'One per line' : undefined)}>
@@ -494,7 +500,7 @@ export const PROJECTS: ListConfig = {
   idKey: 'slug',
   noun: 'project',
   itemTitle: (row) => String(row.title || 'Project'),
-  itemSubtitle: (row) => `${row.published === false ? 'DRAFT (hidden) · ' : ''}${row.type === 'article' ? 'Article' : row.type === 'link' ? 'Direct link' : 'Case study'}${row.featured ? ' · ★ featured' : ''}`,
+  itemSubtitle: (row) => `${row.published === false ? 'DRAFT (hidden) · ' : ''}${row.type === 'article' ? 'Article' : row.type === 'link' ? 'Direct link' : row.type === 'pdf' ? 'PDF portfolio' : 'Case study'}${row.pdf ? ' · 📄 PDF' : ''}${row.featured ? ' · ★ featured' : ''}`,
   previewHref: (row) => (row.type === 'link' ? String(row.externalUrl) : `/projects/${String(row.slug)}`),
   imageEndpoint: (row) => `/api/projects/${String(row.slug)}/image`,
   intro: <ProjectsGuide />,
@@ -515,9 +521,11 @@ export const PROJECTS: ListConfig = {
         { value: 'case-study', label: 'Case study page', help: 'Opens /projects/<slug> with the sections below (Objective, Engineering focus, Architecture, Result). Empty sections are hidden.' },
         { value: 'article', label: 'Article page', help: 'Opens /projects/<slug> as a written article. Good for work you can’t link to, like an internal implementation.' },
         { value: 'link', label: 'Direct link', help: 'The card goes straight to the link below (blog post, live site, repo…). No page on your site.' },
+        { value: 'pdf', label: 'PDF portfolio', help: 'Opens /projects/<slug> with your PDF in an interactive viewer. Good when the work itself is a PDF: interior design, architecture, illustration, reports…' },
       ],
     },
     { key: 'externalUrl', label: 'Link', type: 'text', placeholder: 'https://…', hint: 'Required for “Direct link”. Where the card goes.', showIf: isType('link') },
+    { key: 'pdf', label: 'PDF', type: 'pdf', hint: 'Shown in an interactive viewer on the project page (page by page, as a two-page book, zoom, full screen). Up to 40 MB. Required for “PDF portfolio”; optional for case studies and articles.', showIf: (draft: Draft) => draft.type !== 'link' },
 
     { key: 'h-links', label: 'Extra buttons (optional)', type: 'heading' },
     { key: 'liveUrl', label: 'Live site URL', type: 'text', placeholder: 'https://…', hint: 'Adds a “LIVE ↗” button. Empty = hidden.' },
@@ -543,6 +551,7 @@ const PROJECT_TYPES_GUIDE = [
   { type: 'Case study', button: 'VIEW CASE STUDY', click: 'Your page /projects/<slug>', fields: 'Objective · Engineering focus · Architecture · Result · optional deep dive' },
   { type: 'Article', button: 'READ ARTICLE', click: 'Your page /projects/<slug>', fields: 'Article text' },
   { type: 'Direct link', button: 'OPEN LINK ↗', click: 'Opens the Link in a new tab', fields: '— (no page)' },
+  { type: 'PDF portfolio', button: 'VIEW PORTFOLIO', click: 'Your page /projects/<slug>', fields: 'The PDF, shown in an interactive viewer' },
 ];
 
 function ProjectsGuide() {

@@ -1,0 +1,17 @@
+# Keep the image small and never copy secrets or local databases into it.
+node_modules
+.next
+out
+generated
+.git
+.env
+.env.*
+!.env.example
+prisma/*.db
+prisma/*.db-journal
+prisma/sites
+*.log
+.DS_Store
+tsconfig.tsbuildinfo
+# stray screenshots in the project root
+/*.png

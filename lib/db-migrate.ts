@@ -27,6 +27,7 @@ const ADDED_COLUMNS: Record<string, Record<string, string>> = {
     result: "TEXT NOT NULL DEFAULT ''",
     content: "TEXT NOT NULL DEFAULT ''",
     published: 'BOOLEAN NOT NULL DEFAULT 1',
+    pdf: "TEXT NOT NULL DEFAULT ''",
   },
 };
 

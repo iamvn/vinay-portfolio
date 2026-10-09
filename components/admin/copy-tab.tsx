@@ -11,6 +11,7 @@ const LABELS: Record<string, string> = {
   statsLabels: 'Stats labels (5 lines, in order: years, products, performance, lighthouse, users)',
   terminalLines: 'Terminal lines',
   technologies: 'Hero technology tags',
+  viewPdf: 'Button on PDF portfolio cards',
 };
 
 const pretty = (key: string) => LABELS[key] ?? key.replace(/([A-Z])/g, ' $1');

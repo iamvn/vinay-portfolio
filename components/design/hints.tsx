@@ -26,6 +26,13 @@ const HINTS: Record<string, Hint> = {
   'Columns on tablet': { text: 'How many columns on a tablet. Usually fewer than on desktop.', diagram: 'columns' },
   'Columns on phone': { text: 'How many columns on a phone. 1 is best for most content.', diagram: 'columns' },
   'On phones': { text: 'Phones are narrow: “Stack” turns a row into a column there so nothing gets squashed.' },
+  // Projects section
+  'Projects layout': { text: 'Grid: cards in rows. Gallery: picture tiles, the title shows on the picture. List: picture beside the text. Alternating rows: big pictures, left then right. Carousel: a row people swipe through. Compact index: one line per project.' },
+  'Which projects': { text: 'All your published projects, only featured ones, one type (for example only PDF portfolios), the ones with a tag, or exactly the ones you pick, in your order.' },
+  'Cards per row (desktop)': { text: 'How many projects side by side on a computer. Tablets show at most 2, phones use the setting below.', diagram: 'columns' },
+  'Cards per row (phones)': { text: '1 is easiest to read. 2 works well for the Gallery layout.', diagram: 'columns' },
+  'Projects order': { text: 'Featured first: starred projects lead. As in Admin: the order in Admin → Projects. A → Z: by title.' },
+  'On hover': { text: 'What happens when a mouse moves over a project: the card lifts, or the picture zooms in slightly.' },
   // size
   Width: { text: 'How wide it is. Empty = automatic. Examples: 100% (full width), 50% (half), 320px (fixed).' },
   'Min width': { text: 'It never gets narrower than this, e.g. 200px.' },
