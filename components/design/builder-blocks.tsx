@@ -85,14 +85,14 @@ export type BoxProps = {
   size: { width: string; minWidth: string; maxWidth: string; height: string; minHeight: string; maxHeight: string; contained: boolean; center: boolean };
   spacing: { padding: Sides; paddingMobile: Sides; margin: Sides };
   look: {
-    fill: string; fillColor: string; gradientTo: string; gradientAngle: number;
+    fill: string; fillColor: string; gradientVia: string; gradientTo: string; gradientAngle: number; blur: number; glass: 'none' | 'light' | 'clear' | 'tinted' | 'dark';
     image: string; imageFit: 'cover' | 'contain'; overlay: 'none' | 'light' | 'dark';
     textTone: string; textColor: string; textAlign: 'inherit' | 'left' | 'center' | 'right';
     borderWidth: number; borderStyle: 'solid' | 'dashed' | 'dotted'; borderTone: 'line' | 'text' | 'accent' | 'custom'; borderColor: string;
     radius: number; shadow: 'none' | 'sm' | 'md' | 'lg'; opacity: number;
   };
   item: { grow: boolean; shrink: boolean; basis: string; alignSelf: 'auto' | 'stretch' | 'flex-start' | 'center' | 'flex-end'; order: number };
-  advanced: { tag: (typeof TAGS)[number]; anchor: string; visibility: 'all' | 'desktop' | 'mobile'; overflow: 'visible' | 'hidden' | 'auto'; sticky: boolean };
+  advanced: { tag: (typeof TAGS)[number]; anchor: string; visibility: 'all' | 'desktop' | 'mobile'; overflow: 'visible' | 'hidden' | 'auto'; sticky: boolean; fitSections: boolean };
 };
 
 const BOX_DEFAULTS: Omit<BoxProps, 'content'> = {
@@ -100,12 +100,12 @@ const BOX_DEFAULTS: Omit<BoxProps, 'content'> = {
   size: { width: '', minWidth: '', maxWidth: '', height: '', minHeight: '', maxHeight: '', contained: false, center: false },
   spacing: { padding: { top: '16', right: '16', bottom: '16', left: '16' }, paddingMobile: {}, margin: {} },
   look: {
-    fill: 'none', fillColor: '', gradientTo: '', gradientAngle: 135, image: '', imageFit: 'cover', overlay: 'none',
+    fill: 'none', fillColor: '', gradientVia: '', gradientTo: '', gradientAngle: 135, blur: 0, glass: 'none', image: '', imageFit: 'cover', overlay: 'none',
     textTone: 'inherit', textColor: '', textAlign: 'inherit', borderWidth: 0, borderStyle: 'solid', borderTone: 'line', borderColor: '',
     radius: 0, shadow: 'none', opacity: 100,
   },
   item: { grow: false, shrink: true, basis: '', alignSelf: 'auto', order: 0 },
-  advanced: { tag: 'div', anchor: '', visibility: 'all', overflow: 'visible', sticky: false },
+  advanced: { tag: 'div', anchor: '', visibility: 'all', overflow: 'visible', sticky: false, fitSections: false },
 };
 
 const layoutFields = {
@@ -149,10 +149,13 @@ const boxFields: Fields<Omit<BoxProps, 'content'> & { content: Slot }> = {
   look: {
     type: 'object', label: 'Background, border & text',
     objectFields: {
+      glass: select('Liquid glass material', opt(['none', 'None'], ['light', 'Light glass'], ['clear', 'Clear glass'], ['tinted', 'Tinted glass (accent)'], ['dark', 'Dark glass'])),
       fill: select('Background', FILL_OPTIONS),
       fillColor: colorField('Custom background color'),
+      gradientVia: colorField('Gradient middle color (optional)'),
       gradientTo: colorField('Gradient to (optional)'),
       gradientAngle: number('Gradient angle (°)', 0, 360),
+      blur: number('Frosted glass: blur what’s behind (px)', 0, 40),
       image: text('Background image URL', 'https://… or /images/…'),
       imageFit: radio('Image fit', opt(['cover', 'Cover'], ['contain', 'Contain'])),
       overlay: radio('Image overlay', opt(['none', 'None'], ['light', 'Light'], ['dark', 'Dark'])),
@@ -186,6 +189,7 @@ const boxFields: Fields<Omit<BoxProps, 'content'> & { content: Slot }> = {
       visibility: radio('Show on', opt(['all', 'All'], ['desktop', 'Desktop'], ['mobile', 'Phone'])),
       overflow: radio('Overflow', opt(['visible', 'Visible'], ['hidden', 'Hidden'], ['auto', 'Scroll'])),
       sticky: radio('Stick to top when scrolling', [{ value: true, label: 'Yes' }, { value: false, label: 'No' }]),
+      fitSections: radio('Ready-made sections inside (Projects, Skills…)', [{ value: false, label: 'Keep their own spacing' }, { value: true, label: 'Fit this box (no extra spacing)' }]),
     },
   },
 };
@@ -253,9 +257,15 @@ export function boxStyle(props: Partial<Omit<BoxProps, 'content'>>, editing: boo
     style.backgroundPosition = 'center';
     style.backgroundRepeat = 'no-repeat';
   }
-  if (base && isSafeColor(look.gradientTo)) layers.push(`linear-gradient(${clamp(look.gradientAngle, 0, 360, 135)}deg, ${base}, ${look.gradientTo})`);
+  if (base && isSafeColor(look.gradientTo)) {
+    const via = isSafeColor(look.gradientVia) ? `${look.gradientVia}, ` : '';
+    layers.push(`linear-gradient(${clamp(look.gradientAngle, 0, 360, 135)}deg, ${base}, ${via}${look.gradientTo})`);
+  }
   if (layers.length) style.backgroundImage = layers.join(', ');
   if (base) style.backgroundColor = base;
+  // Frosted glass: a translucent fill (e.g. rgba(255,255,255,.55)) plus a blur of what's behind it.
+  const blur = clamp(look.blur, 0, 40, 0);
+  if (blur) { style.backdropFilter = `blur(${blur}px) saturate(1.4)`; style.WebkitBackdropFilter = style.backdropFilter; }
 
   // text
   const color = look.textTone === 'custom' ? (isSafeColor(look.textColor) ? look.textColor : undefined) : TEXTS[look.textTone];
@@ -285,8 +295,11 @@ export function boxStyle(props: Partial<Omit<BoxProps, 'content'>>, editing: boo
   // advanced
   if (advanced.overflow !== 'visible') style.overflow = advanced.overflow;
   if (advanced.sticky) { style.position = 'sticky'; style.top = '0'; style.zIndex = 20; }
-  if (advanced.visibility === 'desktop') classes.push(editing ? 'opacity-50' : 'max-md:hidden');
-  if (advanced.visibility === 'mobile') classes.push(editing ? 'opacity-50' : 'md:hidden');
+  if (advanced.fitSections) classes.push('d-box-fit');
+  // Liquid glass: a translucent, blurred, light-catching material (app/design.css .d-glass).
+  if (look.glass && look.glass !== 'none') classes.push('d-glass', `d-glass-${look.glass}`);
+  if (advanced.visibility === 'desktop') classes.push(editing ? 'opacity-50' : 'max-md:hidden!');
+  if (advanced.visibility === 'mobile') classes.push(editing ? 'opacity-50' : 'md:hidden!');
   if (editing) classes.push('d-box-editing');
 
   const tag: ElementType = (TAGS as readonly string[]).includes(advanced.tag) ? advanced.tag : 'div';
@@ -346,7 +359,7 @@ export const Box: ComponentConfig<BoxProps> = {
 type Align = 'left' | 'center' | 'right';
 const alignField = radio<Align>('Align', opt(['left', 'Left'], ['center', 'Center'], ['right', 'Right']));
 const justify = (align: Align) => ({ left: 'justify-start', center: 'justify-center', right: 'justify-end' })[align] ?? 'justify-start';
-const ICON_NAMES = ['arrow', 'external', 'mail', 'gmail', 'linkedin', 'github', 'instagram', 'download', 'code', 'game', 'briefcase', 'skill', 'user', 'home', 'sparkle', 'copy', 'menu', 'close'];
+const ICON_NAMES = ['arrow', 'arrowUpRight', 'external', 'mail', 'gmail', 'linkedin', 'github', 'instagram', 'download', 'code', 'terminal', 'game', 'briefcase', 'skill', 'user', 'home', 'pin', 'sparkle', 'cube', 'chart', 'layers', 'palette', 'notes', 'folder', 'chat', 'globe', 'calendar', 'cloud', 'database', 'server', 'cpu', 'bolt', 'rocket', 'heart', 'star', 'camera', 'music', 'search', 'grid', 'more', 'trash', 'copy', 'menu', 'close'];
 
 export type LinkProps = { label: string; href: string; newTab: boolean; style: 'accent' | 'underline' | 'plain' | 'muted'; size: 'sm' | 'md' | 'lg'; icon: 'none' | 'arrow' | 'external'; align: Align };
 export const LinkBlock: ComponentConfig<LinkProps> = {
@@ -373,7 +386,7 @@ export const LinkBlock: ComponentConfig<LinkProps> = {
   },
 };
 
-export type IconProps = { name: string; size: number; tone: 'accent' | 'accent2' | 'text' | 'muted' | 'custom'; color: string; background: 'none' | 'circle' | 'square'; align: Align };
+export type IconProps = { name: string; size: number; tone: 'accent' | 'accent2' | 'text' | 'muted' | 'custom'; color: string; background: 'none' | 'circle' | 'square' | 'tile' | 'glass'; align: Align };
 export const IconBlock: ComponentConfig<IconProps> = {
   label: 'Icon',
   fields: {
@@ -381,18 +394,20 @@ export const IconBlock: ComponentConfig<IconProps> = {
     size: number('Size (px)', 12, 160),
     tone: select('Color', opt(['accent', 'Accent'], ['accent2', 'Second accent'], ['text', 'Text'], ['muted', 'Muted'], ['custom', 'Custom…'])),
     color: colorField('Custom color'),
-    background: radio('Background', opt(['none', 'None'], ['circle', 'Circle'], ['square', 'Square'])),
+    background: select('Background', opt(['none', 'None'], ['circle', 'Circle'], ['square', 'Square'], ['tile', 'App icon (glossy color tile)'], ['glass', 'Glass tile'])),
     align: alignField,
   },
   defaultProps: { name: 'sparkle', size: 28, tone: 'accent', color: '', background: 'none', align: 'left' },
   render: ({ name, size, tone, color, background, align }) => {
     const px = clamp(size, 12, 160, 28);
     const fg = tone === 'custom' ? (isSafeColor(color) ? color : 'var(--d-accent)') : { accent: 'var(--d-accent)', accent2: 'var(--d-accent-2)', text: 'var(--d-text)', muted: 'var(--d-muted)' }[tone];
-    const box: CSSProperties = background === 'none' ? { color: fg } : {
-      color: fg, width: px * 2, height: px * 2, display: 'grid', placeItems: 'center',
-      background: 'color-mix(in srgb, currentColor 14%, transparent)', borderRadius: background === 'circle' ? 9999 : 'var(--d-radius)',
-    };
-    return <div className={`d-prim flex ${justify(align)}`}><span style={box} aria-hidden="true"><Icon name={ICON_NAMES.includes(name) ? name : 'sparkle'} size={px} /></span></div>;
+    const tile = { width: px * 2, height: px * 2, display: 'grid', placeItems: 'center', borderRadius: Math.round(px * 0.5) } as const;
+    const box: CSSProperties = background === 'none' ? { color: fg }
+      // An app icon: a glossy squircle in the color, with a white glyph and a top highlight.
+      : background === 'tile' ? { ...tile, color: '#fff', ['--tile' as string]: fg, background: `linear-gradient(180deg, color-mix(in srgb, ${fg} 65%, white), ${fg})`, boxShadow: `inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(0,0,0,.08), 0 6px 14px -6px color-mix(in srgb, ${fg} 70%, transparent)` }
+      : background === 'glass' ? { ...tile, color: fg }
+      : { ...tile, color: fg, background: 'color-mix(in srgb, currentColor 14%, transparent)', borderRadius: background === 'circle' ? 9999 : 'var(--d-radius)' };
+    return <div className={`d-prim flex ${justify(align)}`}><span style={box} className={background === 'glass' ? 'd-glass d-glass-light' : undefined} aria-hidden="true"><Icon name={ICON_NAMES.includes(name) ? name : 'sparkle'} size={background === 'tile' || background === 'glass' ? Math.round(px * 1.05) : px} /></span></div>;
   },
 };
 

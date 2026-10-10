@@ -259,6 +259,25 @@ Admins can redesign the homepage without code in **Admin → Design**, using the
   console, streaming app, scoreboard, newspaper) and forbids typing the person's name, employers, numbers or
   technology lists (live blocks and `source` bindings show those). By default it asks for a completely new design;
   *Restyle your current draft* keeps its sections and text. The brief becomes the template's description.
+  It also lists the builder's design techniques (floating panels, section headers, feature cards, frosted-glass cards,
+  window dots, gradient hero, CTA strip, responsive headings) and, for the homepage, includes a complete polished page
+  (*Glass Studio*) as the quality bar. Automatic mode allows 300 s and long answers (Vercel Fluid compute; Hobby's
+  maximum is 300 s).
+- **Owner templates:** `lib/design/owner-templates.ts` holds templates made for the platform owner (first: *Glass Studio*,
+  Apple-style Liquid Glass: floating glass navigation, a wallpaper hero with a glass profile window and an app dock,
+  glass panels, projects in app windows with a Featured / All switch, tabbed skill chips, a side-by-side journey). Each is added once to the
+  MAIN site's *Your templates* the first time its Design tab opens (`lib/design/owner-seed.ts`), private until published;
+  deleting it doesn't bring it back.
+- **Liquid Glass:** Box → *Liquid glass material* (light, clear, tinted, dark: translucent, blurred, with a bright rim and
+  highlight; `.d-glass` in `app/design.css`), Navigation bar → *Style: Floating glass*, Icon → *Background: App icon
+  (glossy color tile)* or *Glass tile*, plus 25 more glyph icons (pin, grid, cube, chart, terminal, folder…; original line
+  drawings, no brand logos). Projects → *Image frame: App window*, *Open button: Round ↗*, *Featured / All switch*;
+  Skills → *Layout: Tabs (by group)*; Experience → *Layout: Journey (side by side)*; Image → *Effect: Black & white* and an
+  exact corner radius; text sources *Currently at (company)* and *Current role and company*. A built-in wallpaper is
+  served at `/design/wallpapers/sunrise-hills.svg` (original artwork).
+- **Box additions:** *Gradient middle color* (3-stop gradients), *Frosted glass* blur, rgba() colors, and Advanced →
+  *Ready-made sections inside: Fit this box* (Projects, Skills… inside a panel drop their own page spacing). Fixed:
+  "Show on: Desktop/Phone" now also hides boxes laid out as flex or grid.
   **Automatic** mode (on when the site has a provider in Admin → AI assistant; disabled otherwise) sends the prompt
   to that provider, in fallback order, checks the answer (one correction round if it's broken and time allows) and
   saves it as a template in one click. Other sites never use the platform owner's environment key.

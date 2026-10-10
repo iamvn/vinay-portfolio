@@ -9,6 +9,7 @@ import { listCustomTemplates } from '@/lib/design/custom-templates';
 import { kindOf } from '@/lib/design/ai-template';
 import { hasFeature } from '@/lib/sites/require-feature';
 import { listShared } from '@/lib/design/shared-templates';
+import { seedOwnerTemplates } from '@/lib/design/owner-seed';
 import { currentSite } from '@/lib/sites/context';
 
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,8 @@ export async function GET(request: Request) {
   const { scope, error: badScope } = await scopeFromRequest(request);
   if (badScope) return badScope;
   try {
+    // The platform owner's ready-made templates arrive in the main site's "Your templates" (private until published).
+    if ((await currentSite()).isMain) await seedOwnerTemplates().catch((err) => console.error('Owner templates:', err));
     const [draft, published, history, custom, aiTemplates, shared, site] = await Promise.all([getDraft(scope), getPublished(scope), getHistory(scope), listCustomTemplates(kindOf(scope)), hasFeature('aiTemplates'), listShared(kindOf(scope)), currentSite()]);
     const sharedSources = new Map(shared.filter((t) => t.site === site.slug).map((t) => [t.source, t.updatedAt]));
     return NextResponse.json({

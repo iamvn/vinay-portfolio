@@ -1,8 +1,9 @@
 import { designConfig } from '@/components/design/config';
 import { STYLE_KEYS, migrateDesign, styleFields } from '@/components/design/style-panel';
-import { DEFAULT_ROOT } from './theme';
+import { DEFAULT_ROOT, isSafeColor } from './theme';
 import { BLOCK_TYPES, PROJECT_ONLY, designProblem, type DesignScope } from './store';
 import type { DesignData } from './templates';
+import { OWNER_TEMPLATES } from './owner-templates';
 
 /**
  * "Create a template with AI" (Admin → Design). Nothing here calls an AI: we write a prompt that explains
@@ -54,7 +55,7 @@ function describe(field: Field, indent: string): string {
     case 'number': return `number${field.min !== undefined || field.max !== undefined ? ` ${field.min ?? ''}–${field.max ?? ''}` : ''}`;
     case 'select': case 'radio': return field.options?.length ? `one of ${field.options.map(optionText).join(' | ')}` : 'string';
     case 'custom':
-      if (field.ai === 'color') return 'color: "" (= theme color) or hex like "#1e293b"';
+      if (field.ai === 'color') return 'color: "" (= theme color), hex like "#1e293b", or rgba(255,255,255,0.6) for see-through glass';
       if (field.ai === 'sides') return 'object { "top"?, "right"?, "bottom"?, "left"? }: pixels as digit strings, e.g. { "top": "48", "bottom": "48" }; {} = default';
       return 'leave out (set in the editor)';
     case 'object': return `object {\n${lines(field.objectFields ?? {}, `${indent}    `, undefined)}\n${indent}  }`;
@@ -112,6 +113,10 @@ function catalog(kind: TemplateKind) {
   if (rest.length) out.push(`## Other blocks\n\n${rest.map(blockSection).join('\n\n')}`);
   return out.join('\n\n');
 }
+
+/** The polished example in the homepage prompt, compact (defaults left out) and with the concept as its brief. */
+let examplePage: unknown = null;
+const EXAMPLE_PAGE = () => (examplePage ??= { brief: OWNER_TEMPLATES[0].description, ...(compactDesign(OWNER_TEMPLATES[0].data) as object) });
 
 const EXAMPLES: Record<TemplateKind, unknown> = {
   home: {
@@ -176,6 +181,19 @@ The person wants a page that is unmistakably theirs. A safe, generic portfolio i
 5. Vary the rhythm: alternate section backgrounds, mix full-width bands with contained panels, use cards, dividers and icons. Don't give every section the same layout.
 6. Check before answering: would a stranger name the theme from a screenshot? Is the text readable (light text on dark, or dark on light)? Does it work on a phone?
 
+# Techniques that make a page look designed (use them)
+
+- Panels: put each section in a Box with size.contained true, a fill (white, a tint, or rgba(255,255,255,0.8) for glass), a 1px border, radius 20–32, shadow "sm", padding about 40 (24 on phones via spacing.paddingMobile) and margin top 20, so sections float on the page background. Set advanced.fitSections true on any Box that holds a ready-made section (Projects, Skills, Experience, Stats…), otherwise those add their own big spacing.
+- Section header: a Flex row (justify "between", stackOnMobile true) with on the left a small uppercase muted Text (tracking "wide", e.g. "FEATURED WORK") above a bold Heading, and on the right a short muted Text or a Link ("View all"). Then hide the ready-made section's own heading by setting its eyebrow and title to "-".
+- Feature cards: a Grid (4 / 2 / 1 columns) of Boxes, each a row with an Icon (background "circle", tone "accent2") next to a small bold Heading and a short Text.
+- Liquid Glass (Apple-style translucent material): Box look.glass "light", "clear", "tinted" or "dark" gives a blurred, light-catching glass pane with a bright rim; use it for panels, cards, docks and toolbars over a colorful background. NavBar style "glass" is a floating glass capsule. Icon background "glass" is a glass tile; background "tile" is a glossy colored app-icon squircle with a white glyph.
+- Hero: a Box with a colorful background (a gradient: look.fill "custom", fillColor + gradientVia + gradientTo, angle 100–140; or the built-in wallpaper look.image "/design/wallpapers/sunrise-hills.svg", imageFit "cover") with a two-column Flex: intro on one side; on the other a glass card holding the profile photo (Image source "profilePhoto", optional filter "grayscale", radiusPx), name, role and a few icon + live-text lines ("pin" + location, "briefcase" + availabilityNote, currentJob).
+- Small details: macOS-style window dots (three 12px Boxes, radius 99, red #ff5f57, yellow #febc2e, green #28c840, padding 0), a status Badge with a dot, a dock of Icon tiles, thin Dividers, eyebrow labels.
+- Ready-made sections have richer looks: Projects frame "window" (covers in app windows), linkStyle "arrow" (round ↗ button), tabs true (Featured / All switch); Skills layout "tabs" (segmented control of skill groups over chips); Experience layout "journey" (side by side with ringed markers).
+- Call to action at the end: a soft gradient strip with an Icon, eyebrow, Heading, the contact description and a "Get in touch" Button.
+- Typography: use Heading "size" (it scales down on phones) for big titles; only use sizePx below 30. One heading font, one body font. Pair a near-black text color with a muted grey and one or two accents.
+- Rhythm: consistent radius across cards, gaps of 12–24 inside panels, 20 between panels. Hide decorative extras on phones with advanced.visibility "desktop" (Box) or more.visibility (other blocks).
+
 How themes map onto this builder (examples; adapt, don't copy):
 - Game console: near-black to deep-blue gradients, one luminous accent (electric blue or white glow), cool second accent; condensed or system headings in uppercase with wide tracking; mono labels like "SYSTEM READY" or "LOADING…"; console-style panels (Box with dark gradient, 1px accent border, radius 24–32, large shadow); "game" icons; projects as a game library (Projects layout "carousel" or "gallery", wide images); effects "grid".
 - Streaming app: black, one bold red accent, huge banner hero, rows of wide poster cards (Projects carousel), "Up next" and "Continue watching" wording.
@@ -186,10 +204,10 @@ How themes map onto this builder (examples; adapt, don't copy):
 1. Only use the block types listed under "Blocks" below, spelled exactly. Anything else is removed.
 2. Every block has "type" and "props"; "props.id" is required and must be unique across the WHOLE page (letters, digits and dashes, e.g. "hero", "about-title"). Settings go inside "props", never next to "type".
 3. Blocks go inside other blocks only through that block's SLOT settings (an array of blocks), e.g. Section.content, Columns.column1–column4, Flex.items, Grid.items, Box.content, Card.content, Hero.extra. Nothing else can hold blocks. Do not use "zones".
-4. Limits: at most 400 blocks in total, nested at most 12 levels deep, under 400 KB of JSON. A good page usually has 10–60 blocks.
+4. Limits: at most 400 blocks in total, nested at most 12 levels deep, under 400 KB of JSON. A finished page usually has 60–150 blocks: thin pages look unfinished.
 5. For "one of" settings use one of the listed values exactly, with the same type (true/false are booleans, "2" is a string). Numbers must be within the range shown.
 6. Leave out any setting you don't need: it gets the default shown. Objects may be partial (only the keys you change).
-7. Colors: hex only, like "#0f172a", or "" for the theme color. Set the palette on root.props.colors; inside blocks prefer tones (accent, surface, soft…) so everything stays consistent.
+7. Colors: hex like "#0f172a", rgba(…) for translucent glass, or "" for the theme color. Set the palette on root.props.colors; inside blocks prefer tones (accent, surface, soft…) so everything stays consistent.
 8. Images and links: only https:// URLs, site paths like /resume or #section anchors, or mailto:. Leave image URLs empty ("") rather than inventing them; never use data: or javascript: URLs.
 9. Text is plain text only. No HTML, CSS, class names, scripts or emoji-heavy decoration.
 10. Themed requests ("Netflix style", "cricket scoreboard", "retro newspaper"…): capture the mood with colors, fonts, layout and your own wording. Never use another brand's logo, name or trademarked slogans in the page text.
@@ -206,7 +224,13 @@ ${lines(ROOT_FIELDS, '', DEFAULT_ROOT as unknown as Record<string, unknown>)}`,
     `# Shared design settings (for blocks marked "+ shared design settings")
 
 ${lines(styleFields as unknown as Record<string, Field>, '', undefined)}`,
-    `# A small valid example (only to show the JSON shape: it is deliberately plain; your design should be far richer)
+    kind === 'home'
+      ? `# A complete example of the quality expected
+
+This is a real page made with this builder ("${OWNER_TEMPLATES[0].name}": ${OWNER_TEMPLATES[0].description}). Study how it's put together (panels, headers, cards, glass, live blocks, phone settings) and match its level of finish and completeness. Don't copy its look: your page follows your own brief.
+
+${JSON.stringify(EXAMPLE_PAGE())}`
+      : `# A small valid example (only to show the JSON shape: it is deliberately plain; your design should be far richer)
 
 ${JSON.stringify(EXAMPLES[kind])}`,
   ].join('\n\n');
@@ -316,8 +340,8 @@ function cleanValue(field: Field, value: unknown, def: unknown, path: string, f:
     }
     case 'custom':
       if (field.ai === 'color') {
-        if (value === '' || (typeof value === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value.trim()))) return String(value).trim();
-        f.add(`${path}: ${JSON.stringify(value)} isn’t a hex color, used the theme color`);
+        if (value === '' || isSafeColor(value)) return String(value).trim();
+        f.add(`${path}: ${JSON.stringify(value)} isn’t a hex or rgba() color, used the theme color`);
         return clone(def) ?? '';
       }
       if (field.ai === 'sides') {

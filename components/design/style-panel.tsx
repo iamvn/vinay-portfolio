@@ -282,7 +282,7 @@ export function StyledBlock({ props, editing, panel = false, children }: { props
   else if (['2', '3', '4'].includes(item.gridSpan)) box.gridColumn = `span ${item.gridSpan}`;
 
   const id = anchorId(more.anchor);
-  const hidden = more.visibility === 'desktop' ? 'max-md:hidden' : more.visibility === 'mobile' ? 'md:hidden' : '';
+  const hidden = more.visibility === 'desktop' ? 'max-md:hidden!' : more.visibility === 'mobile' ? 'md:hidden!' : '';
   const hasBox = Object.keys(box).some((key) => key !== 'textAlign' && key !== 'color') || Boolean(id) || padded;
   if (!hasBox && !Object.keys(vars).length && !box.textAlign && !box.color && !hidden) return <>{children}</>;
 

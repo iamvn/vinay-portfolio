@@ -9,6 +9,8 @@ import type { PortfolioData } from '@/lib/portfolio';
 import { safeHref, safeSrc } from '@/lib/design/theme';
 import { Icon } from '../icons';
 import { ContactButtons } from './contact-buttons';
+import { TabFilter } from './tab-filter';
+import { GlassNav } from './glass-nav';
 
 type Portfolio = PortfolioData;
 type Project = Portfolio['projects'][number];
@@ -220,7 +222,10 @@ export function Stats({ portfolio, style }: { portfolio: Portfolio; style: 'card
 
 /* ---------- Skills ---------- */
 
-export type SkillsProps = { layout: 'cards' | 'tags' | 'list'; eyebrow: string; title: string; description: string; align: 'left' | 'center' };
+export type SkillsProps = { layout: 'cards' | 'tags' | 'list' | 'tabs'; eyebrow: string; title: string; description: string; align: 'left' | 'center' };
+
+/** Dot colors for skill chips, one per skill group (Apple-like system colors). */
+const CHIP_COLORS = ['#0a84ff', '#30d158', '#bf5af2', '#ff9f0a', '#64d2ff', '#ff375f', '#ffd60a', '#5e5ce6'];
 
 export function Skills(props: SkillsProps & { portfolio: Portfolio }) {
   const { skills, copy } = props.portfolio;
@@ -228,6 +233,23 @@ export function Skills(props: SkillsProps & { portfolio: Portfolio }) {
   let body: ReactNode;
   if (props.layout === 'tags') {
     body = <div className={`flex flex-wrap gap-2 ${props.align === 'center' ? 'justify-center' : ''}`}>{[...new Set(skills.flatMap((group) => group.items))].map((item) => <span key={item} className="d-tag">{item}</span>)}</div>;
+  } else if (props.layout === 'tabs') {
+    // A segmented control (All + each skill group) over glassy chips, each with its group's color dot.
+    const seen = new Map<string, string[]>();
+    skills.forEach((group, g) => group.items.forEach((item) => seen.set(item, [...(seen.get(item) ?? ['all']), `g${g}`])));
+    const groupOf = new Map<string, number>();
+    skills.forEach((group, g) => group.items.forEach((item) => { if (!groupOf.has(item)) groupOf.set(item, g); }));
+    body = (
+      <TabFilter
+        align={props.align === 'center' ? 'center' : 'left'}
+        tabs={[{ id: 'all', label: 'All' }, ...skills.map((group, g) => ({ id: `g${g}`, label: group.group }))]}
+        className={`flex flex-wrap gap-2.5 ${props.align === 'center' ? 'justify-center' : ''}`}
+        items={[...seen.entries()].map(([item, tabs]) => ({
+          key: item, tabs,
+          node: <span className="d-chip"><span aria-hidden="true" className="d-chip-dot" style={{ background: CHIP_COLORS[(groupOf.get(item) ?? 0) % CHIP_COLORS.length] }} />{item}</span>,
+        }))}
+      />
+    );
   } else if (props.layout === 'list') {
     body = (
       <dl className="d-line divide-y border-y" style={{ borderColor: 'var(--d-line)' }}>
@@ -274,6 +296,12 @@ export type ProjectsProps = {
   showType: boolean;
   hover: 'lift' | 'zoom' | 'none';
   cardAlign: 'left' | 'center';
+  /** "window": the cover sits in a little app window with traffic-light dots. */
+  frame: 'none' | 'window';
+  /** "arrow": a round ↗ button instead of text links. */
+  linkStyle: 'text' | 'arrow';
+  /** A Featured / All projects switch above the cards. */
+  tabs: boolean;
   eyebrow: string;
   title: string;
   align: 'left' | 'center';
@@ -281,7 +309,7 @@ export type ProjectsProps = {
 /** Settings added later: designs saved before them get today's look. */
 export const PROJECTS_DEFAULTS: Omit<ProjectsProps, 'layout' | 'columns' | 'filter' | 'limit' | 'showStack' | 'eyebrow' | 'title' | 'align'> = {
   columnsMobile: '1', typeFilter: 'pdf', tag: '', pick: [], sort: 'featured', image: 'video', cardStyle: 'card',
-  showDescription: true, showLinks: true, showType: false, hover: 'lift', cardAlign: 'left',
+  showDescription: true, showLinks: true, showType: false, hover: 'lift', cardAlign: 'left', frame: 'none', linkStyle: 'text', tabs: false,
 };
 
 /** A project's page opens inside the site (fast, no full reload); "link" projects open their link in a new tab. */
@@ -329,20 +357,29 @@ export function Projects(input: ProjectsProps & { portfolio: Portfolio }) {
   const list = pickProjects(projects, props);
   const actionLabel = (project: Project) => (project.type === 'article' ? labels.readArticle : project.type === 'link' ? labels.openLink : project.type === 'pdf' ? labels.viewPdf : labels.enter);
   const center = props.cardAlign === 'center';
-  const links = (project: Project) => props.showLinks && (
+  const links = (project: Project) => props.showLinks && (props.linkStyle === 'arrow' ? (
+    <div className={`mt-auto flex pt-4 ${center ? 'justify-center' : 'justify-end'}`}>
+      <ProjectLink project={project} label={`${actionLabel(project)}: ${project.title}`} className="d-round-btn"><Icon name="arrowUpRight" size={16} /></ProjectLink>
+    </div>
+  ) : (
     <div className={`mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-4 text-xs ${center ? 'justify-center' : ''}`}>
       <ProjectLink project={project} className="d-link inline-flex min-h-11 items-center md:min-h-0">{actionLabel(project)}</ProjectLink>
       {safeHref(project.liveUrl) && <a href={safeHref(project.liveUrl)} target="_blank" rel="noopener noreferrer" className="d-accent-2 inline-flex min-h-11 items-center font-bold no-underline md:min-h-0">{labels.live}</a>}
       {safeHref(project.repoUrl) && <a href={safeHref(project.repoUrl)} target="_blank" rel="noopener noreferrer" className="d-muted inline-flex min-h-11 items-center font-bold no-underline md:min-h-0">{labels.github}</a>}
     </div>
-  );
+  ));
   const stack = (project: Project) => props.showStack && project.stack.length > 0 && (
     <div className={`mt-3 flex flex-wrap gap-1.5 ${center ? 'justify-center' : ''}`}>{project.stack.map((tag) => <span key={tag} className="d-tag d-tag-accent text-[11px]">{tag}</span>)}</div>
   );
   const description = (project: Project) => props.showDescription && project.description && <p className="d-muted mt-2 text-sm leading-6">{project.description}</p>;
   const cover = (project: Project, className = '') => props.image !== 'hide' && (
     <ProjectLink project={project} label={project.title}>
-      <ProjectCover project={project} label={labels.featured} className={`${ASPECTS[props.image] ?? 'aspect-video'} ${className}`} zoom={props.hover === 'zoom'} typeBadge={props.showType} />
+      {props.frame === 'window' ? (
+        <div className="d-window">
+          <div className="d-window-bar" aria-hidden="true"><i /><i /><i /></div>
+          <ProjectCover project={project} label={labels.featured} className={`${ASPECTS[props.image] ?? 'aspect-video'} rounded-none! ${className}`} zoom={props.hover === 'zoom'} typeBadge={props.showType} />
+        </div>
+      ) : <ProjectCover project={project} label={labels.featured} className={`${ASPECTS[props.image] ?? 'aspect-video'} ${className}`} zoom={props.hover === 'zoom'} typeBadge={props.showType} />}
     </ProjectLink>
   );
   const card = props.cardStyle === 'card' ? 'd-card p-4' : '';
@@ -430,15 +467,20 @@ export function Projects(input: ProjectsProps & { portfolio: Portfolio }) {
       </ul>
     );
   } else {
-    body = (
-      <div className={`grid gap-4 ${phoneCols} ${cols}`}>
-        {list.map((project) => (
-          <article key={project.slug} className={`group flex flex-col ${card} ${hover} ${center ? 'text-center' : ''}`}>
-            {cover(project)}<div className="mt-4">{title(project)}</div>{description(project)}{stack(project)}{links(project)}
-          </article>
-        ))}
-      </div>
+    const article = (project: Project) => (
+      <article key={project.slug} className={`group flex flex-col ${card} ${hover} ${center ? 'text-center' : ''}`}>
+        {cover(project)}<div className="mt-4">{title(project)}</div>{description(project)}{stack(project)}{links(project)}
+      </article>
     );
+    body = props.tabs ? (
+      // Featured / All projects: the switch works on every project the filter allows.
+      <TabFilter
+        align="right"
+        tabs={[{ id: 'featured', label: 'Featured' }, { id: 'all', label: 'All projects' }]}
+        className={`grid gap-4 ${phoneCols} ${cols}`}
+        items={list.map((project) => ({ key: project.slug, tabs: project.featured ? ['featured', 'all'] : ['all'], node: article(project) }))}
+      />
+    ) : <div className={`grid gap-4 ${phoneCols} ${cols}`}>{list.map(article)}</div>;
   }
 
   return (
@@ -451,7 +493,7 @@ export function Projects(input: ProjectsProps & { portfolio: Portfolio }) {
 
 /* ---------- Experience ---------- */
 
-export type ExperienceProps = { layout: 'timeline' | 'cards' | 'compact'; maxBullets: number; eyebrow: string; title: string; description: string; align: 'left' | 'center' };
+export type ExperienceProps = { layout: 'timeline' | 'cards' | 'compact' | 'journey'; maxBullets: number; eyebrow: string; title: string; description: string; align: 'left' | 'center' };
 
 export function Experience(props: ExperienceProps & { portfolio: Portfolio }) {
   const { experience, copy } = props.portfolio;
@@ -469,6 +511,22 @@ export function Experience(props: ExperienceProps & { portfolio: Portfolio }) {
           </div>
         ))}
       </div>
+    );
+  } else if (props.layout === 'journey') {
+    // Side by side, oldest first, each step marked with a colored ring (a horizontal timeline).
+    const steps = [...experience].reverse();
+    body = (
+      <ol className="d-journey" style={{ ['--steps' as string]: Math.min(steps.length, 4) }}>
+        {steps.map((item, i) => (
+          <li key={`${item.company}-${item.period}`}>
+            <span className="d-journey-ring" style={{ borderColor: CHIP_COLORS[i % CHIP_COLORS.length] }} aria-hidden="true" />
+            <p className="d-muted text-sm">{item.period}</p>
+            <h3 className="mt-1 text-base font-bold">{item.role} {item.current && badge}</h3>
+            <p className="d-muted text-sm">{item.company}</p>
+            {bullets(item.bullets).length > 0 && <p className="d-muted mt-2 text-sm leading-6">{bullets(item.bullets).join(' ')}</p>}
+          </li>
+        ))}
+      </ol>
     );
   } else if (props.layout === 'cards') {
     body = (
@@ -528,11 +586,15 @@ export function Contact(props: ContactProps & { portfolio: Portfolio; extra?: Re
 
 /* ---------- Navigation bar & footer ---------- */
 
-export type NavProps = { brand: string; links: { label: string; href: string }[]; showResume: boolean; sticky: boolean };
+export type NavProps = { brand: string; links: { label: string; href: string }[]; showResume: boolean; sticky: boolean; style?: 'bar' | 'glass'; overlay?: boolean };
 
 export function NavBar(props: NavProps & { portfolio: Portfolio; editing: boolean }) {
   const brand = or(props.brand, props.portfolio.profile.name);
   const links = (props.links ?? []).map((link) => ({ label: link.label, href: safeHref(link.href) })).filter((link) => link.label && link.href);
+  if (props.style === 'glass') {
+    // Liquid Glass: transparent over the hero, frosted once scrolled, a menu button on phones (client component).
+    return <GlassNav brand={brand} links={links as { label: string; href: string }[]} showResume={props.showResume} sticky={props.sticky} overlay={Boolean(props.overlay)} editing={props.editing} />;
+  }
   return (
     <header className={`d-nav z-30 ${props.sticky && !props.editing ? 'sticky top-0' : ''}`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="d-container flex min-h-16 flex-wrap items-center gap-x-4">

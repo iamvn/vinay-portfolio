@@ -197,7 +197,7 @@ export function AiTemplateCard({ query, notify, hasDraft, onSaved, onUse }: {
               {busy && (
                 <p role="status" className="flex items-center gap-2 text-sm text-slate-300">
                   <span aria-hidden="true" className="size-2 animate-ping rounded-full bg-lime-300" />
-                  {current.ai.provider} is designing your page. This can take up to a minute.
+                  {current.ai.provider} is designing your page. A full page takes a minute or two.
                 </p>
               )}
               {failed && (

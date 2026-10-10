@@ -24,6 +24,8 @@ export const TEXT_SOURCES: { value: string; label: string; get?: (p: P) => strin
   { value: 'workPreference', label: 'Hiring · Location & work mode', get: (p) => p.profile.workPreference },
   { value: 'availabilityNote', label: 'Hiring · Availability', get: (p) => p.profile.availability },
   { value: 'noticePeriod', label: 'Hiring · Notice period', get: (p) => p.profile.noticePeriod },
+  { value: 'currentJob', label: 'Experience · Currently at (company)', get: (p) => { const job = p.experience.find((e) => e.current) ?? p.experience[0]; return job ? `Currently at ${job.company}` : ''; } },
+  { value: 'currentRole', label: 'Experience · Current role and company', get: (p) => { const job = p.experience.find((e) => e.current) ?? p.experience[0]; return job ? `${job.role} at ${job.company}` : ''; } },
   { value: 'skillsTitle', label: 'Site text · Skills title', get: (p) => p.copy.skills.title },
   { value: 'projectsTitle', label: 'Site text · Projects title', get: (p) => p.copy.projects.title },
   { value: 'experienceTitle', label: 'Site text · Experience title', get: (p) => p.copy.experience.title },

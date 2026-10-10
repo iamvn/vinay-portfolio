@@ -4,7 +4,7 @@
  */
 import type { ComponentConfig, Config, Slot } from '@puckeditor/core';
 import type { PortfolioData } from '@/lib/portfolio';
-import { DEFAULT_ROOT, FONTS, PALETTE_FIELDS, THEME_PRESETS, recolorsClassic, safeHref, safeSrc, themeVars, type RootProps } from '@/lib/design/theme';
+import { DEFAULT_ROOT, FONTS, PALETTE_FIELDS, THEME_PRESETS, readableOn, recolorsClassic, safeHref, safeSrc, themeVars, type RootProps } from '@/lib/design/theme';
 import { AskAssistant } from '../ask-assistant';
 import { Icon } from '../icons';
 import {
@@ -67,7 +67,7 @@ type Components = ProjectComponents & {
   Heading: { source: string; text: string; eyebrow: string; level: 'h1' | 'h2' | 'h3' | 'h4'; size: string; sizePx: number; weight: string; font: string; tracking: string; align: Align; uppercase: boolean };
   Text: { source: string; text: string; size: string; sizePx: number; weight: string; font: string; tracking: string; align: Align; tone: 'normal' | 'muted' | 'accent' | 'accent2'; maxWidth: 'none' | 'prose'; uppercase: boolean };
   Button: { action: string; label: string; href: string; style: 'primary' | 'secondary' | 'ghost'; size: 'sm' | 'md' | 'lg'; icon: string; align: Align; fullWidthMobile: boolean; newTab: boolean };
-  Image: { source: string; src: string; alt: string; aspect: 'auto' | 'square' | 'circle' | 'video' | 'portrait'; rounded: boolean; maxWidth: 'xs' | 'sm' | 'md' | 'lg' | 'full'; align: Align };
+  Image: { source: string; src: string; alt: string; aspect: 'auto' | 'square' | 'circle' | 'video' | 'portrait'; rounded: boolean; maxWidth: 'xs' | 'sm' | 'md' | 'lg' | 'full'; align: Align; filter?: 'none' | 'grayscale'; radiusPx?: number };
   Tags: { source: string; items: { text: string }[]; style: 'soft' | 'accent' | 'outline'; align: Align };
   Badge: { source: string; text: string; dot: boolean; style: 'pill' | 'plain'; align: Align };
   ContactButtons: { buttonLabel: string; align: 'left' | 'center' };
@@ -120,6 +120,13 @@ function typeStyle(sizePx: number, font: string, tracking: string) {
 export type DesignBlockName = keyof Components;
 const PROJECT_CATEGORY = { title: 'This project (live content)', components: [...PROJECT_BLOCK_NAMES.filter((n) => n !== 'ProjectClassic'), 'Pdf', 'ProjectClassic'] as (keyof Components)[], defaultExpanded: true };
 
+/** Whether a design's page background is dark (its own color, else its theme's). */
+const pageIsDark = (props: Partial<RootProps>) => {
+  const custom = (props.colors as Record<string, string> | undefined)?.bg;
+  const bg = custom && /^#[0-9a-f]{6}$/i.test(custom) ? custom : THEME_PRESETS[props.theme ?? 'clean']?.bg ?? '#ffffff';
+  return readableOn(bg) === '#ffffff';
+};
+
 export const designConfig: Config<Components, RootProps> = {
   categories: {
     quick: { title: 'Quick add: ready-made layouts', components: ['QuickBanner', 'QuickTextImage', 'QuickFeatures', 'QuickStats', 'QuickContact', 'QuickFaq', 'QuickTestimonials'], defaultExpanded: true },
@@ -168,7 +175,8 @@ export const designConfig: Config<Components, RootProps> = {
         <div className={classes} style={themeVars(props)} dir={props.direction === 'rtl' ? 'rtl' : 'ltr'}>
           {children}
           {props.showAskAi !== 'no' && assistant && !puck.isEditing && (
-            <AskAssistant name={portfolio.profile.name} email={portfolio.profile.socialLinks.email} linkedin={portfolio.profile.socialLinks.linkedin} />
+            <AskAssistant name={portfolio.profile.name} email={portfolio.profile.socialLinks.email} linkedin={portfolio.profile.socialLinks.linkedin}
+              look={props.theme === 'classic' || props.theme === 'arcade' ? 'classic' : pageIsDark(props) ? 'dark' : 'light'} />
           )}
         </div>
       );
@@ -237,9 +245,11 @@ export const designConfig: Config<Components, RootProps> = {
         },
         showResume: yesNo('Resume button'),
         sticky: { type: 'radio', label: 'Stick to top when scrolling', options: [{ label: 'Yes', value: true }, { label: 'No', value: false }] },
+        style: { type: 'radio', label: 'Style', options: [{ label: 'Bar', value: 'bar' }, { label: 'Floating glass', value: 'glass' }] },
+        overlay: { type: 'radio', label: 'Glass: float over the section below', options: [{ label: 'Yes', value: true }, { label: 'No', value: false }] },
       },
       defaultProps: {
-        brand: '', showResume: true, sticky: true,
+        brand: '', showResume: true, sticky: true, style: 'bar', overlay: false,
         links: [{ label: 'Projects', href: '#projects' }, { label: 'Experience', href: '#experience' }, { label: 'Skills', href: '#skills' }, { label: 'Contact', href: '#contact' }],
       },
       render: ({ puck, ...props }) => <NavBar {...props} portfolio={meta(puck).portfolio} editing={puck.isEditing} />,
@@ -280,7 +290,7 @@ export const designConfig: Config<Components, RootProps> = {
     Skills: {
       label: 'Skills',
       fields: {
-        layout: { type: 'radio', label: 'Layout', options: [{ label: 'Cards', value: 'cards' }, { label: 'Tag cloud', value: 'tags' }, { label: 'List', value: 'list' }] },
+        layout: { type: 'radio', label: 'Layout', options: [{ label: 'Cards', value: 'cards' }, { label: 'Tag cloud', value: 'tags' }, { label: 'Tabs (by group)', value: 'tabs' }, { label: 'List', value: 'list' }] },
         align: align2Field,
         eyebrow: fromSiteText('Small label'), title: fromSiteText('Title'), description: fromSiteText('Description'),
       },
@@ -308,6 +318,9 @@ export const designConfig: Config<Components, RootProps> = {
         showLinks: yesNo('Buttons (open, live, code)'),
         showType: yesNo('Type label (Case study, PDF…)'),
         hover: { type: 'radio', label: 'On hover', options: [{ label: 'Lift', value: 'lift' }, { label: 'Zoom image', value: 'zoom' }, { label: 'Nothing', value: 'none' }] },
+        frame: { type: 'radio', label: 'Image frame', options: [{ label: 'None', value: 'none' }, { label: 'App window', value: 'window' }] },
+        linkStyle: { type: 'radio', label: 'Open button', options: [{ label: 'Text links', value: 'text' }, { label: 'Round ↗ button', value: 'arrow' }] },
+        tabs: { type: 'radio', label: 'Featured / All switch', options: [{ label: 'Show', value: true }, { label: 'Hide', value: false }] },
         align: align2Field,
         eyebrow: fromSiteText('Small label'), title: fromSiteText('Title'),
       },
@@ -334,7 +347,7 @@ export const designConfig: Config<Components, RootProps> = {
     Experience: {
       label: 'Experience',
       fields: {
-        layout: { type: 'radio', label: 'Layout', options: [{ label: 'Timeline', value: 'timeline' }, { label: 'Cards', value: 'cards' }, { label: 'Compact', value: 'compact' }] },
+        layout: { type: 'radio', label: 'Layout', options: [{ label: 'Timeline', value: 'timeline' }, { label: 'Journey (side by side)', value: 'journey' }, { label: 'Cards', value: 'cards' }, { label: 'Compact', value: 'compact' }] },
         maxBullets: { type: 'number', label: 'Highlights per job (0 = all)', min: 0, max: 20 },
         align: align2Field,
         eyebrow: fromSiteText('Small label'), title: fromSiteText('Title'), description: fromSiteText('Description'),
@@ -618,9 +631,11 @@ export const designConfig: Config<Components, RootProps> = {
         rounded: { type: 'radio', label: 'Rounded corners', options: [{ label: 'Yes', value: true }, { label: 'No', value: false }] },
         maxWidth: { type: 'radio', label: 'Size', options: [{ label: 'XS', value: 'xs' }, { label: 'S', value: 'sm' }, { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }, { label: 'Full', value: 'full' }] },
         align: alignField,
+        filter: { type: 'radio', label: 'Effect', options: [{ label: 'None', value: 'none' }, { label: 'Black & white', value: 'grayscale' }] },
+        radiusPx: { type: 'number', label: 'Exact corner radius (px, 0 = theme)', min: 0, max: 200 },
       },
-      defaultProps: { source: 'custom', src: '', alt: '', aspect: 'auto', rounded: true, maxWidth: 'full', align: 'center' },
-      render: ({ source, src, alt, aspect, rounded, maxWidth, align, puck }) => {
+      defaultProps: { source: 'custom', src: '', alt: '', aspect: 'auto', rounded: true, maxWidth: 'full', align: 'center', filter: 'none', radiusPx: 0 },
+      render: ({ source, src, alt, aspect, rounded, maxWidth, align, filter, radiusPx, puck }) => {
         const { profile } = meta(puck).portfolio;
         const url = safeSrc(source === 'profilePhoto' ? profile.profileImage : src);
         const width = { xs: 'max-w-[8rem]', sm: 'max-w-xs', md: 'max-w-md', lg: 'max-w-2xl', full: 'max-w-full' }[maxWidth] ?? 'max-w-full';
@@ -629,7 +644,8 @@ export const designConfig: Config<Components, RootProps> = {
         return (
           <div className={`d-prim flex ${justifyClass(align)}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt={alt || (source === 'profilePhoto' ? profile.name : '')} loading="lazy" className={`w-full ${width} ${shape}`} style={rounded && aspect !== 'circle' ? { borderRadius: 'var(--d-radius)' } : undefined} />
+            <img src={url} alt={alt || (source === 'profilePhoto' ? profile.name : '')} loading="lazy" className={`w-full ${width} ${shape}`}
+              style={{ ...(rounded && aspect !== 'circle' ? { borderRadius: Number(radiusPx) > 0 ? `${Math.min(200, Number(radiusPx))}px` : 'var(--d-radius)' } : {}), ...(filter === 'grayscale' ? { filter: 'grayscale(1) contrast(1.05)' } : {}) }} />
           </div>
         );
       },
@@ -745,6 +761,8 @@ for (const [name, component] of Object.entries(designConfig.components) as [stri
   resolveFields?: unknown;
 }][]) {
   if (NO_STYLE_WRAPPER.has(name)) continue;
+  // Already wrapped (a block shared with another module survives a dev hot reload): never wrap twice.
+  if ('ownFields' in component) continue;
   const render = component.render;
   const panel = name.startsWith('Classic');
   const own = component.fields ?? {};

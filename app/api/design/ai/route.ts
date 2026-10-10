@@ -12,7 +12,7 @@ import { templatesFor } from '@/lib/design/templates';
 import { scopeFromRequest } from '@/lib/design/scope';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * The parts of the "Create a template with AI" prompt that come from the site: the rules and the block

@@ -183,3 +183,109 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
 
 /* Design editor header: the "· Your design is live" note next to the page title, in the normal font. */
 .design-editor [class*="_PuckHeader-path"] { font-family: inherit; font-size: 12px; font-weight: 600; color: #64748b; }
+
+/* Design: a Box set to "Fit this box" lets ready-made sections (Projects, Skills, Experience…) inside it use the
+   box's own spacing and width instead of adding their own page padding. */
+.d-box-fit .d-block { padding-top: 0 !important; padding-bottom: 0 !important; }
+.d-box-fit .d-block > .d-container { max-width: none; padding-left: 0; padding-right: 0; }
+
+/* ---------- Liquid glass (Box → Liquid glass material, Icon "Glass tile", Navigation "Floating glass") ----------
+   Translucent material that blurs and brightens what's behind it, with a bright top edge, a soft inner rim and a
+   specular highlight, like light caught in a pane of glass. */
+@layer components {
+  .d-glass {
+    --glass-fill: rgba(255, 255, 255, .42);
+    --glass-rim: rgba(255, 255, 255, .7);
+    --glass-blur: 22px;
+    background:
+      radial-gradient(130% 70% at 12% -10%, rgba(255, 255, 255, .55), transparent 55%),
+      linear-gradient(150deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .06) 60%),
+      var(--glass-fill);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    border: 1px solid var(--glass-rim);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .9),
+      inset 0 -1px 1px rgba(255, 255, 255, .25),
+      inset 0 0 0 .5px rgba(255, 255, 255, .35),
+      0 12px 32px -14px rgba(15, 23, 42, .28),
+      0 2px 6px -2px rgba(15, 23, 42, .08);
+  }
+  .d-glass-light { --glass-fill: rgba(255, 255, 255, .62); }
+  .d-glass-clear { --glass-fill: rgba(255, 255, 255, .16); --glass-rim: rgba(255, 255, 255, .55); --glass-blur: 14px; }
+  .d-glass-tinted { --glass-fill: color-mix(in srgb, var(--d-accent-2) 18%, rgba(255, 255, 255, .45)); }
+  .d-glass-dark {
+    --glass-fill: rgba(16, 18, 27, .45); --glass-rim: rgba(255, 255, 255, .16); color: #f5f7ff;
+    --d-text: #f5f7ff; --d-muted: rgba(245, 247, 255, .68);
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .d-glass { --glass-fill: rgba(255, 255, 255, .86); }
+    .d-glass-dark { --glass-fill: rgba(16, 18, 27, .88); }
+  }
+
+  /* Navigation pills */
+  .d-nav-pill { display: inline-flex; min-height: 2.25rem; flex-shrink: 0; align-items: center; border-radius: 999px; padding: 0 .9rem; font-size: .84rem; font-weight: 500; color: var(--d-text); text-decoration: none; transition: background .2s; }
+  .d-nav-pill:hover { background: rgba(255, 255, 255, .45); }
+  .d-nav-pill[aria-current] { background: rgba(255, 255, 255, .85); box-shadow: 0 1px 2px rgba(15, 23, 42, .08), inset 0 1px 0 #fff; }
+
+  /* Segmented control */
+  .d-segmented { display: inline-flex; gap: 2px; max-width: 100%; overflow-x: auto; scrollbar-width: none; border-radius: 999px; padding: 3px;
+    background: color-mix(in srgb, var(--d-text) 6%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--d-text) 5%, transparent); }
+  .d-segment { min-height: 2.1rem; flex-shrink: 0; border-radius: 999px; padding: 0 1rem; font-size: .8rem; font-weight: 600; color: var(--d-muted); cursor: pointer; transition: background .2s, color .2s; }
+  .d-segment:hover { color: var(--d-text); }
+  .d-segment[aria-selected='true'] { background: var(--d-surface); color: var(--d-text); box-shadow: 0 1px 3px rgba(15, 23, 42, .12), 0 0 0 .5px rgba(15, 23, 42, .04); }
+
+  /* Skill chips */
+  .d-chip { display: inline-flex; align-items: center; gap: .5rem; border-radius: 999px; padding: .45rem .85rem; font-size: .82rem; font-weight: 500;
+    background: color-mix(in srgb, var(--d-surface) 85%, transparent); border: 1px solid var(--d-line); box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
+  .d-chip-dot { width: .55rem; height: .55rem; border-radius: 99px; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 0%, transparent); }
+
+  /* Round ↗ button on project cards */
+  .d-round-btn { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; border-radius: 999px; color: var(--d-text);
+    background: var(--d-surface); border: 1px solid var(--d-line); transition: transform .2s, background .2s; }
+  .d-round-btn:hover { transform: translate(1px, -1px); background: color-mix(in srgb, var(--d-text) 6%, var(--d-surface)); }
+
+  /* Project cover in an app window */
+  .d-window { overflow: hidden; border-radius: 14px; border: 1px solid var(--d-line); background: var(--d-surface); box-shadow: 0 8px 22px -14px rgba(15, 23, 42, .35); }
+  .d-window-bar { display: flex; gap: 6px; padding: 9px 11px; background: color-mix(in srgb, var(--d-text) 4%, var(--d-surface)); border-bottom: 1px solid var(--d-line); }
+  .d-window-bar i { width: 10px; height: 10px; border-radius: 99px; background: #ff5f57; }
+  .d-window-bar i:nth-child(2) { background: #febc2e; }
+  .d-window-bar i:nth-child(3) { background: #28c840; }
+
+  /* Experience "Journey": side by side with ringed markers */
+  .d-journey { display: grid; gap: 1.75rem; list-style: none; margin: 0; padding: 0; }
+  @media (min-width: 768px) { .d-journey { grid-template-columns: repeat(var(--steps, 3), minmax(0, 1fr)); gap: 2rem; } }
+  .d-journey > li { position: relative; padding-left: 1.6rem; }
+  .d-journey > li::before { content: ''; position: absolute; left: 7px; top: 1.3rem; bottom: 0; width: 1px; background: var(--d-line); }
+  .d-journey-ring { position: absolute; left: 0; top: .2rem; width: 15px; height: 15px; border-radius: 99px; border: 3px solid; background: var(--d-surface); }
+}
+
+/* Liquid Glass navigation (components/design/glass-nav.tsx): transparent at the top of the page, frosted glass once
+   scrolled or while the phone menu is open. With "float over the section below", the hero starts under it. */
+@layer components {
+  .d-gnav-inner { position: relative; margin-inline: auto; width: 100%; max-width: min(var(--d-width), 96%); padding: 1.25rem .6rem 0; }
+  @media (min-width: 768px) { .d-gnav-inner { padding-inline: .85rem; } }
+  .d-gnav-bar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .75rem; border-radius: 22px; padding: .45rem .5rem .45rem .75rem;
+    border: 1px solid transparent; transition: background .35s ease, box-shadow .35s ease, border-color .35s ease, backdrop-filter .35s ease; }
+  @media (min-width: 768px) { .d-gnav-bar { grid-template-columns: 1fr auto 1fr; } }
+  .d-gnav[data-solid] .d-gnav-bar {
+    background: radial-gradient(130% 70% at 12% -10%, rgba(255,255,255,.5), transparent 55%), rgba(255, 255, 255, .62);
+    -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%);
+    border-color: rgba(255, 255, 255, .7);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 12px 32px -14px rgba(15,23,42,.28), 0 2px 6px -2px rgba(15,23,42,.08);
+  }
+  .d-gnav-burger { display: inline-grid; width: 2.75rem; height: 2.75rem; place-items: center; border-radius: 999px; color: var(--d-text);
+    background: rgba(255, 255, 255, .55); border: 1px solid rgba(255, 255, 255, .75); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 4px 12px -6px rgba(15,23,42,.25); }
+  .d-gnav-menu { position: absolute; left: .6rem; right: .6rem; top: calc(100% + .5rem); border-radius: 22px; padding: .6rem; animation: d-gnav-in .18s ease-out; }
+  .d-gnav-item { display: flex; min-height: 3rem; align-items: center; justify-content: space-between; border-radius: 14px; padding: 0 .9rem; font-size: 1rem; font-weight: 600; color: var(--d-text); text-decoration: none; }
+  .d-gnav-item:hover, .d-gnav-item[aria-current] { background: rgba(255, 255, 255, .7); }
+  .d-gnav-item svg { opacity: .45; }
+  @keyframes d-gnav-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+
+  .d-nav-cta { display: inline-flex; min-height: 2.5rem; align-items: center; gap: .35rem; border-radius: 999px; padding: 0 1.1rem; font-size: .84rem; font-weight: 600;
+    text-decoration: none; background: var(--d-accent); color: var(--d-accent-text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 6px 16px -8px rgba(0, 0, 0, .5); transition: transform .2s; }
+  .d-nav-cta:hover { transform: translateY(-1px); }
+  /* The bar is one row everywhere now (phones use the menu): the next section starts under it. */
+  .d-nav-overlay { margin-bottom: -5.15rem; }
+}
