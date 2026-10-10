@@ -19,6 +19,8 @@ export function paletteOf(data: DesignData): Palette {
 export type CustomTemplate = {
   id: string; name: string; description: string; kind: TemplateKind; theme: string; blocks: number; palette?: Palette;
   createdAt: string; createdBy: string;
+  /** Owner templates (lib/design/owner-templates.ts): which one, and its version. */
+  source?: string; version?: number;
 };
 
 export const MAX_CUSTOM_TEMPLATES = 24;
@@ -48,7 +50,7 @@ export async function getCustomTemplate(id: string): Promise<(CustomTemplate & {
   return meta && data ? { ...meta, data: data as DesignData } : null;
 }
 
-export async function createCustomTemplate(input: { name: string; description: string; kind: TemplateKind; data: DesignData; blocks: number; by: string }) {
+export async function createCustomTemplate(input: { name: string; description: string; kind: TemplateKind; data: DesignData; blocks: number; by: string; source?: string; version?: number }) {
   const list = await index();
   if (list.length >= MAX_CUSTOM_TEMPLATES) throw new LimitError(`You can keep up to ${MAX_CUSTOM_TEMPLATES} of your own templates. Delete one first.`);
   const id = `custom-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -56,6 +58,7 @@ export async function createCustomTemplate(input: { name: string; description: s
   const meta: CustomTemplate = {
     id, name: input.name, description: input.description, kind: input.kind, theme, blocks: input.blocks, palette: paletteOf(input.data),
     createdAt: new Date().toISOString(), createdBy: input.by,
+    ...(input.source ? { source: input.source, version: input.version ?? 1 } : {}),
   };
   await writeJson(dataKey(id), input.data);
   await writeJson(INDEX, [meta, ...list]);
@@ -71,6 +74,20 @@ export async function updateCustomTemplate(id: string, change: { name?: string; 
   await writeJson(INDEX, list.map((t) => (t.id === id ? next : t)));
   return next;
 }
+
+/** Replaces a template's design (an owner template moved to a newer version); its name stays as the owner set it. */
+export async function replaceCustomTemplateDesign(id: string, input: { data: DesignData; blocks: number; description: string; source: string; version: number }) {
+  const list = await index();
+  const current = list.find((t) => t.id === id);
+  if (!current) return null;
+  const theme = String((input.data.root as { props?: { theme?: unknown } } | undefined)?.props?.theme ?? 'clean');
+  const next: CustomTemplate = { ...current, blocks: input.blocks, description: input.description, theme, palette: paletteOf(input.data), source: input.source, version: input.version };
+  await writeJson(dataKey(id), input.data);
+  await writeJson(INDEX, list.map((t) => (t.id === id ? next : t)));
+  return next;
+}
+
+export const listAllCustomTemplates = () => index();
 
 export async function deleteCustomTemplate(id: string) {
   const list = await index();

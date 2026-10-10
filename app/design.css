@@ -282,7 +282,7 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
 /* Liquid Glass navigation (components/design/glass-nav.tsx): transparent at the top of the page, frosted glass once
    scrolled or while the phone menu is open. With "float over the section below", the hero starts under it. */
 @layer components {
-  .d-gnav-inner { position: relative; margin-inline: auto; width: 100%; max-width: min(var(--d-width), 96%); padding: 1.25rem .6rem 0; }
+  .d-gnav-inner { position: relative; margin-inline: auto; width: 100%; max-width: min(var(--d-width), 97%, 1680px); padding: 1.25rem .6rem 0; }
   @media (min-width: 768px) { .d-gnav-inner { padding-inline: .85rem; } }
   .d-gnav-bar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .75rem; border-radius: 22px; padding: .45rem .5rem .45rem .75rem;
     border: 1px solid transparent; transition: background .35s ease, box-shadow .35s ease, border-color .35s ease, backdrop-filter .35s ease; }

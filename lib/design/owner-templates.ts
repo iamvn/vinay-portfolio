@@ -29,7 +29,7 @@ const dots = (id: string, size = 12) => b('Flex', id, {
 
 /** A frosted white panel floating on the page: every section sits in one. */
 const panel = (id: string, content: Block[], anchor = '') => b('Box', id, {
-  size: { contained: true, width: '96%' },
+  size: { width: '97%', maxWidth: '1680px', center: true },
   layout: { display: 'flex', direction: 'column', gap: 26 },
   spacing: { padding: pad(36, 40), paddingMobile: pad(24, 18), margin: { top: '18' } },
   look: { glass: 'light', radius: 28 },
@@ -84,7 +84,7 @@ const glassStudio: DesignData = {
       theme: 'clean',
       colors: { bg: '#eef0f6', surface: '#ffffff', surface2: '#f5f5f7', text: INK, muted: '#6e6e73', line: '#e5e5ea', accent: INK, accent2: BLUE, accent3: PURPLE },
       headingFont: 'system', bodyFont: 'system', textSize: 'medium', headingWeight: 'bold', headingCase: 'normal',
-      radius: 'large', buttonShape: 'pill', buttonStyle: 'solid', width: 'wide', direction: 'ltr', effects: 'none', showAskAi: 'yes',
+      radius: 'large', buttonShape: 'pill', buttonStyle: 'solid', width: 'full', direction: 'ltr', effects: 'none', showAskAi: 'yes',
     },
   },
   content: [
@@ -95,7 +95,7 @@ const glassStudio: DesignData = {
 
     // Hero: a sunrise wallpaper "desktop" with the intro, a glass profile window and an app dock.
     b('Box', 'home', {
-      size: { contained: true, width: '96%' },
+      size: { width: '97%', maxWidth: '1680px', center: true },
       layout: { display: 'flex', direction: 'column', gap: 24 },
       spacing: { padding: { top: '108', right: '48', bottom: '32', left: '48' }, paddingMobile: { top: '96', right: '18', bottom: '22', left: '18' }, margin: { top: '10' } },
       look: { fill: 'custom', fillColor: '#f3dcef', image: '/design/wallpapers/sunrise-hills.svg', imageFit: 'cover', radius: 32, shadow: 'md', borderWidth: 1, borderTone: 'custom', borderColor: 'rgba(255,255,255,0.75)' },
@@ -225,7 +225,7 @@ const glassStudio: DesignData = {
 
     // Call to action: a soft glass strip.
     b('Box', 'contact', {
-      size: { contained: true, width: '96%' },
+      size: { width: '97%', maxWidth: '1680px', center: true },
       layout: { display: 'flex', direction: 'row', gap: 24, align: 'center', justify: 'space-between', wrap: 'wrap', stackOnMobile: true },
       spacing: { padding: pad(28, 32), paddingMobile: pad(22, 18), margin: { top: '18', bottom: '28' } },
       look: { glass: 'tinted', radius: 28 },
@@ -256,9 +256,14 @@ const glassStudio: DesignData = {
   ],
 } as unknown as DesignData;
 
-export const OWNER_TEMPLATES: { key: string; name: string; description: string; data: DesignData }[] = [
+/**
+ * `version`: raise it when a template changes; the owner's copy (in Your templates) is then updated to match the next
+ * time the Design tab opens. Pages already made from it don't change until the owner starts from it again.
+ */
+export const OWNER_TEMPLATES: { key: string; version: number; name: string; description: string; data: DesignData }[] = [
   {
     key: 'glass-studio',
+    version: 2,
     name: 'Glass Studio',
     description: 'Apple-style Liquid Glass: a floating glass navigation bar, a sunrise-wallpaper hero with a frosted profile window and an app dock, glass panels on a soft grey page, projects in app windows with a Featured / All switch, tabbed skill chips and a side-by-side journey.',
     data: glassStudio,
