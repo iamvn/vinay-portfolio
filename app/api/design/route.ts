@@ -8,17 +8,20 @@ import { scopeFromRequest } from '@/lib/design/scope';
 import { listCustomTemplates } from '@/lib/design/custom-templates';
 import { kindOf } from '@/lib/design/ai-template';
 import { hasFeature } from '@/lib/sites/require-feature';
+import { listShared } from '@/lib/design/shared-templates';
+import { currentSite } from '@/lib/sites/context';
 
 export const dynamic = 'force-dynamic';
 
 /** Design status for Admin → Design: the draft, what's live, recent versions, templates. Admins only. */
 export async function GET(request: Request) {
-  const { error } = await requireTab(request, 'design');
+  const { user, error } = await requireTab(request, 'design');
   if (error) return error;
   const { scope, error: badScope } = await scopeFromRequest(request);
   if (badScope) return badScope;
   try {
-    const [draft, published, history, custom, aiTemplates] = await Promise.all([getDraft(scope), getPublished(scope), getHistory(scope), listCustomTemplates(kindOf(scope)), hasFeature('aiTemplates')]);
+    const [draft, published, history, custom, aiTemplates, shared, site] = await Promise.all([getDraft(scope), getPublished(scope), getHistory(scope), listCustomTemplates(kindOf(scope)), hasFeature('aiTemplates'), listShared(kindOf(scope)), currentSite()]);
+    const sharedSources = new Map(shared.filter((t) => t.site === site.slug).map((t) => [t.source, t.updatedAt]));
     return NextResponse.json({
       draft,
       published: published && { savedAt: published.savedAt, savedBy: published.savedBy },
@@ -27,7 +30,9 @@ export async function GET(request: Request) {
       history: history.map(({ savedAt, savedBy }, index) => ({ index, savedAt, savedBy })),
       templates: templatesFor(scope).map(({ id, name, description }) => ({ id, name, description })),
       // This site's own templates (Create a template with AI), newest first.
-      customTemplates: custom,
+      customTemplates: custom.map((t) => ({ ...t, publishedAt: sharedSources.get(t.id) ?? null })),
+      // Templates people on every site published, credited to their author; mine/canRemove for the buttons.
+      sharedTemplates: shared.map(({ source: _source, site: from, ...t }) => ({ ...t, mine: from === site.slug, canRemove: from === site.slug || (site.isMain && user.role === 'admin') })), // eslint-disable-line @typescript-eslint/no-unused-vars
       // Create a template with AI: only when the platform owner turned it on for this site.
       aiTemplates,
     });

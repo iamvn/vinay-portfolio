@@ -44,7 +44,7 @@ async function promptParts(scope: DesignScope) {
 
 const generateSchema = z.object({
   request: z.string().trim().min(5, 'Describe the design you want.').max(3000),
-  fromCurrent: z.boolean().default(true),
+  fromCurrent: z.boolean().default(false),
   name: z.string().trim().max(60).default(''),
 }).strict();
 
@@ -65,10 +65,10 @@ export async function POST(request: Request) {
     const parts = await promptParts(scope);
     const result = await generateDesign(parts, data.request, data.fromCurrent, parts.kind);
     const template = await createCustomTemplate({
-      name: data.name || nameFrom(data.request), description: data.request.slice(0, 200), kind: parts.kind,
+      name: data.name || nameFrom(data.request), description: (result.brief || data.request).slice(0, 300), kind: parts.kind,
       data: result.data, blocks: result.blocks, by: user.email,
     });
-    return NextResponse.json({ template, blocks: result.blocks, fixes: result.fixes, provider: result.provider }, { status: 201 });
+    return NextResponse.json({ template, blocks: result.blocks, fixes: result.fixes, brief: result.brief, provider: result.provider }, { status: 201 });
   } catch (err) {
     if (err instanceof DesignAiError || err instanceof LimitError) return jsonError(err.message, err instanceof DesignAiError ? err.status : 400);
     return handleDbError(err);

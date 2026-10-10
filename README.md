@@ -253,6 +253,12 @@ Admins can redesign the homepage without code in **Admin → Design**, using the
 - **Create a template with AI** (Design tab, for the homepage or project pages): describe the design you want (idea
   chips such as *Streaming app*, *Cricket scoreboard*, *Retro arcade*, *Newspaper* fill in a themed request).
   Only on sites where the platform owner turned on the *Create a template with AI* extra feature.
+  The prompt walks the AI through a design process: write a short concept first (`"brief"`: palette, typography,
+  shapes, motifs, section vocabulary), theme all nine root colors and the fonts, make the first screen the signature
+  moment, label every section in the theme's language, then self-check. It includes worked theme mappings (game
+  console, streaming app, scoreboard, newspaper) and forbids typing the person's name, employers, numbers or
+  technology lists (live blocks and `source` bindings show those). By default it asks for a completely new design;
+  *Restyle your current draft* keeps its sections and text. The brief becomes the template's description.
   **Automatic** mode (on when the site has a provider in Admin → AI assistant; disabled otherwise) sends the prompt
   to that provider, in fallback order, checks the answer (one correction round if it's broken and time allows) and
   saves it as a template in one click. Other sites never use the platform owner's environment key.
@@ -263,7 +269,15 @@ Admins can redesign the homepage without code in **Admin → Design**, using the
   is lenient with small mistakes (code fences around the JSON, missing or repeated ids, unknown settings, values
   that aren't options, project-only blocks on the homepage) and lists every fix; anything it can't use is
   refused with the reason. Saved templates appear under **Your templates** (up to 24 per site) with
-  *Start from it* and *Delete*.
+  *Start from it*, *Rename*, *Publish for everyone* and *Delete*. Thumbnails use each template's own colors.
+- **Shared templates:** *Publish for everyone* adds a snapshot of the template to every site's **Templates** card,
+  under *Shared by people on this platform*, credited "by <name>" (the publisher's name, else their site's). The credit
+  is only on the card, never on pages made from it. Publishing again (*Update shared copy*) refreshes the snapshot,
+  renaming renames it, and deleting the template or *Unpublish* removes it. Anyone with the Design tab can start from
+  a shared template (no extra feature needed). The publishing site can unpublish it; the platform owner can remove
+  any of them. Up to 12 per site. Stored in the main database (`SharedTemplate`); logged in Activity logs.
+  `PATCH /api/design/templates/:id` `{ name?, description? }`, `POST|DELETE /api/design/templates/:id/share`,
+  `DELETE /api/design/shared/:id`; `GET /api/design` lists `sharedTemplates`, and `POST /api/design/template` takes their ids.
 - **Editor** (`/admin/design`, best on a laptop): drag blocks from the left, click a block to edit it on the
   right, switch phone/tablet/desktop previews at the top. Click empty page space for the **Page** settings:
   color theme (7 presets), every palette color (background, cards, soft background, text, secondary text,

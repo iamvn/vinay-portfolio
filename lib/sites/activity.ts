@@ -12,10 +12,12 @@ export const ACTIVITY_KINDS = [
   'community.posted', 'community.updated', 'community.deleted', 'community.hidden', 'community.shown', 'community.removed',
   // Support & requests: that someone asked, and that it was answered (the request lives in SupportRequest).
   'support.requested', 'support.answered',
+  // Templates published for every site (Design → Your templates → Publish), and removed again.
+  'design.shared', 'design.unshared',
   'log.cleared',
 ] as const;
 /** Filters that match a whole group of kinds. */
-export const ACTIVITY_GROUPS = ['user.', 'site.', 'community.', 'support.'] as const;
+export const ACTIVITY_GROUPS = ['user.', 'site.', 'community.', 'support.', 'design.'] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 export type Activity = {
   id: number;

@@ -5,6 +5,7 @@ import { MAX_SITE_LIMIT, removeSite, siteBySlug, updateSite } from '@/lib/sites/
 import { deleteSiteDatabase } from '@/lib/sites/provision';
 import { removeSitePosts } from '@/lib/community/store';
 import { removeSiteRequests } from '@/lib/support/store';
+import { removeSiteShared } from '@/lib/design/shared-templates';
 import { canSeeSite, publicSite, requirePlatformAdmin } from '@/lib/sites/platform';
 import { actorLabel, logActivity } from '@/lib/sites/activity';
 import { TAB_IDS, TAB_LABELS, parseSiteTabs, serializeSiteTabs } from '@/lib/auth/permissions';
@@ -96,6 +97,7 @@ export async function DELETE(request: Request, { params }: Context) {
     await removeSite(slug);
     await removeSitePosts(slug).catch((err) => console.error('Could not remove community posts:', err));
     await removeSiteRequests(slug).catch((err) => console.error('Could not remove support requests:', err));
+    await removeSiteShared(slug).catch((err) => console.error('Could not remove shared templates:', err));
     if (site.domain && vercelApiConfigured()) await removeProjectDomain(site.domain);
     await logActivity(manager, actorLabel(user), 'site.deleted', { slug: site.slug, name: site.name, ownerEmail: site.ownerEmail }, { includeMain: true });
     return new Response(null, { status: 204 });

@@ -14,8 +14,8 @@ export function requestText(parts: Omit<PromptParts, 'guide'>, request: string, 
   return [
     `# Design a ${parts.kind === 'home' ? 'homepage' : 'project page'} for my portfolio site\n\n## What I want\n\n${what}`,
     fromCurrent
-      ? `# Starting point\n\nThis is ${FROM_TEXT[parts.currentFrom]} as JSON (settings equal to their defaults are left out). Rework it to match what I want: keep, move, restyle, remove or add blocks as needed, and give every block a unique id.\n\n${parts.current}`
-      : '# Starting point\n\nStart from an empty page.',
+      ? `# Starting point\n\nThis is ${FROM_TEXT[parts.currentFrom]} as JSON (settings equal to their defaults are left out). Keep its sections and any text I wrote, but restyle it fully to match what I want: new palette, typography and layouts where the request calls for it. Give every block a unique id.\n\n${parts.current}`
+      : '# Starting point\n\nDesign a completely new page. Don’t reuse a generic portfolio layout: everything should come from the concept in your brief.',
   ];
 }
 

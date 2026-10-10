@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { api, describeError } from './api';
-import { Button, Card, ConfirmButton, Loading, buttonBase, type Notify, useReadOnly } from './ui';
+import { Button, Card, ConfirmButton, Loading, buttonBase, inputClass, type Notify, useReadOnly } from './ui';
 import { THEME_PRESETS } from '@/lib/design/theme';
 import { AiTemplateCard } from './ai-template';
 
@@ -13,11 +13,15 @@ type Status = {
   history: { index: number; savedAt: string; savedBy: string }[];
   templates: { id: string; name: string; description: string }[];
   /** The site's own templates (Create a template with AI). */
-  customTemplates: { id: string; name: string; description: string; theme: string; blocks: number; createdAt: string }[];
+  customTemplates: OwnTemplate[];
+  /** Templates people on every site published (Your templates → Publish), credited to their author. */
+  sharedTemplates: { id: string; name: string; description: string; theme: string; palette?: Record<string, string>; blocks: number; author: string; siteName: string; createdAt: string; mine: boolean; canRemove: boolean }[];
   /** Whether this site has "Create a template with AI" (the platform owner turns it on). */
   aiTemplates: boolean;
 };
 
+type OwnTemplate = { id: string; name: string; description: string; theme: string; palette?: Record<string, string>; blocks: number; createdAt: string; publishedAt: string | null };
+const day = (iso: string) => new Date(iso).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
 const when = (iso: string) => new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
 /** Tiny picture of each template, drawn with its theme colors. */
@@ -34,11 +38,12 @@ const THUMBS: Record<string, { theme: keyof typeof THEME_PRESETS; layout: 'arcad
   'project-blank': { theme: 'clean', layout: 'blank' },
 };
 
-function Thumb({ id, customTheme }: { id: string; customTheme?: string }) {
+function Thumb({ id, customTheme, palette }: { id: string; customTheme?: string; palette?: Record<string, string> }) {
   const { theme, layout } = customTheme !== undefined
     ? { theme: customTheme in THEME_PRESETS ? customTheme : 'clean', layout: 'arcade' as const }
     : THUMBS[id] ?? THUMBS.blank;
-  const t = THEME_PRESETS[theme];
+  // An AI template's own colors win over its preset's.
+  const t = { ...THEME_PRESETS[theme], ...(palette ?? {}) };
   const bar = (w: string, color: string = t.muted, h = 4) => <span className="block rounded-full" style={{ width: w, height: h, background: color, opacity: 0.8 }} />;
   const card = <span className="block h-7 rounded" style={{ background: t.surface, border: `1px solid ${t.line}` }} />;
   return (
@@ -183,6 +188,36 @@ export function DesignTab({ notify }: { notify: Notify }) {
             </article>
           ))}
         </div>
+        {(status.sharedTemplates ?? []).length > 0 && (
+          <>
+            <h4 className="mb-3 mt-6 text-[11px] font-black uppercase tracking-[.2em] text-lime-300/80">Shared by people on this platform ({status.sharedTemplates.length})</h4>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {status.sharedTemplates.map((template) => (
+                <article key={template.id} className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div className="relative">
+                    <Thumb id={template.id} customTheme={template.theme} palette={template.palette} />
+                    <span className="absolute right-2 top-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-black uppercase text-cyan-200">Shared</span>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-white">{template.name}{status.draft?.template === template.id && <span className="ml-2 rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-black uppercase text-slate-400">In draft</span>}</h4>
+                    <p className="mt-0.5 text-xs font-bold text-cyan-200">by {template.author}{template.mine && ' (you)'}</p>
+                    {template.description && <p className="mt-1 line-clamp-3 text-xs text-slate-400">{template.description}</p>}
+                    <p className="mt-1 text-[11px] text-slate-500">{template.blocks} blocks · shared {day(template.createdAt)}</p>
+                  </div>
+                  <div className="mt-auto flex flex-wrap gap-2">
+                    {status.draft
+                      ? <ConfirmButton onConfirm={() => startFrom(template.id, template.name)} disabled={busy} className="flex-1 border-white/15! text-slate-200!" confirmLabel="Replaces draft: tap again">Start from it</ConfirmButton>
+                      : <Button tone="primary" onClick={() => startFrom(template.id, template.name)} disabled={busy} className="flex-1">Start from it</Button>}
+                    {template.canRemove && !readOnly && (
+                      <ConfirmButton onConfirm={() => run(() => api('DELETE', `/api/design/shared/${template.id}`), `“${template.name}” is no longer shared.`)} disabled={busy}
+                        confirmLabel={template.mine ? 'Unpublish? Tap again' : 'Remove for everyone? Tap again'}>{template.mine ? 'Unpublish' : 'Remove'}</ConfirmButton>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
       </Card>
 
       {!readOnly && status.aiTemplates && (
@@ -197,26 +232,11 @@ export function DesignTab({ notify }: { notify: Notify }) {
 
       {(status.customTemplates ?? []).length > 0 && (
         <Card title="Your templates">
-          <p className="mb-4 text-sm text-slate-400">Templates made with AI for {page === 'home' ? 'the homepage' : 'project pages'}. Starting from one replaces your current draft.</p>
+          <p className="mb-4 text-sm text-slate-400">Templates made with AI for {page === 'home' ? 'the homepage' : 'project pages'}. Starting from one replaces your current draft. <b className="text-slate-300">Publish</b> one to add it to everyone’s Templates, with your name on its card.</p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {status.customTemplates.map((template) => (
-              <article key={template.id} className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
-                <div className="relative">
-                  <Thumb id={template.id} customTheme={template.theme} />
-                  <span className="absolute right-2 top-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-black uppercase text-lime-200">AI</span>
-                </div>
-                <div>
-                  <h4 className="font-black text-white">{template.name}{status.draft?.template === template.id && <span className="ml-2 rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-black uppercase text-slate-400">In draft</span>}</h4>
-                  {template.description && <p className="mt-1 line-clamp-3 text-xs text-slate-400">{template.description}</p>}
-                  <p className="mt-1 text-[11px] text-slate-500">{template.blocks} blocks · made {new Date(template.createdAt).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                </div>
-                <div className="mt-auto flex flex-wrap gap-2">
-                  {status.draft
-                    ? <ConfirmButton onConfirm={() => startFrom(template.id, template.name)} disabled={busy} className="flex-1 border-white/15! text-slate-200!" confirmLabel="Replaces draft: tap again">Start from it</ConfirmButton>
-                    : <Button tone="primary" onClick={() => startFrom(template.id, template.name)} disabled={busy} className="flex-1">Start from it</Button>}
-                  {!readOnly && <ConfirmButton onConfirm={() => run(() => api('DELETE', `/api/design/templates/${template.id}`), `“${template.name}” deleted.`)} disabled={busy} confirmLabel="Delete? Tap again">Delete</ConfirmButton>}
-                </div>
-              </article>
+              <OwnTemplateCard key={`${template.id}-${template.name}-${template.publishedAt}`} template={template} inDraft={status.draft?.template === template.id}
+                hasDraft={Boolean(status.draft)} busy={busy} readOnly={readOnly} run={run} onUse={() => startFrom(template.id, template.name)} />
             ))}
           </div>
         </Card>
@@ -236,5 +256,64 @@ export function DesignTab({ notify }: { notify: Notify }) {
         </Card>
       )}
     </div>
+  );
+}
+
+/** One of this site's own templates: use, rename, publish for everyone (or unpublish), delete. */
+function OwnTemplateCard({ template, inDraft, hasDraft, busy, readOnly, run, onUse }: {
+  template: OwnTemplate; inDraft: boolean; hasDraft: boolean; busy: boolean; readOnly: boolean;
+  run: (action: () => Promise<unknown>, message: string) => Promise<void>; onUse: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(template.name);
+  const [description, setDescription] = useState(template.description);
+  const published = Boolean(template.publishedAt);
+  const save = () => run(() => api('PATCH', `/api/design/templates/${template.id}`, { name: name.trim(), description: description.trim() }), `Renamed to “${name.trim()}”.`);
+  return (
+    <article className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
+      <div className="relative">
+        <Thumb id={template.id} customTheme={template.theme} palette={template.palette} />
+        <span className="absolute right-2 top-2 flex gap-1">
+          {published && <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-black uppercase text-cyan-200">Published</span>}
+          <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-black uppercase text-lime-200">AI</span>
+        </span>
+      </div>
+      {editing ? (
+        <div className="grid gap-2">
+          <input className={inputClass} aria-label={`New name for ${template.name}`} value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
+          <textarea className={inputClass} aria-label={`New description for ${template.name}`} rows={3} maxLength={300} value={description} onChange={(e) => setDescription(e.target.value)} />
+          <div className="flex gap-2">
+            <Button tone="primary" disabled={busy || !name.trim()} onClick={save}>Save</Button>
+            <Button onClick={() => { setEditing(false); setName(template.name); setDescription(template.description); }}>Cancel</Button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <h4 className="font-black text-white">{template.name}{inDraft && <span className="ml-2 rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-black uppercase text-slate-400">In draft</span>}</h4>
+          {template.description && <p className="mt-1 line-clamp-3 text-xs text-slate-400">{template.description}</p>}
+          <p className="mt-1 text-[11px] text-slate-500">{template.blocks} blocks · made {day(template.createdAt)}{published && ` · shared ${day(template.publishedAt!)}`}</p>
+        </div>
+      )}
+      <div className="mt-auto flex flex-wrap gap-2">
+        {hasDraft
+          ? <ConfirmButton onConfirm={onUse} disabled={busy} className="flex-1 border-white/15! text-slate-200!" confirmLabel="Replaces draft: tap again">Start from it</ConfirmButton>
+          : <Button tone="primary" onClick={onUse} disabled={busy} className="flex-1">Start from it</Button>}
+        {!readOnly && !editing && <Button onClick={() => setEditing(true)} disabled={busy}>Rename</Button>}
+      </div>
+      {!readOnly && (
+        <div className="flex flex-wrap gap-2 border-t border-white/5 pt-2">
+          {published ? (
+            <>
+              <Button onClick={() => run(() => api('POST', `/api/design/templates/${template.id}/share`), 'Shared copy updated.')} disabled={busy}>Update shared copy</Button>
+              <ConfirmButton onConfirm={() => run(() => api('DELETE', `/api/design/templates/${template.id}/share`), `“${template.name}” is no longer shared.`)} disabled={busy} confirmLabel="Unpublish? Tap again">Unpublish</ConfirmButton>
+            </>
+          ) : (
+            <ConfirmButton onConfirm={() => run(() => api('POST', `/api/design/templates/${template.id}/share`), `Published. “${template.name}” is in everyone’s Templates now, with your name on it.`)} disabled={busy}
+              confirmLabel="Share with every site? Tap again" className="border-cyan-300/40! text-cyan-200!">Publish for everyone</ConfirmButton>
+          )}
+          <ConfirmButton onConfirm={() => run(() => api('DELETE', `/api/design/templates/${template.id}`), `“${template.name}” deleted.`)} disabled={busy} confirmLabel="Delete? Tap again">Delete</ConfirmButton>
+        </div>
+      )}
+    </article>
   );
 }

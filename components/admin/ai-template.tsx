@@ -15,9 +15,9 @@ import { FROM_TEXT, buildPrompt, type PromptParts } from '@/lib/design/ai-prompt
  */
 
 type Parts = PromptParts & { ai: { ready: boolean; provider: string | null } };
-type Check = { ok: true; blocks: number; fixes: string[] };
+type Check = { ok: true; blocks: number; fixes: string[]; brief?: string };
 export type SavedTemplate = { id: string; name: string };
-type Made = { template: SavedTemplate; blocks: number; fixes: string[]; provider: string };
+type Made = { template: SavedTemplate; blocks: number; fixes: string[]; brief?: string; provider: string };
 
 /** Ideas that fill the request box: themes that make a portfolio unmistakably someone's own. */
 const IDEAS: Record<'home' | 'project', { label: string; text: string }[]> = {
@@ -69,7 +69,7 @@ export function AiTemplateCard({ query, notify, hasDraft, onSaved, onUse }: {
   const [made, setMade] = useState<Made | null>(null);
   const [failed, setFailed] = useState('');
   const [request, setRequest] = useState('');
-  const [fromCurrent, setFromCurrent] = useState(true);
+  const [fromCurrent, setFromCurrent] = useState(false);
   const [copied, setCopied] = useState(false);
   const [answer, setAnswer] = useState('');
   const [name, setName] = useState('');
@@ -126,9 +126,9 @@ export function AiTemplateCard({ query, notify, hasDraft, onSaved, onUse }: {
     setBusy(true);
     try {
       const result = await api<Check & { template?: SavedTemplate }>('POST', `/api/design/templates${query}`, {
-        json: answer, check: onlyCheck, name: name.trim(), description: (description.trim() || request.trim()).slice(0, 200),
+        json: answer, check: onlyCheck, name: name.trim(), description: description.trim(), request: request.trim(),
       });
-      setCheck({ answer, result: { ok: true, blocks: result.blocks, fixes: result.fixes } });
+      setCheck({ answer, result: { ok: true, blocks: result.blocks, fixes: result.fixes, brief: result.brief } });
       if (!onlyCheck && result.template) {
         setSaved(result.template);
         notify(`“${result.template.name}” saved. It’s in your templates now.`);
@@ -183,8 +183,8 @@ export function AiTemplateCard({ query, notify, hasDraft, onSaved, onUse }: {
             </Field>
             <fieldset className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-300">
               <legend className="sr-only">Starting point</legend>
-              <label className="flex items-center gap-2"><input type="radio" name="ai-start" checked={fromCurrent} onChange={() => setFromCurrent(true)} className="accent-lime-300" />Rework {FROM_TEXT[current.currentFrom]}</label>
-              <label className="flex items-center gap-2"><input type="radio" name="ai-start" checked={!fromCurrent} onChange={() => setFromCurrent(false)} className="accent-lime-300" />Start from an empty page</label>
+              <label className="flex items-center gap-2"><input type="radio" name="ai-start" checked={!fromCurrent} onChange={() => setFromCurrent(false)} className="accent-lime-300" />A completely new design (best for a theme)</label>
+              <label className="flex items-center gap-2"><input type="radio" name="ai-start" checked={fromCurrent} onChange={() => setFromCurrent(true)} className="accent-lime-300" />Restyle {FROM_TEXT[current.currentFrom]} (keeps its sections and text)</label>
             </fieldset>
           </Step>
 
@@ -212,6 +212,7 @@ export function AiTemplateCard({ query, notify, hasDraft, onSaved, onUse }: {
               {made && (
                 <div className="grid gap-2 rounded-lg border border-lime-300/30 bg-lime-300/10 px-3 py-3">
                   <p className="text-sm text-lime-100">✓ <b>“{made.template.name}”</b> is ready: {made.blocks} blocks, designed by {made.provider}. It’s in your templates below.</p>
+                  {made.brief && <p className="text-xs italic leading-5 text-slate-300">“{made.brief}”</p>}
                   {made.fixes.length > 0 && (
                     <details className="text-xs text-slate-300">
                       <summary className="cursor-pointer text-lime-200">We fixed {made.fixes.length} small thing{made.fixes.length === 1 ? '' : 's'} in the AI’s answer</summary>
@@ -252,6 +253,7 @@ export function AiTemplateCard({ query, notify, hasDraft, onSaved, onUse }: {
             ) : (
               <div className="rounded-lg border border-lime-300/30 bg-lime-300/10 px-3 py-2 text-sm text-lime-100">
                 ✓ Looks good: {checked.blocks} block{checked.blocks === 1 ? '' : 's'}.
+                {checked.brief && <span className="mt-1 block text-xs italic text-slate-300">“{checked.brief}”</span>}
                 {checked.fixes.length > 0 && (
                   <details className="mt-1 text-xs text-slate-300">
                     <summary className="cursor-pointer text-lime-200">We fixed {checked.fixes.length} small thing{checked.fixes.length === 1 ? '' : 's'} for you</summary>
@@ -262,7 +264,7 @@ export function AiTemplateCard({ query, notify, hasDraft, onSaved, onUse }: {
             ))}
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Template name"><input className={inputClass} value={name} maxLength={60} placeholder="e.g. Streaming app" onChange={(e) => setName(e.target.value)} /></Field>
-              <Field label="Description (optional)" hint="Empty: your request from step 1."><input className={inputClass} value={description} maxLength={200} onChange={(e) => setDescription(e.target.value)} /></Field>
+              <Field label="Description (optional)" hint="Empty: the AI’s design concept, or your request."><input className={inputClass} value={description} maxLength={300} onChange={(e) => setDescription(e.target.value)} /></Field>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => submit(true)} disabled={busy || answer.trim().length < 2}>Check it</Button>

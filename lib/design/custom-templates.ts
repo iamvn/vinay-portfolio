@@ -8,8 +8,16 @@ import type { TemplateKind } from './ai-template';
  * (`design.customTemplate.<id>`), so listing them never loads every design.
  */
 
+/** The colors a template sets on top of its theme preset (for its thumbnail). */
+export type Palette = Partial<Record<'bg' | 'surface' | 'surface2' | 'text' | 'muted' | 'line' | 'accent' | 'accent2', string>>;
+export function paletteOf(data: DesignData): Palette {
+  const colors = (data.root as { props?: { colors?: Record<string, unknown> } } | undefined)?.props?.colors ?? {};
+  const keys = ['bg', 'surface', 'surface2', 'text', 'muted', 'line', 'accent', 'accent2'] as const;
+  return Object.fromEntries(keys.flatMap((k) => (typeof colors[k] === 'string' && /^#[0-9a-f]{3,8}$/i.test(colors[k] as string) ? [[k, colors[k]]] : []))) as Palette;
+}
+
 export type CustomTemplate = {
-  id: string; name: string; description: string; kind: TemplateKind; theme: string; blocks: number;
+  id: string; name: string; description: string; kind: TemplateKind; theme: string; blocks: number; palette?: Palette;
   createdAt: string; createdBy: string;
 };
 
@@ -46,12 +54,22 @@ export async function createCustomTemplate(input: { name: string; description: s
   const id = `custom-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
   const theme = String((input.data.root as { props?: { theme?: unknown } } | undefined)?.props?.theme ?? 'clean');
   const meta: CustomTemplate = {
-    id, name: input.name, description: input.description, kind: input.kind, theme, blocks: input.blocks,
+    id, name: input.name, description: input.description, kind: input.kind, theme, blocks: input.blocks, palette: paletteOf(input.data),
     createdAt: new Date().toISOString(), createdBy: input.by,
   };
   await writeJson(dataKey(id), input.data);
   await writeJson(INDEX, [meta, ...list]);
   return meta;
+}
+
+/** Renames a template (and changes its description). */
+export async function updateCustomTemplate(id: string, change: { name?: string; description?: string }) {
+  const list = await index();
+  const current = list.find((t) => t.id === id);
+  if (!current) return null;
+  const next = { ...current, ...change };
+  await writeJson(INDEX, list.map((t) => (t.id === id ? next : t)));
+  return next;
 }
 
 export async function deleteCustomTemplate(id: string) {

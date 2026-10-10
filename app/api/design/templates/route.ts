@@ -26,7 +26,9 @@ const schema = z.object({
   /** The AI's answer as pasted (or the uploaded .json file's text). */
   json: z.string().min(2, 'Paste the AI’s answer first.').max(1_000_000, 'That’s too long (over 1 MB).'),
   name: z.string().trim().max(60).default(''),
-  description: z.string().trim().max(200).default(''),
+  description: z.string().trim().max(300).default(''),
+  /** What the person asked for: the description when neither they nor the AI gave one. */
+  request: z.string().trim().max(3000).default(''),
   /** Only check it: nothing is saved. */
   check: z.boolean().default(false),
 }).strict();
@@ -51,11 +53,11 @@ export async function POST(request: Request) {
   const kind = kindOf(scope);
   const result = importDesign(parsed.value, kind);
   if (result.problem !== undefined) return jsonError(result.problem, 400);
-  if (data.check) return NextResponse.json({ ok: true, blocks: result.blocks, fixes: result.fixes });
+  if (data.check) return NextResponse.json({ ok: true, blocks: result.blocks, fixes: result.fixes, brief: result.brief });
   if (!data.name) return jsonError('Give the template a name.', 400);
   try {
-    const template = await createCustomTemplate({ name: data.name, description: data.description, kind, data: result.data, blocks: result.blocks, by: user.email });
-    return NextResponse.json({ template, blocks: result.blocks, fixes: result.fixes }, { status: 201 });
+    const template = await createCustomTemplate({ name: data.name, description: (data.description || result.brief || data.request).slice(0, 300), kind, data: result.data, blocks: result.blocks, by: user.email });
+    return NextResponse.json({ template, blocks: result.blocks, fixes: result.fixes, brief: result.brief }, { status: 201 });
   } catch (err) {
     if (err instanceof LimitError) return jsonError(err.message, 400);
     return handleDbError(err);

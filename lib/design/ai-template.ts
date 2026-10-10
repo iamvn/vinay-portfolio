@@ -115,6 +115,7 @@ function catalog(kind: TemplateKind) {
 
 const EXAMPLES: Record<TemplateKind, unknown> = {
   home: {
+    brief: 'Calm editorial: warm paper background, ink-black serif headings, one burnt-orange accent, generous white space, thin rules between sections.',
     root: { props: { theme: 'paper', headingFont: 'serif', bodyFont: 'system', radius: 'large', width: 'normal' } },
     content: [
       { type: 'NavBar', props: { id: 'nav' } },
@@ -129,6 +130,7 @@ const EXAMPLES: Record<TemplateKind, unknown> = {
     ],
   },
   project: {
+    brief: 'Clean case study: white page, indigo accent, big cover, readable story column.',
     root: { props: { theme: 'clean', headingFont: 'system', radius: 'medium', width: 'normal' } },
     content: [
       { type: 'ProjectBar', props: { id: 'bar' } },
@@ -159,9 +161,26 @@ Reply with ONE JSON object and nothing else: no explanation, no markdown code fe
 The object is a page for the Puck page builder (https://puckeditor.com), shaped exactly like this:
 
 {
+  "brief": "2–4 sentences: your design concept (see How to design it)",
   "root": { "props": { …theme settings… } },
   "content": [ { "type": "BlockName", "props": { "id": "unique-id", …settings… } } ]
 }`,
+    `# How to design it
+
+The person wants a page that is unmistakably theirs. A safe, generic portfolio is a failed answer. Work in this order:
+
+1. Concept first. Turn the request into a concrete visual language and write it in "brief": the mood; the palette (each color and its role); typography (fonts, case, letter spacing); shapes (corners, borders, glows, gradients); recurring motifs; and the vocabulary for section labels. Short requests ("PlayStation 5 theme", "cricket") still need a full concept: think about what the thing actually looks and feels like and borrow that.
+2. Theme everything at the root: set all nine root colors to your palette (not the theme preset's), plus headingFont, bodyFont, headingCase, headingWeight, radius, buttonShape, buttonStyle and effects to match.
+3. Make the first screen the signature moment. If the plain Hero block can't carry the theme, build the hero yourself from Section, Flex, Box and Card: gradient panels, glowing 1px accent borders, large uppercase headings, small monospace status labels, icons, live text via "source" (name, role, summary, availability).
+4. Speak the theme's language. Every section gets a themed eyebrow or label and one themed line of copy (for a game console: "Select a game" for projects, "Trophies" for stats, "Player profile" for about, "Loadout" for skills, "Join the party" for contact). Live blocks have eyebrow/title settings: theme them, or set them to "-" and write your own Heading above.
+5. Vary the rhythm: alternate section backgrounds, mix full-width bands with contained panels, use cards, dividers and icons. Don't give every section the same layout.
+6. Check before answering: would a stranger name the theme from a screenshot? Is the text readable (light text on dark, or dark on light)? Does it work on a phone?
+
+How themes map onto this builder (examples; adapt, don't copy):
+- Game console: near-black to deep-blue gradients, one luminous accent (electric blue or white glow), cool second accent; condensed or system headings in uppercase with wide tracking; mono labels like "SYSTEM READY" or "LOADING…"; console-style panels (Box with dark gradient, 1px accent border, radius 24–32, large shadow); "game" icons; projects as a game library (Projects layout "carousel" or "gallery", wide images); effects "grid".
+- Streaming app: black, one bold red accent, huge banner hero, rows of wide poster cards (Projects carousel), "Up next" and "Continue watching" wording.
+- Sports scoreboard: deep green or navy, cream text, mono or condensed numbers, stats as scoreboard cards, match and innings wording.
+- Newspaper or magazine: paper colors, serif headings, square corners, thin dividers, column layouts, masthead-style name.`,
     `# Rules
 
 1. Only use the block types listed under "Blocks" below, spelled exactly. Anything else is removed.
@@ -170,11 +189,11 @@ The object is a page for the Puck page builder (https://puckeditor.com), shaped 
 4. Limits: at most 400 blocks in total, nested at most 12 levels deep, under 400 KB of JSON. A good page usually has 10–60 blocks.
 5. For "one of" settings use one of the listed values exactly, with the same type (true/false are booleans, "2" is a string). Numbers must be within the range shown.
 6. Leave out any setting you don't need: it gets the default shown. Objects may be partial (only the keys you change).
-7. Colors: hex only, like "#0f172a", or "" for the theme color. Prefer the theme settings and tones (accent, surface…) over custom colors.
+7. Colors: hex only, like "#0f172a", or "" for the theme color. Set the palette on root.props.colors; inside blocks prefer tones (accent, surface, soft…) so everything stays consistent.
 8. Images and links: only https:// URLs, site paths like /resume or #section anchors, or mailto:. Leave image URLs empty ("") rather than inventing them; never use data: or javascript: URLs.
 9. Text is plain text only. No HTML, CSS, class names, scripts or emoji-heavy decoration.
 10. Themed requests ("Netflix style", "cricket scoreboard", "retro newspaper"…): capture the mood with colors, fonts, layout and your own wording. Never use another brand's logo, name or trademarked slogans in the page text.
-11. The person’s real details (name, role, summary, projects, experience, skills, contact links, resume) are filled in live by the site. Use the live blocks (Hero, Projects, Experience, Skills, Contact, SocialLinks, ResumeButton…) or a Heading/Text/Image "source" binding to show them. Never invent names, employers, numbers or testimonials; short generic labels like "Selected work" are fine.
+11. The person’s real details (name, role, summary, projects, experience, skills, contact links, resume) are filled in live by the site. Use the live blocks (Hero, Projects, Experience, Skills, Stats, Contact, SocialLinks, ResumeButton…) or a Heading/Text/Badge/Image "source" binding to show them. Never type their name (leave NavBar "brand" empty), employers, numbers, testimonials or technology lists: for technologies use Tags with source "technologies" or "skills". Themed labels and short generic lines are fine.
 12. Build custom layouts with Section, Columns, Flex, Grid, Box and Card. Make it look good on phones too (e.g. Columns and Flex stack on mobile, Grid has columnsMobile).
 13. Blocks marked "+ shared design settings" also accept the settings under "Shared design settings" (spacing, size, colors, border, item, more). Use them sparingly. When a block lists its own setting with one of those names (e.g. Heading "size"), use the block's own meaning.`,
     `# Page
@@ -187,7 +206,7 @@ ${lines(ROOT_FIELDS, '', DEFAULT_ROOT as unknown as Record<string, unknown>)}`,
     `# Shared design settings (for blocks marked "+ shared design settings")
 
 ${lines(styleFields as unknown as Record<string, Field>, '', undefined)}`,
-    `# A small valid example (for the shape only; design your own)
+    `# A small valid example (only to show the JSON shape: it is deliberately plain; your design should be far richer)
 
 ${JSON.stringify(EXAMPLES[kind])}`,
   ].join('\n\n');
@@ -317,7 +336,7 @@ function cleanValue(field: Field, value: unknown, def: unknown, path: string, f:
 }
 
 export type ImportResult =
-  | { data: DesignData; blocks: number; fixes: string[]; problem?: never }
+  | { data: DesignData; blocks: number; fixes: string[]; brief: string; problem?: never }
   | { problem: string; data?: never; blocks?: never; fixes?: never };
 
 /**
@@ -329,6 +348,8 @@ export function importDesign(input: unknown, kind: TemplateKind): ImportResult {
   if (Array.isArray(value)) value = { content: value };
   if (isPlain(value) && !Array.isArray(value.content) && isPlain(value.data)) value = value.data;
   if (!isPlain(value) || !Array.isArray(value.content)) return { problem: 'Expected an object like { "root": { "props": {…} }, "content": [ …blocks… ] }.' };
+  // The AI's design concept: used as the template's description when none is given.
+  const brief = typeof value.brief === 'string' ? value.brief.replace(/\s+/g, ' ').trim().slice(0, 600) : '';
 
   const f = fixes();
   const ok = new Set(allowed(kind));
@@ -400,5 +421,5 @@ export function importDesign(input: unknown, kind: TemplateKind): ImportResult {
   const data = { root: { props: rootProps }, content } as unknown as DesignData;
   const problem = designProblem(data, kind === 'home' ? 'home' : 'project');
   if (problem) return { problem };
-  return { data, blocks, fixes: f.notes };
+  return { data, blocks, fixes: f.notes, brief };
 }

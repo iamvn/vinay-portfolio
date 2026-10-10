@@ -27,7 +27,7 @@ export async function aiReady() {
 }
 
 export async function generateDesign(parts: PromptParts, request: string, fromCurrent: boolean, kind: TemplateKind):
-  Promise<{ data: DesignData; blocks: number; fixes: string[]; provider: string }> {
+  Promise<{ data: DesignData; blocks: number; fixes: string[]; brief: string; provider: string }> {
   const providers = await usableProviders();
   if (!providers.length) throw new DesignAiError('No AI provider is set up. Add one in Admin → AI assistant, or use the manual mode.', 503);
   const started = Date.now();
@@ -42,12 +42,12 @@ export async function generateDesign(parts: PromptParts, request: string, fromCu
     const convo = [...messages];
     for (let attempt = 0; attempt < 2 && left() >= 8_000; attempt++) {
       try {
-        const answer = await callProvider(provider, { rules: SYSTEM, context: parts.guide, messages: convo, maxTokens: 8000, timeoutMs: left() });
+        const answer = await callProvider(provider, { rules: SYSTEM, context: parts.guide, messages: convo, maxTokens: 12000, timeoutMs: left() });
         const parsed = parseAiJson(answer);
         const result = parsed.problem !== undefined
           ? { problem: parsed.problem.startsWith('No JSON') ? 'it didn’t reply with a JSON design.' : parsed.problem }
           : importDesign(parsed.value, kind);
-        if (result.problem === undefined) return { data: result.data, blocks: result.blocks, fixes: result.fixes, provider: provider.name };
+        if (result.problem === undefined) return { data: result.data, blocks: result.blocks, fixes: result.fixes, brief: result.brief, provider: provider.name };
         designError = `${provider.name}’s design had a problem: ${result.problem}`;
         // One chance to fix it, if there's time (a second answer takes as long as the first).
         if (BUDGET_MS - left() > 25_000) break;
