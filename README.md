@@ -39,6 +39,49 @@ Open http://localhost:3000.
 
 Scripts: `db:generate` (regenerate client), `db:init` (create tables only), `db:seed` (reset data from JSON), `db:setup` (both).
 
+Other useful commands: `npm run lint` · `npx tsc --noEmit` (type check) · `npm run build && npm start` (production
+build on port 3000) · `npm run db:init` after pulling new versions (adds new columns, keeps data) ·
+`npm run admin:create -- you@example.com` (reset a forgotten admin password).
+
+## Run with Docker
+
+One container runs the site and admin; content is kept in a Docker volume.
+
+```bash
+cp .env.example .env      # set AUTH_SECRET (32+ characters); for the first start also ADMIN_EMAIL + ADMIN_PASSWORD
+docker compose up -d --build
+open http://localhost:3000/admin   # or visit it in a browser
+```
+
+On every start the container checks `AUTH_SECRET`, creates missing tables/columns, loads the starter content
+(`data/portfolio.json`) into an **empty** database only, and creates the first admin from `ADMIN_EMAIL` +
+`ADMIN_PASSWORD` when there is none (`scripts/deploy-setup.ts`). It never overwrites existing content.
+
+| Task | Command |
+| --- | --- |
+| Logs | `docker compose logs -f app` |
+| Stop / start | `docker compose stop` · `docker compose start` |
+| Update after pulling code | `docker compose up -d --build` |
+| Create or reset an admin | `docker compose exec -it app npm run admin:create` |
+| Shell in the container | `docker compose exec -it app sh` |
+| Back up the database | `docker compose cp app:/data/portfolio.db ./portfolio-backup.db` |
+| Remove everything, including data | `docker compose down -v` |
+| Use Turso instead of the volume | delete the `DATABASE_URL` line under `environment:` in `docker-compose.yml` and set `DATABASE_URL` + `DATABASE_AUTH_TOKEN` in `.env` |
+| Another port | `PORT=8080 docker compose up -d` |
+
+Without Compose: `docker build -t portfolio-app .` then
+`docker run -d -p 3000:3000 --env-file .env -e DATABASE_URL=file:/data/portfolio.db -v portfolio-data:/data portfolio-app`.
+
+### API walkthrough script
+
+`scripts/api-example.sh` runs the main API calls against a running site (asks for your password):
+log in, read profile and projects, create a project, upload a PDF in parts, make it a PDF portfolio, design all
+project pages from the *PDF portfolio* template and publish, and save a backup.
+
+```bash
+BASE=http://localhost:3000 EMAIL=you@example.com bash scripts/api-example.sh ~/Downloads/portfolio.pdf
+```
+
 ## REST API
 
 All bodies are JSON unless noted. Validation errors return `400 { "error", "details": [{ "path", "message" }] }`;
@@ -122,13 +165,14 @@ curl http://localhost:3000/api/profile -H "Authorization: Bearer $TOKEN"
 
 | Field | Meaning |
 | --- | --- |
-| `type` | `"case-study"` (default) → page with sections · `"article"` → page with `content` · `"link"` → card opens `externalUrl` directly |
+| `type` | `"case-study"` (default) → page with sections · `"article"` → page with `content` · `"link"` → card opens `externalUrl` directly · `"pdf"` → page showing `pdf` in the viewer |
 | `featured` | shows a "★ FEATURED" badge on the card |
 | `image` | cover image (set by the image upload, or a `/public` path / URL); empty = initials |
 | `liveUrl`, `repoUrl` | optional "LIVE ↗" / "GITHUB ↗" buttons |
 | `externalUrl` | where a `"link"` project goes (required for that type) |
 | `objective`, `approach`, `architecture`, `result` | case-study sections, each hidden when empty |
 | `content` | article text: blank line = paragraph, `## ` heading, `- ` bullet |
+| `pdf` | an uploaded PDF (`/api/files/<id>/<name>`, see *Uploaded PDFs*), shown in the interactive viewer; required for `"pdf"` |
 
 After pulling new versions, run `npm run db:init` once: it adds new columns to an existing database without touching data.
 
@@ -149,8 +193,29 @@ They are filled in from the profile when the page renders, so updating `yearsExp
   `content/portfolio-project.json` is the full case study of this site; case studies can also have a "deep dive" write-up.
 - **Insights** (Admin → Insights): anonymous counts of resume downloads (not your own while signed in),
   email/copy/LinkedIn clicks and assistant questions, plus the latest questions. No IPs or cookies are stored.
-- **Page views**: Vercel Web Analytics (`@vercel/analytics`). Enable it once in Vercel → Project → Analytics.
-  Admin and login pages are not tracked.
+- **Visitor analytics** (Admin → Insights, every site has its own): visitors, visits, page views, time per visit and
+  bounce rate (with the change from the previous period), a chart by hour / day / month, and where visitors come from:
+  sources (LinkedIn, Google, ChatGPT, GitHub, Naukri, Indeed… ~50 known sites, plus any other website), channels
+  (social, search, AI assistants, job sites, email, messaging), the exact linking pages, and campaigns. Also countries
+  and cities, top and landing pages (project pages by title), devices, browsers and systems, which sources led to
+  resume downloads, contact clicks, assistant questions and form messages, "online now", and a log of recent visits
+  (place, source, device, pages seen, time, what they did). Click any source, country, page or device to see only those
+  visitors. Ranges: today, 7, 30, 90 days, 12 months, in your time zone.
+  - **Share links that count:** LinkedIn's app often hides the referrer, so Insights offers tagged links
+    (`/?utm_source=linkedin`, `resume`, `whatsapp`, `email`). Any `utm_source` / `utm_campaign` / `ref` works; the tags
+    are removed from the address bar after the visit is counted. The LinkedIn in-app browser is also recognized by itself.
+  - **Privacy:** no cookies and no IP addresses. A visitor is a one-way hash of (AUTH_SECRET, the date, the site, IP,
+    browser) that changes daily, so people can't be followed across days. Location comes from the host's headers
+    (`x-vercel-ip-country` / `-country-region` / `-city` on Vercel, `cf-ipcountry` behind Cloudflare; empty elsewhere).
+    Signed-in users, admin/login pages and bots aren't counted. Rows older than 400 days are deleted; "Delete visitor
+    data" clears them.
+  - **How:** `components/visit-tracker.tsx` (in the root layout) sends `POST /api/collect` (public, rate limited) on
+    every page and the time on screen when the page is left; goals are recorded by `/api/track`, `/api/resume`,
+    `/api/ask` and `/api/forms`. Stored in each site's `PageView` and `TrafficGoal` tables (`lib/traffic.ts`; sources in
+    `lib/traffic-sources.ts`). Report: `GET /api/insights/traffic?range=7d&tz=330&source=LinkedIn` (also `country`,
+    `device`, `page`); `DELETE` clears it. Needs the Insights tab.
+- **Vercel Web Analytics** (`@vercel/analytics`) still runs too, for the whole deployment (all sites together). Enable it
+  once in Vercel → Project → Analytics. Admin and login pages are not tracked.
 
 ### Ask my resume (AI assistant)
 
@@ -294,6 +359,57 @@ Admin → Design (Puck) has, besides the ready-made sections, blocks to build an
 - **Quick add** (first group in Blocks): ready-made, fully editable layouts built from Boxes: banner with button,
   text + image columns, three feature cards, stats row, contact form card, FAQ and testimonials. Each drop gets fresh
   block ids. `components/design/starters.ts`.
+
+### Publish checklist
+
+Pressing **Publish** first checks the draft; a clean page publishes straight away, otherwise a panel lists what to
+fix (problems first, then tips), each with a **Show** button that selects the block. **✓ Check page** runs it any time.
+
+- From the design itself (`lib/design/checks.ts`): buttons/links that go nowhere (hidden on the live site), images
+  with no picture or no description, empty text and boxes, video and form problems, rows of 3+ that don't stack on
+  phones, fixed widths wider than a phone.
+- From the draft as a browser renders it (`components/design/page-audit.ts`, run on `/admin/design/preview?audit=1`
+  in hidden desktop and phone frames, where each block carries `data-bid`): WCAG AA text contrast (4.5:1, 3:1 for
+  big text; text over pictures is skipped), one H1 and no skipped heading levels, `#anchor` links to nothing,
+  content cut off on phones, text under 11px, tap targets under 24×24px.
+
+### Project page designs
+
+Admin → Design → **Project pages** designs `/projects/<slug>` the same way as the homepage: once for every project,
+with blocks that fill in the project being viewed (**This project**: back bar, title, summary, cover, tags, links,
+case study details, write-up, PDF, "get in touch", previous/next, and the whole built-in page as one block).
+Templates: *Classic* (today's page), *Case study*, *PDF portfolio*, *Visual story*, *Blank*. In the editor, **Page**
+switches between the homepage, all project pages and one project; **Preview with** picks the project shown.
+
+Any project can get **its own design** (Design → Project pages → Each project, or the Page menu); it starts as a copy
+of the shared one. A project page shows its own published design, else the shared one, else the built-in page.
+
+Stored like the homepage design, one set per page (`lib/design/store.ts`): `design.project.*` and
+`design.project:<slug>.*` (moved on slug rename, deleted with the project). API calls take `?page=project` and
+`&project=<slug>`; project blocks are refused in a homepage design.
+
+### Uploaded PDFs and the PDF viewer
+
+For work that *is* a PDF (interior design, architecture, illustration, reports): upload it on a project
+(Admin → Projects → PDF, or type **PDF portfolio**) or in a **PDF document** block anywhere in a design.
+
+- **Viewer** (`components/design/pdf-viewer.tsx`, pdf.js): page by page, two pages side by side like a book (one page
+  on phones), or scrolling; zoom, thumbnails, full screen, keyboard (← → + −) and swipe, optional download. Or show
+  it as a **cover card** that opens the viewer full screen. Colors follow the design theme.
+- **Storage** (`lib/assets.ts`): in each site's own database, no extra service. Vercel limits requests and responses
+  to 4.5 MB, so the browser uploads in 3 MB parts (`POST /api/assets` → `PUT /api/assets/<id>/parts/<n>` →
+  `POST /api/assets/<id>/complete`), the server keeps 256 KB blocks, and `GET /api/files/<id>/<name>` (public)
+  answers byte ranges, so viewers load only the pages shown. Limits: 40 MB per file, 200 MB per site. Only real
+  PDFs are accepted (checked by content). New sites don't copy the main site's PDFs; backups (Admin → Backup)
+  keep the PDF links but not the files.
+
+### Projects section options
+
+The **Projects** block: layouts *grid*, *gallery* (picture tiles, title on hover / under the picture on phones),
+*list*, *alternating rows*, *carousel* (swipe), *compact index*; cards per row on desktop and phones; which projects
+(all, featured, one type such as PDF portfolios, a tag, or hand-picked in your order); order; image shape (or none);
+card or plain; what shows (description, tags, buttons, type label); hover effect. Designs saved before these options
+keep their look.
 
 ## Career tools: evidence, applications, kit and interview prep
 

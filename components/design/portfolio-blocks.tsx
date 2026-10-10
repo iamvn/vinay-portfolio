@@ -256,7 +256,33 @@ export function Skills(props: SkillsProps & { portfolio: Portfolio }) {
 
 /* ---------- Projects ---------- */
 
-export type ProjectsProps = { layout: 'grid' | 'list'; columns: '2' | '3'; filter: 'all' | 'featured'; limit: number; showStack: boolean; eyebrow: string; title: string; align: 'left' | 'center' };
+export type ProjectsProps = {
+  layout: 'grid' | 'gallery' | 'list' | 'zigzag' | 'carousel' | 'compact';
+  columns: '1' | '2' | '3' | '4';
+  columnsMobile: '1' | '2';
+  filter: 'all' | 'featured' | 'type' | 'tag' | 'pick';
+  typeFilter: 'case-study' | 'article' | 'pdf' | 'link';
+  tag: string;
+  pick: { slug: string }[];
+  sort: 'featured' | 'order' | 'title';
+  limit: number;
+  image: 'video' | 'wide' | 'square' | 'portrait' | 'hide';
+  cardStyle: 'card' | 'plain';
+  showDescription: boolean;
+  showStack: boolean;
+  showLinks: boolean;
+  showType: boolean;
+  hover: 'lift' | 'zoom' | 'none';
+  cardAlign: 'left' | 'center';
+  eyebrow: string;
+  title: string;
+  align: 'left' | 'center';
+};
+/** Settings added later: designs saved before them get today's look. */
+export const PROJECTS_DEFAULTS: Omit<ProjectsProps, 'layout' | 'columns' | 'filter' | 'limit' | 'showStack' | 'eyebrow' | 'title' | 'align'> = {
+  columnsMobile: '1', typeFilter: 'pdf', tag: '', pick: [], sort: 'featured', image: 'video', cardStyle: 'card',
+  showDescription: true, showLinks: true, showType: false, hover: 'lift', cardAlign: 'left',
+};
 
 /** A project's page opens inside the site (fast, no full reload); "link" projects open their link in a new tab. */
 function ProjectLink({ project, className, label, children }: { project: Project; className?: string; label?: string; children: ReactNode }) {
@@ -267,64 +293,158 @@ function ProjectLink({ project, className, label, children }: { project: Project
 }
 
 const projectHref = (project: Project) => (project.type === 'link' ? safeHref(project.externalUrl) ?? '#' : `/projects/${project.slug}`);
+const TYPE_NAMES: Record<string, string> = { 'case-study': 'Case study', article: 'Article', pdf: 'PDF', link: 'Link' };
+const ASPECTS: Record<string, string> = { video: 'aspect-video', wide: 'aspect-[21/9]', square: 'aspect-square', portrait: 'aspect-[4/5]' };
 
-function ProjectCover({ project, label, className }: { project: Project; label: string; className: string }) {
+function ProjectCover({ project, label, className, zoom = false, typeBadge = false }: { project: Project; label: string; className: string; zoom?: boolean; typeBadge?: boolean }) {
   const src = safeSrc(project.image);
   return (
     <div className={`d-card-soft relative flex items-center justify-center overflow-hidden text-4xl font-black ${className}`} style={{ color: 'color-mix(in srgb, var(--d-accent) 35%, transparent)' }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      {src ? <img src={src} alt={`${project.title} preview`} loading="lazy" className="h-full w-full object-cover" /> : initialsOf(project.title)}
+      {src ? <img src={src} alt={`${project.title} preview`} loading="lazy" className={`h-full w-full object-cover ${zoom ? 'transition duration-500 group-hover:scale-105' : ''}`} /> : <span aria-hidden="true">{initialsOf(project.title)}</span>}
       {project.featured && <span className="d-tag d-tag-accent absolute left-2 top-2 text-[10px] font-bold">{label}</span>}
+      {typeBadge && <span className="d-tag absolute right-2 top-2 text-[10px] font-bold">{TYPE_NAMES[project.type] ?? ''}</span>}
     </div>
   );
 }
 
-export function Projects(props: ProjectsProps & { portfolio: Portfolio }) {
+/** The projects a Projects block shows, after its filter, order and limit. */
+export function pickProjects(projects: Project[], props: Pick<ProjectsProps, 'filter' | 'typeFilter' | 'tag' | 'pick' | 'sort' | 'limit'>) {
+  let list = [...projects];
+  if (props.filter === 'featured') list = list.filter((p) => p.featured);
+  else if (props.filter === 'type') list = list.filter((p) => p.type === props.typeFilter);
+  else if (props.filter === 'tag') { const tag = props.tag.trim().toLowerCase(); list = tag ? list.filter((p) => p.stack.some((t) => t.toLowerCase() === tag)) : list; }
+  else if (props.filter === 'pick') { const order = (props.pick ?? []).map((p) => p.slug); list = order.flatMap((slug) => list.filter((p) => p.slug === slug)); }
+  if (props.filter !== 'pick') {
+    if (props.sort === 'title') list.sort((a, b) => a.title.localeCompare(b.title));
+    else if (props.sort === 'featured') list.sort((a, b) => Number(b.featured) - Number(a.featured));
+  }
+  return props.limit > 0 ? list.slice(0, props.limit) : list;
+}
+
+export function Projects(input: ProjectsProps & { portfolio: Portfolio }) {
+  const props = { ...PROJECTS_DEFAULTS, ...Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined)) } as ProjectsProps & { portfolio: Portfolio };
   const { projects, copy } = props.portfolio;
   const labels = copy.projects;
-  let list = props.filter === 'featured' ? projects.filter((project) => project.featured) : [...projects].sort((a, b) => Number(b.featured) - Number(a.featured));
-  if (props.limit > 0) list = list.slice(0, props.limit);
-  const actionLabel = (project: Project) => (project.type === 'article' ? labels.readArticle : project.type === 'link' ? labels.openLink : labels.enter);
-  const links = (project: Project) => (
-    <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-4 text-xs">
+  const list = pickProjects(projects, props);
+  const actionLabel = (project: Project) => (project.type === 'article' ? labels.readArticle : project.type === 'link' ? labels.openLink : project.type === 'pdf' ? labels.viewPdf : labels.enter);
+  const center = props.cardAlign === 'center';
+  const links = (project: Project) => props.showLinks && (
+    <div className={`mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-4 text-xs ${center ? 'justify-center' : ''}`}>
       <ProjectLink project={project} className="d-link inline-flex min-h-11 items-center md:min-h-0">{actionLabel(project)}</ProjectLink>
       {safeHref(project.liveUrl) && <a href={safeHref(project.liveUrl)} target="_blank" rel="noopener noreferrer" className="d-accent-2 inline-flex min-h-11 items-center font-bold no-underline md:min-h-0">{labels.live}</a>}
       {safeHref(project.repoUrl) && <a href={safeHref(project.repoUrl)} target="_blank" rel="noopener noreferrer" className="d-muted inline-flex min-h-11 items-center font-bold no-underline md:min-h-0">{labels.github}</a>}
     </div>
   );
   const stack = (project: Project) => props.showStack && project.stack.length > 0 && (
-    <div className="mt-3 flex flex-wrap gap-1.5">{project.stack.map((tag) => <span key={tag} className="d-tag d-tag-accent text-[11px]">{tag}</span>)}</div>
+    <div className={`mt-3 flex flex-wrap gap-1.5 ${center ? 'justify-center' : ''}`}>{project.stack.map((tag) => <span key={tag} className="d-tag d-tag-accent text-[11px]">{tag}</span>)}</div>
   );
+  const description = (project: Project) => props.showDescription && project.description && <p className="d-muted mt-2 text-sm leading-6">{project.description}</p>;
+  const cover = (project: Project, className = '') => props.image !== 'hide' && (
+    <ProjectLink project={project} label={project.title}>
+      <ProjectCover project={project} label={labels.featured} className={`${ASPECTS[props.image] ?? 'aspect-video'} ${className}`} zoom={props.hover === 'zoom'} typeBadge={props.showType} />
+    </ProjectLink>
+  );
+  const card = props.cardStyle === 'card' ? 'd-card p-4' : '';
+  const hover = props.hover === 'lift' ? 'transition hover:-translate-y-1' : '';
+  const cols = { '1': '', '2': 'sm:grid-cols-2', '3': 'sm:grid-cols-2 lg:grid-cols-3', '4': 'sm:grid-cols-2 lg:grid-cols-4' }[props.columns] ?? 'sm:grid-cols-2 lg:grid-cols-3';
+  const phoneCols = props.columnsMobile === '2' ? 'grid-cols-2' : 'grid-cols-1';
+  const title = (project: Project, size = 'text-base') => (
+    <h3 className={`${size} font-black`}><ProjectLink project={project} className="hover:underline">{project.title}</ProjectLink></h3>
+  );
+
+  let body: ReactNode;
+  if (props.layout === 'list') {
+    body = (
+      <div className="grid gap-4">
+        {list.map((project) => (
+          <article key={project.slug} className={`group grid gap-5 ${card} ${props.image !== 'hide' ? 'md:grid-cols-[16rem_1fr]' : ''} md:p-5`}>
+            {cover(project)}
+            <div className={`flex min-w-0 flex-col ${center ? 'text-center' : ''}`}>{title(project, 'text-lg')}{description(project)}{stack(project)}{links(project)}</div>
+          </article>
+        ))}
+      </div>
+    );
+  } else if (props.layout === 'zigzag') {
+    body = (
+      <div className="grid gap-10 md:gap-14">
+        {list.map((project, i) => (
+          <article key={project.slug} className={`group grid items-center gap-6 md:grid-cols-2 md:gap-10 ${card}`}>
+            <div className={i % 2 ? 'md:order-2' : ''}>{cover(project, 'w-full')}</div>
+            <div className={`flex min-w-0 flex-col ${center ? 'text-center' : ''}`}>
+              {props.showType && <p className="d-eyebrow mb-2">{TYPE_NAMES[project.type]}</p>}
+              {title(project, 'text-2xl md:text-3xl')}{description(project)}{stack(project)}{links(project)}
+            </div>
+          </article>
+        ))}
+      </div>
+    );
+  } else if (props.layout === 'gallery') {
+    // Image tiles; the title sits on the picture (always on phones, on hover on desktop).
+    body = (
+      <div className={`grid gap-3 ${phoneCols} ${cols}`}>
+        {list.map((project) => (
+          <ProjectLink key={project.slug} project={project} label={project.title} className="group relative block overflow-hidden md:rounded-[var(--d-radius)]">
+            <ProjectCover project={project} label={labels.featured} className={`${ASPECTS[props.image === 'hide' ? 'square' : props.image] ?? 'aspect-square'}`} zoom={props.hover !== 'none'} typeBadge={props.showType} />
+            {/* desktop: the title slides up over the picture on hover / keyboard focus */}
+            <span className="absolute inset-x-0 bottom-0 hidden translate-y-2 flex-col gap-0.5 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-3 pt-12 text-left opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 md:flex" style={{ color: '#fff' }}>
+              <span className="text-sm font-black leading-tight">{project.title}</span>
+              {props.showDescription && <span className="line-clamp-2 text-xs opacity-85">{project.description}</span>}
+            </span>
+            {/* phones (no hover): a caption under the picture */}
+            <span className="mt-2 block text-left md:hidden">
+              <span className="block text-sm font-black leading-tight">{project.title}</span>
+              {props.showDescription && <span className="d-muted mt-0.5 line-clamp-2 text-xs">{project.description}</span>}
+            </span>
+          </ProjectLink>
+        ))}
+      </div>
+    );
+  } else if (props.layout === 'carousel') {
+    // A row that scrolls sideways (swipe on phones), each card snapping into place.
+    body = (
+      <div className="-mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-3 [scrollbar-width:thin]" tabIndex={0} aria-label={`${or(props.title, labels.title)}: scroll sideways`}>
+        {list.map((project) => (
+          <article key={project.slug} className={`group flex w-[82%] shrink-0 snap-start flex-col sm:w-[45%] lg:w-[31%] ${card} ${hover} ${center ? 'text-center' : ''}`}>
+            {cover(project)}<div className="mt-4">{title(project)}</div>{description(project)}{stack(project)}{links(project)}
+          </article>
+        ))}
+      </div>
+    );
+  } else if (props.layout === 'compact') {
+    // An index: one line per project.
+    body = (
+      <ul className="divide-y" style={{ borderColor: 'var(--d-line)' }}>
+        {list.map((project) => (
+          <li key={project.slug} style={{ borderColor: 'var(--d-line)' }}>
+            <ProjectLink project={project} className="group flex min-h-14 items-center gap-4 py-3">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-bold group-hover:underline">{project.title}</span>
+                {props.showDescription && <span className="d-muted block truncate text-sm">{project.description}</span>}
+              </span>
+              {props.showType && <span className="d-tag shrink-0 text-[10px] font-bold">{TYPE_NAMES[project.type]}</span>}
+              <span aria-hidden="true" className="d-accent shrink-0 transition group-hover:translate-x-1">→</span>
+            </ProjectLink>
+          </li>
+        ))}
+      </ul>
+    );
+  } else {
+    body = (
+      <div className={`grid gap-4 ${phoneCols} ${cols}`}>
+        {list.map((project) => (
+          <article key={project.slug} className={`group flex flex-col ${card} ${hover} ${center ? 'text-center' : ''}`}>
+            {cover(project)}<div className="mt-4">{title(project)}</div>{description(project)}{stack(project)}{links(project)}
+          </article>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <Block id="projects">
       <SectionHeading align={props.align} eyebrow={or(props.eyebrow, labels.eyebrow)} title={or(props.title, labels.title)} />
-      {list.length === 0 && <p className="d-muted text-sm">No projects to show yet.</p>}
-      {props.layout === 'list' ? (
-        <div className="grid gap-4">
-          {list.map((project) => (
-            <article key={project.slug} className="d-card grid gap-5 p-4 md:grid-cols-[16rem_1fr] md:p-5">
-              <ProjectLink project={project} label={project.title}><ProjectCover project={project} label={labels.featured} className="aspect-video" /></ProjectLink>
-              <div className="flex min-w-0 flex-col">
-                <h3 className="text-lg font-black">{project.title}</h3>
-                <p className="d-muted mt-2 text-sm leading-6">{project.description}</p>
-                {stack(project)}{links(project)}
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <div className={`grid gap-4 sm:grid-cols-2 ${props.columns === '3' ? 'lg:grid-cols-3' : ''}`}>
-          {list.map((project) => (
-            <article key={project.slug} className="d-card flex flex-col p-4 transition hover:-translate-y-1">
-              <ProjectLink project={project} label={project.title}><ProjectCover project={project} label={labels.featured} className="aspect-video" /></ProjectLink>
-              <h3 className="mt-4 text-base font-black">{project.title}</h3>
-              <p className="d-muted mt-2 text-sm leading-6">{project.description}</p>
-              {stack(project)}{links(project)}
-            </article>
-          ))}
-        </div>
-      )}
+      {list.length === 0 ? <p className="d-muted text-sm">No projects to show yet.</p> : body}
     </Block>
   );
 }

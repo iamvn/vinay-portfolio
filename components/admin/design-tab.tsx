@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { api, describeError } from './api';
 import { Button, Card, ConfirmButton, Loading, buttonBase, type Notify, useReadOnly } from './ui';
 import { THEME_PRESETS } from '@/lib/design/theme';
@@ -17,12 +16,17 @@ type Status = {
 const when = (iso: string) => new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
 /** Tiny picture of each template, drawn with its theme colors. */
-const THUMBS: Record<string, { theme: keyof typeof THEME_PRESETS; layout: 'arcade' | 'centered' | 'split' | 'blank' | 'classic' }> = {
+const THUMBS: Record<string, { theme: keyof typeof THEME_PRESETS; layout: 'arcade' | 'centered' | 'split' | 'blank' | 'classic' | 'book' | 'cover' }> = {
   classic: { theme: 'arcade', layout: 'classic' },
   arcade: { theme: 'arcade', layout: 'arcade' },
   minimal: { theme: 'paper', layout: 'centered' },
   studio: { theme: 'clean', layout: 'split' },
   blank: { theme: 'clean', layout: 'blank' },
+  'project-classic': { theme: 'arcade', layout: 'arcade' },
+  'project-case-study': { theme: 'clean', layout: 'cover' },
+  'project-pdf': { theme: 'paper', layout: 'book' },
+  'project-visual': { theme: 'mono', layout: 'cover' },
+  'project-blank': { theme: 'clean', layout: 'blank' },
 };
 
 function Thumb({ id }: { id: string }) {
@@ -40,6 +44,8 @@ function Thumb({ id }: { id: string }) {
           {layout === 'classic' && <div className="grid grid-cols-[18%_1fr] gap-2"><span className="block h-16 rounded" style={{ background: t.surface }} /><div className="grid gap-1.5 rounded p-2" style={{ background: t.surface }}>{bar('35%', t.accent)}{bar('70%', t.text, 7)}{bar('40%', t.accent2)}</div></div>}
           {layout === 'arcade' && <div className="grid gap-1.5 rounded p-2" style={{ background: t.surface, border: `1px solid ${t.line}` }}>{bar('30%', t.accent)}{bar('75%', t.text, 8)}{bar('40%', t.accent2)}<span className="mt-1 flex gap-1">{bar('18%', t.accent, 6)}{bar('18%', t.line, 6)}</span></div>}
           {layout === 'centered' && <div className="grid justify-items-center gap-1.5 py-1"><span className="block size-6 rounded-full" style={{ background: t.surface2, border: `2px solid ${t.accent}` }} />{bar('55%', t.text, 7)}{bar('35%', t.accent2)}{bar('25%', t.accent, 6)}</div>}
+          {layout === 'book' && <div className="grid justify-items-center gap-1.5">{bar('45%', t.text, 7)}{bar('30%')}<span className="mt-1 flex w-4/5 gap-px rounded p-1" style={{ background: t.surface2 }}><span className="block h-12 flex-1 rounded-sm bg-white/90" /><span className="block h-12 flex-1 rounded-sm bg-white/80" /></span></div>}
+          {layout === 'cover' && <div className="grid gap-1.5"><span className="block h-10 rounded" style={{ background: t.surface2 }} />{bar('55%', t.text, 7)}{bar('80%')}<span className="flex gap-1">{bar('16%', t.accent, 6)}{bar('16%', t.line, 6)}</span></div>}
           {layout === 'split' && <div className="grid grid-cols-[1.3fr_1fr] items-center gap-2"><div className="grid gap-1.5">{bar('40%', t.accent)}{bar('85%', t.text, 7)}{bar('60%')}{bar('30%', t.accent, 6)}</div><span className="block h-14 rounded" style={{ background: t.surface2 }} /></div>}
           <div className="grid grid-cols-3 gap-1.5">{card}{card}{card}</div>
         </div>
@@ -48,16 +54,29 @@ function Thumb({ id }: { id: string }) {
   );
 }
 
+type ProjectDesign = { slug: string; title: string; published: boolean; own: 'live' | 'draft' | null };
+type Page = 'home' | 'project';
+const PAGES: Record<Page, { label: string; query: string; builtIn: string; liveText: string; editorHref: string }> = {
+  home: { label: 'Homepage', query: '', builtIn: 'classic design', liveText: 'The homepage now shows your design.', editorHref: '/admin/design' },
+  project: { label: 'Project pages', query: '?page=project', builtIn: 'project page', liveText: 'Every project page now uses your design (except projects with their own).', editorHref: '/admin/design?page=project' },
+};
+
 export function DesignTab({ notify }: { notify: Notify }) {
   const readOnly = useReadOnly();
-  const [status, setStatus] = useState<Status | null>(null);
+  const [page, setPage] = useState<Page>('home');
+  const [loaded, setLoaded] = useState<{ page: Page; status: Status } | null>(null);
+  const [projects, setProjects] = useState<ProjectDesign[] | null>(null);
   const [busy, setBusy] = useState(false);
-  const router = useRouter();
+  const P = PAGES[page];
+  const status = loaded?.page === page ? loaded.status : null;
 
   const load = useCallback(() => {
-    api<Status>('GET', '/api/design').then(setStatus).catch((error) => notify(describeError(error), 'error'));
-  }, [notify]);
+    const current = page;
+    api<Status>('GET', `/api/design${PAGES[current].query}`).then((s) => setLoaded({ page: current, status: s })).catch((error) => notify(describeError(error), 'error'));
+    if (current === 'project') api<ProjectDesign[]>('GET', '/api/design/projects').then(setProjects).catch((error) => notify(describeError(error), 'error'));
+  }, [notify, page]);
   useEffect(load, [load]);
+  const withPage = (path: string) => `${path}${P.query}`;
 
   async function run(action: () => Promise<unknown>, message: string, then?: () => void) {
     setBusy(true);
@@ -72,21 +91,34 @@ export function DesignTab({ notify }: { notify: Notify }) {
     }
   }
 
-  if (!status) return <Loading />;
+  const switcher = (
+    <div role="tablist" aria-label="Which page to design" className="inline-flex rounded-xl border border-white/10 bg-black/20 p-1">
+      {(Object.keys(PAGES) as Page[]).map((key) => (
+        <button key={key} type="button" role="tab" aria-selected={page === key} onClick={() => setPage(key)}
+          className={`min-h-10 rounded-lg px-4 text-xs font-black uppercase tracking-wide ${page === key ? 'bg-lime-300 text-black' : 'text-slate-300 hover:text-white'}`}>{PAGES[key].label}</button>
+      ))}
+    </div>
+  );
+  if (!status) return <div className="space-y-4">{switcher}<Loading /></div>;
   const live = status.published;
   const startFrom = (id: string, name: string) =>
-    run(() => api('POST', '/api/design/template', { id }), `${name} loaded into your draft. Opening the editor…`, () => router.push('/admin/design'));
+    // A full page load: the editor's preview frame copies the page's stylesheets, which a client-side
+    // navigation may still be swapping in.
+    run(() => api('POST', withPage('/api/design/template'), { id }), `${name} loaded into your draft. Opening the editor…`, () => window.location.assign(P.editorHref));
 
   return (
     <div className="space-y-4 sm:space-y-5">
+      {switcher}
       <Card
-        title="Homepage design"
-        actions={<span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${live ? 'bg-lime-300/15 text-lime-200' : 'bg-white/5 text-slate-300'}`}>{live ? '● Custom design live' : '● Classic design live'}</span>}
+        title={page === 'home' ? 'Homepage design' : 'Project page design (all projects)'}
+        actions={<span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${live ? 'bg-lime-300/15 text-lime-200' : 'bg-white/5 text-slate-300'}`}>{live ? '● Custom design live' : page === 'home' ? '● Classic design live' : '● Built-in page live'}</span>}
       >
         <p className="text-sm text-slate-300">
           {live
             ? <>Visitors see your custom design, published {when(live.savedAt)}{live.savedBy ? <> by {live.savedBy}</> : ' (the starting design this site was created with)'}.</>
-            : <>Visitors see the built-in classic design. Open the editor (it starts from an editable copy of it) or pick a template, then press <b>Publish</b>.</>}
+            : page === 'home'
+              ? <>Visitors see the built-in classic design. Open the editor (it starts from an editable copy of it) or pick a template, then press <b>Publish</b>.</>
+              : <>Project pages use the built-in layout. Design them once here: “This project” blocks fill in each project’s own title, images, PDF and links.</>}
         </p>
         {status.draft && (
           <p className="mt-1 text-xs text-slate-500">
@@ -94,16 +126,39 @@ export function DesignTab({ notify }: { notify: Notify }) {
           </p>
         )}
         <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-          <a href="/admin/design" className={`${buttonBase} col-span-2 bg-lime-300 text-black hover:bg-lime-200 sm:col-span-1`}>{readOnly ? 'View design editor' : 'Open design editor'}</a>
-          {status.draft && <a href="/admin/design/preview" target="_blank" rel="noreferrer" className={`${buttonBase} border border-white/15 text-slate-200 hover:border-cyan-300/60`}>Preview draft ↗</a>}
-          {status.draft && status.unpublishedChanges && <Button onClick={() => run(() => api('POST', '/api/design/publish', {}), 'Published. The homepage now shows your design.')} disabled={busy}>Publish draft</Button>}
-          {status.draft && status.unpublishedChanges && <ConfirmButton onConfirm={() => run(() => api('DELETE', '/api/design'), live ? 'Draft reverted to the live design.' : 'Draft discarded. The editor starts from the live Classic design again.')} disabled={busy} confirmLabel="Tap again to discard" className="border-white/15! text-slate-200!">↺ Revert draft to live</ConfirmButton>}
-          {live && <ConfirmButton onConfirm={() => run(() => api('DELETE', '/api/design/publish'), 'Switched back to the built-in classic design. Your draft is kept.')} disabled={busy} confirmLabel="Tap again to switch">Use built-in classic</ConfirmButton>}
+          <a href={P.editorHref} className={`${buttonBase} col-span-2 bg-lime-300 text-black hover:bg-lime-200 sm:col-span-1`}>{readOnly ? 'View design editor' : 'Open design editor'}</a>
+          {status.draft && <a href={withPage('/admin/design/preview')} target="_blank" rel="noreferrer" className={`${buttonBase} border border-white/15 text-slate-200 hover:border-cyan-300/60`}>Preview draft ↗</a>}
+          {status.draft && status.unpublishedChanges && <Button onClick={() => run(() => api('POST', withPage('/api/design/publish'), {}), `Published. ${P.liveText}`)} disabled={busy}>Publish draft</Button>}
+          {status.draft && status.unpublishedChanges && <ConfirmButton onConfirm={() => run(() => api('DELETE', withPage('/api/design')), live ? 'Draft reverted to the live design.' : `Draft discarded. The editor starts from the built-in ${P.builtIn} again.`)} disabled={busy} confirmLabel="Tap again to discard" className="border-white/15! text-slate-200!">↺ Revert draft to live</ConfirmButton>}
+          {live && <ConfirmButton onConfirm={() => run(() => api('DELETE', withPage('/api/design/publish')), `Switched back to the built-in ${P.builtIn}. Your draft is kept.`)} disabled={busy} confirmLabel="Tap again to switch">Use built-in {page === 'home' ? 'classic' : 'page'}</ConfirmButton>}
         </div>
         <p className="mt-3 text-[11px] text-slate-500">
           The editor works best on a laptop or tablet. Your name, projects, experience, skills and site text still come from the other tabs; a design only controls layout and style.
         </p>
       </Card>
+
+      {page === 'project' && (
+        <Card title="Each project">
+          <p className="mb-3 text-sm text-slate-400">Every project uses the design above. Give one project its own design when it needs something different (it starts as a copy of the shared design).</p>
+          {!projects ? <Loading /> : projects.length === 0 ? <p className="text-sm text-slate-500">No projects yet: add them in Admin → Projects.</p> : (
+            <ul className="divide-y divide-white/5">
+              {projects.map((project) => (
+                <li key={project.slug} className="flex flex-wrap items-center gap-3 py-3">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-bold text-white">{project.title}{!project.published && <span className="ml-2 text-[10px] font-black uppercase text-slate-500">Draft</span>}</span>
+                    <span className="text-xs text-slate-400">{project.own === 'live' ? 'Own design (live)' : project.own === 'draft' ? 'Own design in progress · shared design is live' : 'Uses the shared design'}</span>
+                  </span>
+                  <a href={`/projects/${project.slug}`} target="_blank" rel="noreferrer" className={`${buttonBase} border border-white/15 text-slate-200 hover:border-cyan-300/60`}>View ↗</a>
+                  <a href={`/admin/design?page=project&project=${encodeURIComponent(project.slug)}`} className={`${buttonBase} border border-white/15 text-slate-200 hover:border-lime-300/60`}>{project.own ? 'Edit its design' : readOnly ? 'View' : 'Give it its own design'}</a>
+                  {project.own && !readOnly && (
+                    <ConfirmButton onConfirm={() => run(() => api('DELETE', `/api/design/publish?page=project&project=${encodeURIComponent(project.slug)}&forget=1`), `${project.title} uses the shared design again.`)} disabled={busy} confirmLabel="Deletes its design: tap again" className="border-white/15! text-slate-200!">Use shared design</ConfirmButton>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
 
       <Card title="Templates">
         <p className="mb-4 text-sm text-slate-400">Starting from a template replaces your current draft. Nothing changes on the live site until you publish.</p>
@@ -130,7 +185,7 @@ export function DesignTab({ notify }: { notify: Notify }) {
             {status.history.map((version) => (
               <li key={version.index} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <span className="text-sm text-slate-300">{when(version.savedAt)} {version.savedBy && <span className="text-slate-500">· {version.savedBy}</span>}</span>
-                <ConfirmButton onConfirm={() => run(() => api('POST', '/api/design/restore', { index: version.index }), 'Loaded into your draft. Open the editor to review and publish.')} disabled={busy} className="border-white/15! text-slate-200!" confirmLabel="Replaces draft: tap again">Load into draft</ConfirmButton>
+                <ConfirmButton onConfirm={() => run(() => api('POST', withPage('/api/design/restore'), { index: version.index }), 'Loaded into your draft. Open the editor to review and publish.')} disabled={busy} className="border-white/15! text-slate-200!" confirmLabel="Replaces draft: tap again">Load into draft</ConfirmButton>
               </li>
             ))}
           </ul>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, describeError } from './api';
 import { Button, Card, ConfirmButton, Loading, type Notify } from './ui';
+import { TrafficPanel } from './traffic-panel';
 
 type Submission = { id: number; form: string; fields: Record<string, string>; page: string; createdAt: string };
 
@@ -73,30 +74,22 @@ export function InsightsTab({ notify }: { notify: Notify }) {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-400">Anonymous counts from your site. No names, IPs or cookies are stored.</p>
-        <Button view onClick={load}>Refresh</Button>
-      </div>
+      <TrafficPanel notify={notify} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        {METRICS.map(({ key, label, hint }) => {
-          const count = data.counts[key] ?? { last7: 0, last30: 0, total: 0 };
-          return (
-            <div key={key} title={hint} className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">{label}</p>
-              <p className="mt-2 text-3xl font-black text-white">{count.last7}</p>
-              <p className="text-[11px] text-slate-500">last 7 days</p>
-              <p className="mt-2 text-xs text-slate-400">{count.last30} · 30 days &nbsp;·&nbsp; {count.total} total</p>
-            </div>
-          );
-        })}
-      </div>
-
-      <Card title="Page views">
-        <p className="text-sm leading-6 text-slate-400">
-          Visits, countries, devices and where visitors came from (LinkedIn, Google, job sites…) are in{' '}
-          <b className="text-slate-200">Vercel → your project → Analytics</b>. Admin and login pages aren’t counted.
-        </p>
+      <Card title="Resume and contact (all visitors)" actions={<Button view onClick={load}>Refresh</Button>}>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          {METRICS.map(({ key, label, hint }) => {
+            const count = data.counts[key] ?? { last7: 0, last30: 0, total: 0 };
+            return (
+              <div key={key} title={hint} className="rounded-xl border border-white/10 bg-black/20 p-3.5">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">{label}</p>
+                <p className="mt-2 text-2xl font-black text-white">{count.last7}</p>
+                <p className="text-[11px] text-slate-500">last 7 days</p>
+                <p className="mt-2 text-xs text-slate-400">{count.last30} · 30 days &nbsp;·&nbsp; {count.total} total</p>
+              </div>
+            );
+          })}
+        </div>
       </Card>
 
       <Card title="Ask my resume">

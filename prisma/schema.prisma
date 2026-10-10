@@ -60,7 +60,7 @@ model Project {
   description  String
   stack        String
   featured     Boolean @default(false)
-  /// "case-study" (page with sections), "article" (long-form page) or "link" (card opens externalUrl)
+  /// "case-study" (page with sections), "article" (long-form page), "link" (card opens externalUrl) or "pdf" (PDF portfolio)
   type         String  @default("case-study")
   image        String  @default("")
   liveUrl      String  @default("")
@@ -71,6 +71,8 @@ model Project {
   architecture String  @default("")
   result       String  @default("")
   content      String  @default("")
+  /// an uploaded PDF (/api/files/<id>/<name>) shown in the viewer; required for type "pdf"
+  pdf          String  @default("")
   /// false = draft: hidden from the site, sitemap and assistant; admins can still preview it
   published    Boolean @default(true)
 }

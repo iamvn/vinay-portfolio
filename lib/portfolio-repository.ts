@@ -1,6 +1,7 @@
 import type { PortfolioData } from './portfolio';
 import { copySchema, type PortfolioData as ParsedPortfolio } from './schemas';
 import { prisma } from './prisma';
+import { projectPdfs, setProjectPdf, withPdf, withoutPdf } from './project-pdf';
 
 const parse = <T>(value: string): T => JSON.parse(value) as T;
 
@@ -64,6 +65,7 @@ export async function getPortfolioFromDatabase({ includeDrafts = false } = {}): 
     prisma.experience.findMany({ orderBy: { order: 'asc' } }),
     prisma.project.findMany({ where: includeDrafts ? {} : { published: true }, orderBy: { id: 'asc' } }),
   ]);
+  const pdfs = await projectPdfs();
 
   if (!profile || !copy) throw new Error('NOT_SEEDED');
   return {
@@ -72,7 +74,7 @@ export async function getPortfolioFromDatabase({ includeDrafts = false } = {}): 
     skills: skills.map(({ name, items }) => ({ group: name, items: parse<string[]>(items) })),
     experience: experience.map((item) => ({ role: item.role, company: item.company, period: item.period, current: item.current, bullets: parse<string[]>(item.bullets) })),
     projects: projects.map((row) => {
-      const { id: _id, ...project } = toProject(row); // eslint-disable-line @typescript-eslint/no-unused-vars
+      const { id: _id, ...project } = withPdf(toProject(row), pdfs); // eslint-disable-line @typescript-eslint/no-unused-vars
       return project;
     }),
   };
@@ -90,10 +92,11 @@ export async function replacePortfolio(data: ParsedPortfolio) {
     prisma.siteCopy.create({ data: { id: 1, content: JSON.stringify(data.copy) } }),
     prisma.skillGroup.createMany({ data: data.skills.map((skill, order) => ({ name: skill.group, items: JSON.stringify(skill.items), order })) }),
     prisma.experience.createMany({ data: data.experience.map((item, order) => ({ ...item, bullets: JSON.stringify(item.bullets), order })) }),
-    prisma.project.createMany({ data: data.projects.map((project) => ({ ...project, stack: JSON.stringify(project.stack) })) }),
+    prisma.project.createMany({ data: data.projects.map((project) => ({ ...withoutPdf(project), stack: JSON.stringify(project.stack) })) }),
     // Keep uploaded images for projects that still exist (matched by slug), drop the rest.
     prisma.projectImage.deleteMany({ where: { slug: { notIn: data.projects.map((project) => project.slug) } } }),
   ]);
+  for (const project of data.projects) if (project.pdf) await setProjectPdf(project.slug, project.pdf);
 }
 
 // ---------- Ordering helpers ----------

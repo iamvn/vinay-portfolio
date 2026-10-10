@@ -1,0 +1,22 @@
+# docker compose up -d   →   http://localhost:3000   (admin: http://localhost:3000/admin)
+# Settings come from .env (copy .env.example). Data lives in the "portfolio-data" volume.
+services:
+  app:
+    build: .
+    image: portfolio-app
+    container_name: portfolio
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      # A SQLite file on the volume. Remove this line to use the DATABASE_URL from .env (e.g. your Turso database).
+      DATABASE_URL: file:/data/portfolio.db
+    volumes:
+      - portfolio-data:/data
+      - portfolio-sites:/app/prisma/sites
+    restart: unless-stopped
+
+volumes:
+  portfolio-data:
+  portfolio-sites:
