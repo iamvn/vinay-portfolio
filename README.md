@@ -490,6 +490,19 @@ does affects another.
   `GET /api/platform/activity?site=&kind=&q=&limit=&offset=`.
 - **Clearing the activity log (main site admins only):** Activity logs → *Free up space* deletes entries older than
   7, 15 or 30 days, or everything; one entry recording the clearing is kept. `DELETE /api/platform/activity?olderThan=7|15|30|all`.
+- **Admin guide ("Know this app"):** a *Guide* button (bottom right, a bottom sheet on phones) in every site's admin.
+  It answers like a chat from fixed text, no AI: pick a tab to see what it's for and its features (with *Open* to go
+  there), or type a word ("resume", "LinkedIn", "PDF") to find the tab that does it. Each person only sees the tabs they
+  can use. The platform owner rewrites any tab's text under Sites → *Admin guide (every site)*; it's stored once in the
+  main database (Setting `platform.guide`, defaults in `lib/guide/content.ts`). `GET /api/guide` (any signed-in user),
+  `GET/PUT /api/platform/guide` (owner; `{ tabs: { <tab>: { summary, features } | null } }`, null = default text).
+- **Announcements:** Sites → *Announcements (every site)* broadcasts a message (New / Note / Important, optional link and
+  last day) to every site's admins: a bar at the top of their admin (dismissible, remembered per browser) and *What's new*
+  in the Guide. Turn one off or delete it any time. Setting `platform.announcements` (newest 30 kept);
+  `GET/POST /api/platform/announcements`, `PATCH/DELETE /api/platform/announcements/:id`.
+- **Folding sections:** every titled section in the admin folds (click its title; using its buttons opens it), and list
+  entries (experience, skills, projects) start folded. *Expand all / Collapse all* sits at the top of each tab. What you
+  fold is remembered in that browser, per tab (`components/admin/sections.ts`).
 - **Community board:** a public, read-only board at `/community` (on every site's address; canonical on the main site,
   listed in its sitemap) where people on every site share interview experiences: company, role, field (Frontend,
   Backend, Interior design…), level, outcome, difficulty, month, topics (#React, #Node.js…), the rounds, the questions

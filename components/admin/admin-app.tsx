@@ -16,6 +16,9 @@ import { ApplicationsTab } from './applications-tab';
 import { CommunityTab } from './community-tab';
 import { UsersTab, type AdminUser } from './users-tab';
 import { ReadOnlyFieldset, ReadOnlyProvider, RequestProgress, type Notify } from './ui';
+import { AnnouncementBar, GuideBot, type GuideData } from './guide';
+import { SectionScope, setAllSections } from './sections';
+import { api } from './api';
 
 const TABS = [
   ['profile', 'Profile'],
@@ -85,6 +88,9 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
   const tab: Tab = tabs.some(([id]) => id === hash) ? (hash as Tab) : tabs[0][0];
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
+  const [guide, setGuide] = useState<GuideData | null>(null);
+  // The Guide's text and the platform owner's announcements (shared by every site).
+  useEffect(() => { api<GuideData>('GET', '/api/guide').then(setGuide).catch(() => setGuide(null)); }, []);
   // Read-only users can look at every tab they have, but not change anything ("My account" stays usable).
   const viewOnly = Boolean(user.viewOnly);
 
@@ -152,8 +158,17 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
         </nav>
       </header>
 
-      <main key={reloadKey} className="mx-auto max-w-5xl px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:py-6">
+      <main key={reloadKey} className="mx-auto max-w-5xl px-4 pb-[max(7rem,env(safe-area-inset-bottom))] pt-4 sm:py-6 sm:pb-24">
+        {guide && <AnnouncementBar announcements={guide.announcements} />}
         {database && <DatabaseNotice database={database} />}
+        {/* Every titled section folds; these set all of this tab's sections at once. */}
+        {tab !== 'design' && (
+          <div className="-mt-1 mb-2 flex justify-end gap-3 text-[11px] font-bold">
+            <button type="button" onClick={() => setAllSections(tab, true)} className="min-h-9 text-slate-400 hover:text-white">Expand all</button>
+            <button type="button" onClick={() => setAllSections(tab, false)} className="min-h-9 text-slate-400 hover:text-white">Collapse all</button>
+          </div>
+        )}
+        <SectionScope.Provider value={tab}>
         {viewOnly && tab !== 'users' && (
           <p className="mb-4 rounded-xl border border-yellow-300/30 bg-yellow-300/[.06] px-4 py-3 text-sm text-yellow-100">
             <b>Read-only access.</b> You can look through everything here, but you can&apos;t save changes. Ask an admin if you need to edit something.
@@ -178,6 +193,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
         {tab === 'sites' && platform && <SitesTab notify={notify} />}
         {tab === 'activity' && platformMain && <ActivityTab notify={notify} />}
         {tab === 'users' && <ReadOnlyProvider value={false}><UsersTab me={user} notify={notify} canAddUsers={canAddUsers} /></ReadOnlyProvider>}
+        </SectionScope.Provider>
         {database && database.persistent && database.kind !== 'file' && (
           <div className="mt-8 space-y-1 text-center text-[11px] text-slate-500">
             <p>Database: {database.label}{database.kind === 'turso' ? ' (Turso)' : ''} · changes are saved permanently</p>
@@ -196,7 +212,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
 
       {/* Messages: top of the screen on phones (clear of the bottom save bars), bottom-right on desktop. Tap to dismiss. */}
       <div
-        className="pointer-events-none fixed inset-x-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-50 flex flex-col gap-2 sm:inset-x-auto sm:bottom-4 sm:right-4 sm:top-auto sm:max-w-sm"
+        className="pointer-events-none fixed inset-x-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-50 flex flex-col gap-2 sm:inset-x-auto sm:bottom-24 sm:right-6 sm:top-auto sm:max-w-sm"
         aria-live="polite"
       >
         {toasts.map((toast) => (
@@ -210,6 +226,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
           </button>
         ))}
       </div>
+      <GuideBot data={guide} tabs={tabs.map(([id, label]) => [id, id === 'users' && user.role !== 'admin' ? 'My account' : label] as const)} onOpenTab={(id) => select(id as Tab)} name={user.name || ''} />
     </div>
   );
 }

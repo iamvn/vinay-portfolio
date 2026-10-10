@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { api, describeError } from './api';
 import { TAB_IDS, TAB_LABELS, type TabId } from '@/lib/auth/permissions';
+import { AnnouncementsEditor, GuideEditor } from './platform-guide';
 import { Button, Card, Field, Loading, PasswordInput, TextInput, buttonBase, inputClass, type Notify } from './ui';
 
 type SiteRow = {
@@ -307,6 +308,9 @@ export function SitesTab({ notify }: { notify: Notify }) {
       <Card title="New site">
         <CreateSite platform={state.platform} notify={notify} onCreated={(site, password) => { setCreated({ site, password }); load(); notify(`Created ${site.name}'s site.`); }} />
       </Card>
+
+      {isMain && <AnnouncementsEditor notify={notify} />}
+      {isMain && <GuideEditor notify={notify} />}
     </div>
   );
 }

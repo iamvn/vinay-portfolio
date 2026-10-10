@@ -5,6 +5,7 @@ import { PdfField } from '@/components/design/pdf-field';
 import { api, describeError, fromLines, toLines } from './api';
 import { IMAGE_ACCEPT, prepareImage } from './image';
 import { Button, ConfirmButton, Field, Loading, ReadOnlyFieldset, TextArea, TextInput, Toggle, buttonBase, useReadOnly, type Notify } from './ui';
+import { useSectionOpen } from './sections';
 
 type Row = Record<string, unknown>;
 type Draft = Record<string, string | boolean>;
@@ -242,7 +243,14 @@ function ItemCard({ config, row, index, total, onSaved, onDeleted, onMove, notif
 }) {
   const [draft, setDraft] = useState(() => toDraft(config.fields, row));
   const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState(false); // phones only: entries start folded
+  // Entries start folded (all screen sizes); what you open is remembered per entry in this browser.
+  const [openLocal, setOpenLocal] = useState(false);
+  const [open, setOpenStored] = useSectionOpen(`item:${String(row[config.idKey])}`, false, openLocal);
+  const setOpen = (update: boolean | ((value: boolean) => boolean)) => {
+    const next = typeof update === 'function' ? update(open) : update;
+    setOpenLocal(next);
+    setOpenStored(next);
+  };
   const dirty = JSON.stringify(draft) !== JSON.stringify(toDraft(config.fields, row));
   const url = `${config.endpoint}/${encodeURIComponent(String(row[config.idKey]))}`;
 
@@ -290,13 +298,13 @@ function ItemCard({ config, row, index, total, onSaved, onDeleted, onMove, notif
 
   return (
     <section className={`rounded-2xl border bg-slate-950/70 ${dirty ? 'border-yellow-300/40' : 'border-white/10'}`}>
-      {/* Header: on phones the whole row is a button that folds/unfolds the entry. */}
+      {/* Header: the title row folds/unfolds the entry. */}
       <div className="flex items-center gap-3 p-4 sm:p-5 sm:pb-4">
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
-          className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left sm:pointer-events-none sm:min-h-0"
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left sm:min-h-9"
         >
           {row.image ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -312,7 +320,7 @@ function ItemCard({ config, row, index, total, onSaved, onDeleted, onMove, notif
               </span>
             )}
           </span>
-          <span aria-hidden="true" className={`text-slate-400 transition sm:hidden ${open ? 'rotate-180' : ''}`}>▾</span>
+          <span aria-hidden="true" className={`text-slate-400 transition ${open ? 'rotate-180' : ''}`}>▾</span>
         </button>
         {/* Desktop actions */}
         <div className="hidden flex-wrap gap-2 sm:flex">
@@ -324,7 +332,7 @@ function ItemCard({ config, row, index, total, onSaved, onDeleted, onMove, notif
         </div>
       </div>
 
-      <div className={`px-4 sm:block sm:px-5 sm:pb-5 ${open ? 'block' : 'hidden'}`}>
+      <div className={`px-4 sm:px-5 sm:pb-5 ${open ? 'block' : 'hidden'}`}>
         {/* Phone toolbar */}
         <div className="mb-4 flex flex-wrap gap-2 sm:hidden">
           {moveButtons}
