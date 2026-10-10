@@ -13,6 +13,7 @@ export const TEXT_SOURCES: { value: string; label: string; get?: (p: P) => strin
   { value: 'role', label: 'Profile · Role', get: (p) => p.profile.role },
   { value: 'summary', label: 'Profile · Summary', get: (p) => p.profile.summary },
   { value: 'location', label: 'Profile · Location', get: (p) => p.profile.location },
+  { value: 'headline', label: 'Site text · Hero headline', get: (p) => p.copy.hero.headline },
   { value: 'greeting', label: 'Site text · Greeting (“Hello, I’m”)', get: (p) => p.copy.hero.greeting },
   { value: 'availability', label: 'Site text · Availability line', get: (p) => (p.profile.available ? p.copy.hero.availability : '') },
   { value: 'years', label: 'Stat · Years of experience', get: (p) => p.profile.yearsExperience },
@@ -26,12 +27,26 @@ export const TEXT_SOURCES: { value: string; label: string; get?: (p: P) => strin
   { value: 'noticePeriod', label: 'Hiring · Notice period', get: (p) => p.profile.noticePeriod },
   { value: 'currentJob', label: 'Experience · Currently at (company)', get: (p) => { const job = p.experience.find((e) => e.current) ?? p.experience[0]; return job ? `Currently at ${job.company}` : ''; } },
   { value: 'currentRole', label: 'Experience · Current role and company', get: (p) => { const job = p.experience.find((e) => e.current) ?? p.experience[0]; return job ? `${job.role} at ${job.company}` : ''; } },
+  { value: 'skillsEyebrow', label: 'Site text · Skills eyebrow', get: (p) => p.copy.skills.eyebrow },
   { value: 'skillsTitle', label: 'Site text · Skills title', get: (p) => p.copy.skills.title },
+  { value: 'skillsDescription', label: 'Site text · Skills description', get: (p) => p.copy.skills.description },
+  { value: 'projectsEyebrow', label: 'Site text · Projects eyebrow', get: (p) => p.copy.projects.eyebrow },
   { value: 'projectsTitle', label: 'Site text · Projects title', get: (p) => p.copy.projects.title },
+  { value: 'experienceEyebrow', label: 'Site text · Experience eyebrow', get: (p) => p.copy.experience.eyebrow },
   { value: 'experienceTitle', label: 'Site text · Experience title', get: (p) => p.copy.experience.title },
+  { value: 'experienceDescription', label: 'Site text · Experience description', get: (p) => p.copy.experience.description },
+  { value: 'contactEyebrow', label: 'Site text · Contact eyebrow', get: (p) => p.copy.contact.eyebrow },
   { value: 'contactTitle', label: 'Site text · Contact title', get: (p) => p.copy.contact.title },
   { value: 'contactDescription', label: 'Site text · Contact description', get: (p) => p.copy.contact.description },
   { value: 'footer', label: 'Site text · Footer', get: (p) => p.copy.footer },
+];
+
+/** Where a Button's label comes from: its own label, or a line of Site text (Admin → Site text). */
+export const BUTTON_LABEL_SOURCES: { value: string; label: string; get?: (p: P) => string }[] = [
+  { value: 'own', label: 'Its own label (below)' },
+  { value: 'primaryAction', label: 'Site text · Hero primary button', get: (p) => p.copy.hero.primaryAction },
+  { value: 'secondaryAction', label: 'Site text · Hero secondary button', get: (p) => p.copy.hero.secondaryAction },
+  { value: 'contactAction', label: 'Site text · Contact button', get: (p) => p.copy.contact.action },
 ];
 
 /** The text a block shows: live data for a bound source, otherwise its own text. */

@@ -12,6 +12,7 @@ const LABELS: Record<string, string> = {
   terminalLines: 'Terminal lines',
   technologies: 'Hero technology tags',
   viewPdf: 'Button on PDF portfolio cards',
+  headline: 'Headline (the big hero title on designed pages)',
 };
 
 const pretty = (key: string) => LABELS[key] ?? key.replace(/([A-Z])/g, ' $1');

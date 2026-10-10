@@ -37,6 +37,9 @@ const panel = (id: string, content: Block[], anchor = '') => b('Box', id, {
   content,
 });
 
+/** Fixed text, or `@source`: live Site text (Admin → Site text), e.g. '@projectsTitle'. */
+const words = (value: string) => (value.startsWith('@') ? { source: value.slice(1) } : { source: 'custom', text: value });
+
 /** Small uppercase label above a title, and something on the right. */
 const header = (id: string, eyebrow: string, title: string, side?: Block) => b('Flex', `${id}-head`, {
   gap: 24, align: 'end', justify: 'between', stackOnMobile: true,
@@ -44,8 +47,8 @@ const header = (id: string, eyebrow: string, title: string, side?: Block) => b('
     b('Box', `${id}-titles`, {
       layout: { display: 'flex', direction: 'column', gap: 4 }, spacing: none,
       content: [
-        b('Text', `${id}-eyebrow`, { source: 'custom', text: eyebrow, size: 'xs', weight: 'medium', tracking: 'wide', uppercase: true, tone: 'muted' }),
-        b('Heading', `${id}-title`, { source: 'custom', text: title, level: 'h2', size: 'md', weight: 'bold', tracking: 'tight' }),
+        b('Text', `${id}-eyebrow`, { ...words(eyebrow), size: 'xs', weight: 'medium', tracking: 'wide', uppercase: true, tone: 'muted' }),
+        b('Heading', `${id}-title`, { ...words(title), level: 'h2', size: 'md', weight: 'bold', tracking: 'tight' }),
       ],
     }),
     ...(side ? [side] : []),
@@ -127,12 +130,12 @@ const glassStudio: DesignData = {
                     }),
                   ],
                 }),
-                b('Heading', 'hero-title', { source: 'custom', text: 'Building digital products for a better tomorrow.', level: 'h1', size: 'lg', weight: 'bold', tracking: 'tight' }),
+                b('Heading', 'hero-title', { source: 'headline', text: 'Building digital products for a better tomorrow.', level: 'h1', size: 'lg', weight: 'bold', tracking: 'tight' }),
                 b('Text', 'hero-summary', { source: 'summary', size: 'lg', tone: 'normal' }),
                 b('Flex', 'hero-actions', {
                   gap: 12, align: 'center', stackOnMobile: true,
                   items: [
-                    b('Button', 'hero-work', { action: 'projects', label: 'Explore my work', style: 'primary', size: 'md', icon: 'arrow', fullWidthMobile: true }),
+                    b('Button', 'hero-work', { action: 'projects', labelSource: 'primaryAction', label: 'Explore my work', style: 'primary', size: 'md', icon: 'arrow', fullWidthMobile: true }),
                     b('Button', 'hero-resume', { action: 'resume', label: 'View resume', style: 'secondary', size: 'md', icon: 'none', fullWidthMobile: true }),
                   ],
                 }),
@@ -206,7 +209,7 @@ const glassStudio: DesignData = {
     ]),
 
     panel('projects-panel', [
-      header('projects', 'Featured work', 'Projects', b('Link', 'projects-all', { label: 'View all', href: '/projects', style: 'accent', size: 'sm', icon: 'arrow', colors: { accentColor: BLUE } })),
+      header('projects', '@projectsEyebrow', '@projectsTitle', b('Link', 'projects-all', { label: 'View all', href: '/projects', style: 'accent', size: 'sm', icon: 'arrow', colors: { accentColor: BLUE } })),
       b('Projects', 'projects-list', {
         layout: 'grid', columns: '3', columnsMobile: '1', filter: 'all', sort: 'featured', limit: 6, image: 'video', frame: 'window', linkStyle: 'arrow', tabs: true, tagStyle: 'chips',
         cardStyle: 'card', cardAlign: 'left', showDescription: true, showStack: true, showLinks: true, showType: false, hover: 'lift', eyebrow: '-', title: '-',
@@ -214,12 +217,12 @@ const glassStudio: DesignData = {
     ]),
 
     panel('skills-panel', [
-      header('skills', 'Skills', 'Tech Stack & Tools'),
+      header('skills', '@skillsEyebrow', '@skillsTitle', b('Text', 'skills-intro', { source: 'skillsDescription', size: 'sm' })),
       b('Skills', 'skills-list', { layout: 'tabs', align: 'left', eyebrow: '-', title: '-', description: '-' }),
     ]),
 
     panel('experience-panel', [
-      header('experience', 'Experience', 'My Journey', b('Text', 'experience-intro', { source: 'custom', text: 'A journey of continuous learning, building and creating impact.', size: 'sm' })),
+      header('experience', '@experienceEyebrow', '@experienceTitle', b('Text', 'experience-intro', { source: 'experienceDescription', size: 'sm' })),
       b('Experience', 'experience-list', { layout: 'journey', maxBullets: 1, eyebrow: '-', title: '-', description: '-' }),
     ]),
 
@@ -238,8 +241,8 @@ const glassStudio: DesignData = {
             b('Box', 'contact-copy', {
               layout: { display: 'flex', direction: 'column', gap: 4 }, spacing: none,
               content: [
-                b('Text', 'contact-eyebrow', { source: 'custom', text: 'Let’s connect', size: 'xs', weight: 'medium', tracking: 'wide', uppercase: true, tone: 'muted' }),
-                b('Heading', 'contact-title', { source: 'custom', text: 'Let’s build something meaningful.', level: 'h2', size: 'md', weight: 'bold', tracking: 'tight' }),
+                b('Text', 'contact-eyebrow', { source: 'contactEyebrow', size: 'xs', weight: 'medium', tracking: 'wide', uppercase: true, tone: 'muted' }),
+                b('Heading', 'contact-title', { source: 'contactTitle', level: 'h2', size: 'md', weight: 'bold', tracking: 'tight' }),
                 b('Text', 'contact-text', { source: 'contactDescription', size: 'sm' }),
               ],
             }),
@@ -247,7 +250,7 @@ const glassStudio: DesignData = {
         }),
         b('Flex', 'contact-right', {
           direction: 'column', gap: 14, align: 'center',
-          items: [b('Button', 'contact-button', { action: 'contact', label: 'Get in touch', style: 'primary', size: 'md', icon: 'arrow' }), b('SocialLinks', 'contact-social', { align: 'center' })],
+          items: [b('Button', 'contact-button', { action: 'contact', labelSource: 'contactAction', label: 'Get in touch', style: 'primary', size: 'md', icon: 'arrow' }), b('SocialLinks', 'contact-social', { align: 'center' })],
         }),
       ],
     }),
@@ -263,7 +266,7 @@ const glassStudio: DesignData = {
 export const OWNER_TEMPLATES: { key: string; version: number; name: string; description: string; data: DesignData }[] = [
   {
     key: 'glass-studio',
-    version: 3,
+    version: 4,
     name: 'Glass Studio',
     description: 'Apple-style Liquid Glass: a floating glass navigation bar, a sunrise-wallpaper hero with a frosted profile window and an app dock, glass panels on a soft grey page, projects in app windows with a Featured / All switch, tabbed skill chips and a side-by-side journey.',
     data: glassStudio,

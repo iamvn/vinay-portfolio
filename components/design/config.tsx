@@ -15,7 +15,7 @@ import { ClassicAbout, ClassicContact, ClassicExperience, ClassicFooter, Classic
 import { colorField, spacingField, sidesVars, type Sides } from './appearance';
 import { STYLE_DEFAULTS, STYLE_KEYS, StyledBlock, styleFields, viewField, type StyleProps } from './style-panel';
 import { addStarters } from './starters';
-import { BUTTON_ACTIONS, IMAGE_SOURCES, TAG_SOURCES, TEXT_SOURCES, boundTags, boundText } from '@/lib/design/bindings';
+import { BUTTON_ACTIONS, BUTTON_LABEL_SOURCES, IMAGE_SOURCES, TAG_SOURCES, TEXT_SOURCES, boundTags, boundText } from '@/lib/design/bindings';
 import { ContactButtons } from './contact-buttons';
 import { PROJECT_BLOCKS, PROJECT_BLOCK_NAMES } from './project-blocks';
 import type { ProjectView } from '@/lib/design/project-view';
@@ -66,7 +66,7 @@ type Components = ProjectComponents & {
   // Basic
   Heading: { source: string; text: string; eyebrow: string; level: 'h1' | 'h2' | 'h3' | 'h4'; size: string; sizePx: number; weight: string; font: string; tracking: string; align: Align; uppercase: boolean };
   Text: { source: string; text: string; size: string; sizePx: number; weight: string; font: string; tracking: string; align: Align; tone: 'normal' | 'muted' | 'accent' | 'accent2'; maxWidth: 'none' | 'prose'; uppercase: boolean };
-  Button: { action: string; label: string; href: string; style: 'primary' | 'secondary' | 'ghost'; size: 'sm' | 'md' | 'lg'; icon: string; align: Align; fullWidthMobile: boolean; newTab: boolean };
+  Button: { action: string; labelSource: string; label: string; href: string; style: 'primary' | 'secondary' | 'ghost'; size: 'sm' | 'md' | 'lg'; icon: string; align: Align; fullWidthMobile: boolean; newTab: boolean };
   Image: { source: string; src: string; alt: string; aspect: 'auto' | 'square' | 'circle' | 'video' | 'portrait'; rounded: boolean; maxWidth: 'xs' | 'sm' | 'md' | 'lg' | 'full'; align: Align; filter?: 'none' | 'grayscale'; radiusPx?: number };
   Tags: { source: string; items: { text: string }[]; style: 'soft' | 'accent' | 'outline'; align: Align };
   Badge: { source: string; text: string; dot: boolean; style: 'pill' | 'plain'; align: Align };
@@ -594,6 +594,7 @@ export const designConfig: Config<Components, RootProps> = {
       label: 'Button',
       fields: {
         action: { type: 'select', label: 'When clicked', options: BUTTON_ACTIONS.map(({ value, label }) => ({ value, label })) },
+        labelSource: { type: 'select', label: 'Label from', options: BUTTON_LABEL_SOURCES.map(({ value, label }) => ({ value, label })) },
         label: { type: 'text', label: 'Label (empty = default for the action)' },
         href: { type: 'text', label: 'Link (for “Open a link”: #section, /path, https://… or mailto:)' },
         style: { type: 'radio', label: 'Style', options: [{ label: 'Primary', value: 'primary' }, { label: 'Secondary', value: 'secondary' }, { label: 'Link', value: 'ghost' }] },
@@ -603,9 +604,11 @@ export const designConfig: Config<Components, RootProps> = {
         fullWidthMobile: { type: 'radio', label: 'Full width on phones', options: [{ label: 'Yes', value: true }, { label: 'No', value: false }] },
         newTab: { type: 'radio', label: 'Open in new tab', options: [{ label: 'No', value: false }, { label: 'Yes', value: true }] },
       },
-      defaultProps: { action: 'custom', label: 'Button', href: '#contact', style: 'primary', size: 'md', icon: 'auto', align: 'left', fullWidthMobile: false, newTab: false },
-      render: ({ action, label, href, style, size, icon, align, fullWidthMobile, newTab, puck }) => {
+      defaultProps: { action: 'custom', labelSource: 'own', label: 'Button', href: '#contact', style: 'primary', size: 'md', icon: 'auto', align: 'left', fullWidthMobile: false, newTab: false },
+      render: ({ action, labelSource, label, href, style, size, icon, align, fullWidthMobile, newTab, puck }) => {
         const chosen = BUTTON_ACTIONS.find((item) => item.value === action) ?? BUTTON_ACTIONS[0];
+        // A label taken from Site text; empty there falls back to the button's own label.
+        const siteLabel = BUTTON_LABEL_SOURCES.find((item) => item.value === labelSource)?.get?.(meta(puck).portfolio);
         const url = chosen.value === 'custom' ? safeHref(href) : chosen.href?.(meta(puck).portfolio);
         if (!url && !puck.isEditing) return <></>;
         const iconName = icon === 'auto' ? chosen.icon : icon === 'none' ? '' : icon;
@@ -615,7 +618,7 @@ export const designConfig: Config<Components, RootProps> = {
           <div className={`d-prim flex py-1 ${justifyClass(align)}`}>
             <a href={url ?? '#'} className={`d-btn d-btn-${style} ${sizeCls} ${fullWidthMobile ? 'max-sm:w-full' : ''}`} {...(openNew ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
               {iconName && <Icon name={iconName} size={size === 'lg' ? 18 : 16} />}
-              {label || chosen.defaultLabel}
+              {siteLabel || label || chosen.defaultLabel}
             </a>
           </div>
         );

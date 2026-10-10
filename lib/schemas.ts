@@ -55,6 +55,8 @@ export const copySchema = z.object({
   header: z.array(z.string()).length(4, 'header must have exactly 4 entries'),
   hero: z.object({
     greeting: text,
+    // The big title on designed pages (Admin → Design). Added later, so stored copy gets this default.
+    headline: text.default('Building digital products for a better tomorrow.'),
     technologies: textList,
     primaryAction: text,
     secondaryAction: text,
