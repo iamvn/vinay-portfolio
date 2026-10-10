@@ -321,6 +321,7 @@ export const designConfig: Config<Components, RootProps> = {
         frame: { type: 'radio', label: 'Image frame', options: [{ label: 'None', value: 'none' }, { label: 'App window', value: 'window' }] },
         linkStyle: { type: 'radio', label: 'Open button', options: [{ label: 'Text links', value: 'text' }, { label: 'Round ↗ button', value: 'arrow' }] },
         tabs: { type: 'radio', label: 'Featured / All switch', options: [{ label: 'Show', value: true }, { label: 'Hide', value: false }] },
+        tagStyle: { type: 'radio', label: 'Tags look', options: [{ label: 'Tags', value: 'tags' }, { label: 'Color chips', value: 'chips' }] },
         align: align2Field,
         eyebrow: fromSiteText('Small label'), title: fromSiteText('Title'),
       },

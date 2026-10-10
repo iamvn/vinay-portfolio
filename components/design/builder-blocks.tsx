@@ -359,7 +359,7 @@ export const Box: ComponentConfig<BoxProps> = {
 type Align = 'left' | 'center' | 'right';
 const alignField = radio<Align>('Align', opt(['left', 'Left'], ['center', 'Center'], ['right', 'Right']));
 const justify = (align: Align) => ({ left: 'justify-start', center: 'justify-center', right: 'justify-end' })[align] ?? 'justify-start';
-const ICON_NAMES = ['arrow', 'arrowUpRight', 'external', 'mail', 'gmail', 'linkedin', 'github', 'instagram', 'download', 'code', 'terminal', 'game', 'briefcase', 'skill', 'user', 'home', 'pin', 'sparkle', 'cube', 'chart', 'layers', 'palette', 'notes', 'folder', 'chat', 'globe', 'calendar', 'cloud', 'database', 'server', 'cpu', 'bolt', 'rocket', 'heart', 'star', 'camera', 'music', 'search', 'grid', 'more', 'trash', 'copy', 'menu', 'close'];
+const ICON_NAMES = ['arrow', 'arrowUpRight', 'external', 'mail', 'gmail', 'linkedin', 'github', 'instagram', 'download', 'code', 'terminal', 'game', 'briefcase', 'skill', 'user', 'home', 'pin', 'dot', 'sparkle', 'cube', 'chart', 'layers', 'palette', 'notes', 'folder', 'chat', 'globe', 'calendar', 'cloud', 'database', 'server', 'cpu', 'bolt', 'rocket', 'heart', 'star', 'camera', 'music', 'search', 'grid', 'more', 'trash', 'copy', 'menu', 'close'];
 
 export type LinkProps = { label: string; href: string; newTab: boolean; style: 'accent' | 'underline' | 'plain' | 'muted'; size: 'sm' | 'md' | 'lg'; icon: 'none' | 'arrow' | 'external'; align: Align };
 export const LinkBlock: ComponentConfig<LinkProps> = {

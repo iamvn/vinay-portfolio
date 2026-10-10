@@ -142,6 +142,16 @@
 .d-recolor .d-classic .bg-black\/20 { background-color: color-mix(in oklab, var(--d-surface-2) 60%, transparent); }
 
 /* Style panel → Padding / Padding on phones (set as variables so phones can differ). */
+/* The variables must not inherit: otherwise a block with only desktop padding would pick up an outer box's
+   phone padding (e.g. 0) on phones. */
+@property --p-top { syntax: '*'; inherits: false; }
+@property --p-right { syntax: '*'; inherits: false; }
+@property --p-bottom { syntax: '*'; inherits: false; }
+@property --p-left { syntax: '*'; inherits: false; }
+@property --pm-top { syntax: '*'; inherits: false; }
+@property --pm-right { syntax: '*'; inherits: false; }
+@property --pm-bottom { syntax: '*'; inherits: false; }
+@property --pm-left { syntax: '*'; inherits: false; }
 .d-padded { padding: var(--p-top, 0px) var(--p-right, 0px) var(--p-bottom, 0px) var(--p-left, 0px); }
 @media (max-width: 767px) {
   .d-padded { padding: var(--pm-top, var(--p-top, 0px)) var(--pm-right, var(--p-right, 0px)) var(--pm-bottom, var(--p-bottom, 0px)) var(--pm-left, var(--p-left, 0px)); }
@@ -238,6 +248,15 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
   /* Skill chips */
   .d-chip { display: inline-flex; align-items: center; gap: .5rem; border-radius: 999px; padding: .45rem .85rem; font-size: .82rem; font-weight: 500;
     background: color-mix(in srgb, var(--d-surface) 85%, transparent); border: 1px solid var(--d-line); box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
+  .d-chip { max-width: 100%; }
+  .d-chip-sm { gap: .4rem; padding: .3rem .65rem; font-size: .72rem; }
+  .d-chip-sm .d-chip-dot { width: .45rem; height: .45rem; }
+  .d-segmented { min-width: 0; }
+  /* Phones: the group tabs wrap onto more lines instead of running off the edge. */
+  @media (max-width: 640px) {
+    .d-segmented { flex-wrap: wrap; justify-content: center; border-radius: 18px; overflow: visible; }
+    .d-segment { padding: 0 .8rem; }
+  }
   .d-chip-dot { width: .55rem; height: .55rem; border-radius: 99px; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 0%, transparent); }
 
   /* Round ↗ button on project cards */

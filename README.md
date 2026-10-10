@@ -272,7 +272,7 @@ Admins can redesign the homepage without code in **Admin → Design**, using the
   highlight; `.d-glass` in `app/design.css`), Navigation bar → *Style: Floating glass*, Icon → *Background: App icon
   (glossy color tile)* or *Glass tile*, plus 25 more glyph icons (pin, grid, cube, chart, terminal, folder…; original line
   drawings, no brand logos). Projects → *Image frame: App window*, *Open button: Round ↗*, *Featured / All switch*;
-  Skills → *Layout: Tabs (by group)*; Experience → *Layout: Journey (side by side)*; Image → *Effect: Black & white* and an
+  Projects → *Tags look: Color chips* (each technology in its skill group's color, as in Skills); Skills → *Layout: Tabs (by group)*; Experience → *Layout: Journey (side by side)*; Image → *Effect: Black & white* and an
   exact corner radius; text sources *Currently at (company)* and *Current role and company*. A built-in wallpaper is
   served at `/design/wallpapers/sunrise-hills.svg` (original artwork).
 - **Box additions:** *Gradient middle color* (3-stop gradients), *Frosted glass* blur, rgba() colors, and Advanced →

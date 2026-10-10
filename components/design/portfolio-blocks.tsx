@@ -227,6 +227,16 @@ export type SkillsProps = { layout: 'cards' | 'tags' | 'list' | 'tabs'; eyebrow:
 /** Dot colors for skill chips, one per skill group (Apple-like system colors). */
 const CHIP_COLORS = ['#0a84ff', '#30d158', '#bf5af2', '#ff9f0a', '#64d2ff', '#ff375f', '#ffd60a', '#5e5ce6'];
 
+/** A technology's chip color: its skill group's color (as in the Skills section), else a stable color from its name. */
+function chipColor(skills: Portfolio['skills'], tag: string) {
+  const name = tag.trim().toLowerCase();
+  const group = skills.findIndex((g) => g.items.some((item) => item.trim().toLowerCase() === name));
+  if (group >= 0) return CHIP_COLORS[group % CHIP_COLORS.length];
+  let hash = 0;
+  for (const c of name) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
+  return CHIP_COLORS[hash % CHIP_COLORS.length];
+}
+
 export function Skills(props: SkillsProps & { portfolio: Portfolio }) {
   const { skills, copy } = props.portfolio;
   const heading = <SectionHeading align={props.align} eyebrow={or(props.eyebrow, copy.skills.eyebrow)} title={or(props.title, copy.skills.title)} description={or(props.description, copy.skills.description)} />;
@@ -302,6 +312,8 @@ export type ProjectsProps = {
   linkStyle: 'text' | 'arrow';
   /** A Featured / All projects switch above the cards. */
   tabs: boolean;
+  /** "chips": technologies as chips with a colored dot, like the Skills "Tabs" layout. */
+  tagStyle: 'tags' | 'chips';
   eyebrow: string;
   title: string;
   align: 'left' | 'center';
@@ -309,7 +321,7 @@ export type ProjectsProps = {
 /** Settings added later: designs saved before them get today's look. */
 export const PROJECTS_DEFAULTS: Omit<ProjectsProps, 'layout' | 'columns' | 'filter' | 'limit' | 'showStack' | 'eyebrow' | 'title' | 'align'> = {
   columnsMobile: '1', typeFilter: 'pdf', tag: '', pick: [], sort: 'featured', image: 'video', cardStyle: 'card',
-  showDescription: true, showLinks: true, showType: false, hover: 'lift', cardAlign: 'left', frame: 'none', linkStyle: 'text', tabs: false,
+  showDescription: true, showLinks: true, showType: false, hover: 'lift', cardAlign: 'left', frame: 'none', linkStyle: 'text', tabs: false, tagStyle: 'tags',
 };
 
 /** A project's page opens inside the site (fast, no full reload); "link" projects open their link in a new tab. */
@@ -369,7 +381,11 @@ export function Projects(input: ProjectsProps & { portfolio: Portfolio }) {
     </div>
   ));
   const stack = (project: Project) => props.showStack && project.stack.length > 0 && (
-    <div className={`mt-3 flex flex-wrap gap-1.5 ${center ? 'justify-center' : ''}`}>{project.stack.map((tag) => <span key={tag} className="d-tag d-tag-accent text-[11px]">{tag}</span>)}</div>
+    <div className={`mt-3 flex flex-wrap gap-1.5 ${center ? 'justify-center' : ''}`}>
+      {project.stack.map((tag) => (props.tagStyle === 'chips'
+        ? <span key={tag} className="d-chip d-chip-sm"><span aria-hidden="true" className="d-chip-dot" style={{ background: chipColor(props.portfolio.skills, tag) }} />{tag}</span>
+        : <span key={tag} className="d-tag d-tag-accent text-[11px]">{tag}</span>))}
+    </div>
   );
   const description = (project: Project) => props.showDescription && project.description && <p className="d-muted mt-2 text-sm leading-6">{project.description}</p>;
   const cover = (project: Project, className = '') => props.image !== 'hide' && (

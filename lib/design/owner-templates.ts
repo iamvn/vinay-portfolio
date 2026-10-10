@@ -69,9 +69,13 @@ const feature = (id: string, icon: string, color: string, title: string, text: s
 });
 
 /** A line in the profile window: icon + live text. */
-const fact = (id: string, icon: string, source: string) => b('Flex', id, {
-  gap: 10, align: 'center', wrap: false,
-  items: [b('Icon', `${id}-icon`, { name: icon, size: 15, tone: 'muted' }), b('Text', `${id}-text`, { source, size: 'sm', tone: 'normal' })],
+const fact = (id: string, icon: string, source: string, color = '') => b('Flex', id, {
+  gap: 10, align: 'start', wrap: false,
+  items: [
+    // The icon lines up with the first line of text, also when the text wraps on a phone.
+    b('Icon', `${id}-icon`, { name: icon, size: 15, ...(color ? { tone: 'custom', color } : { tone: 'muted' }), spacing: { margin: { top: '3' } } }),
+    b('Text', `${id}-text`, { source, size: 'sm', tone: 'normal' }),
+  ],
 });
 
 const glassStudio: DesignData = {
@@ -105,11 +109,22 @@ const glassStudio: DesignData = {
               content: [
                 dots('hero-dots', 11),
                 b('Flex', 'hero-status', {
-                  gap: 8, align: 'center',
+                  gap: 16, align: 'center',
                   items: [
-                    b('Text', 'hero-location', { source: 'location', size: 'sm', tone: 'normal', weight: 'medium' }),
-                    b('Text', 'hero-sep', { source: 'custom', text: '•', size: 'sm', tone: 'muted' }),
-                    b('Text', 'hero-available', { source: 'availability', size: 'sm', tone: 'normal', weight: 'medium' }),
+                    b('Flex', 'hero-where', { gap: 6, align: 'center', wrap: false, items: [
+                      b('Icon', 'hero-where-icon', { name: 'pin', size: 15, tone: 'muted' }),
+                      b('Text', 'hero-location', { source: 'location', size: 'sm', tone: 'normal', weight: 'medium' }),
+                    ] }),
+                    // Apple-style status: a green dot in a soft glass pill.
+                    b('Flex', 'hero-open', {
+                      gap: 6, align: 'center', wrap: false,
+                      items: [
+                        b('Icon', 'hero-open-dot', { name: 'dot', size: 12, tone: 'custom', color: GREEN }),
+                        b('Text', 'hero-available', { source: 'availability', size: 'sm', tone: 'normal', weight: 'medium' }),
+                      ],
+                      spacing: { padding: { top: '4', right: '12', bottom: '4', left: '9' } },
+                      colors: { background: 'rgba(255,255,255,0.55)' }, border: { borderWidth: 1, borderTone: 'custom', borderColor: 'rgba(255,255,255,0.8)', radius: '999px' },
+                    }),
                   ],
                 }),
                 b('Heading', 'hero-title', { source: 'custom', text: 'Building digital products for a better tomorrow.', level: 'h1', size: 'lg', weight: 'bold', tracking: 'tight' }),
@@ -140,7 +155,7 @@ const glassStudio: DesignData = {
                     b('Flex', 'profile-body', {
                       gap: 20, align: 'start', stackOnMobile: true,
                       items: [
-                        b('Image', 'profile-photo', { source: 'profilePhoto', alt: 'Profile photo', aspect: 'portrait', rounded: true, radiusPx: 14, maxWidth: 'xs', align: 'left', filter: 'grayscale' }),
+                        b('Image', 'profile-photo', { source: 'profilePhoto', alt: 'Profile photo', aspect: 'portrait', rounded: true, radiusPx: 14, maxWidth: 'xs', align: 'left', filter: 'none' }),
                         b('Box', 'profile-info', {
                           layout: { display: 'flex', direction: 'column', gap: 6 }, spacing: none, item: { grow: true, basis: '55%' },
                           content: [
@@ -150,13 +165,7 @@ const glassStudio: DesignData = {
                             b('Divider', 'profile-rule', { style: 'line' }),
                             fact('profile-location', 'pin', 'location'),
                             fact('profile-open', 'briefcase', 'availabilityNote'),
-                            b('Flex', 'profile-current', {
-                              gap: 10, align: 'center', wrap: false,
-                              items: [
-                                b('Box', 'profile-current-dot', { size: { width: '9px', height: '9px', minWidth: '9px' }, spacing: { padding: pad(0), margin: { left: '3', right: '2' } }, look: { fill: 'custom', fillColor: GREEN, radius: 99, shadow: 'sm' } }),
-                                b('Text', 'profile-current-text', { source: 'currentJob', size: 'sm', tone: 'normal' }),
-                              ],
-                            }),
+                            fact('profile-current', 'dot', 'currentJob', GREEN),
                           ],
                         }),
                       ],
@@ -199,20 +208,20 @@ const glassStudio: DesignData = {
     panel('projects-panel', [
       header('projects', 'Featured work', 'Projects', b('Link', 'projects-all', { label: 'View all', href: '/projects', style: 'accent', size: 'sm', icon: 'arrow', colors: { accentColor: BLUE } })),
       b('Projects', 'projects-list', {
-        layout: 'grid', columns: '3', columnsMobile: '1', filter: 'all', sort: 'featured', limit: 6, image: 'video', frame: 'window', linkStyle: 'arrow', tabs: true,
+        layout: 'grid', columns: '3', columnsMobile: '1', filter: 'all', sort: 'featured', limit: 6, image: 'video', frame: 'window', linkStyle: 'arrow', tabs: true, tagStyle: 'chips',
         cardStyle: 'card', cardAlign: 'left', showDescription: true, showStack: true, showLinks: true, showType: false, hover: 'lift', eyebrow: '-', title: '-',
       }),
-    ], 'projects'),
+    ]),
 
     panel('skills-panel', [
       header('skills', 'Skills', 'Tech Stack & Tools'),
       b('Skills', 'skills-list', { layout: 'tabs', align: 'left', eyebrow: '-', title: '-', description: '-' }),
-    ], 'skills'),
+    ]),
 
     panel('experience-panel', [
       header('experience', 'Experience', 'My Journey', b('Text', 'experience-intro', { source: 'custom', text: 'A journey of continuous learning, building and creating impact.', size: 'sm' })),
       b('Experience', 'experience-list', { layout: 'journey', maxBullets: 1, eyebrow: '-', title: '-', description: '-' }),
-    ], 'experience'),
+    ]),
 
     // Call to action: a soft glass strip.
     b('Box', 'contact', {

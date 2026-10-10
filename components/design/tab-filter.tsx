@@ -16,15 +16,16 @@ export function TabFilter({ tabs, items, className, align = 'left' }: {
   const [active, setActive] = useState(tabs[0]?.id ?? '');
   const shown = items.filter((item) => item.tabs.includes(active));
   return (
-    <div className="grid gap-5">
-      <div className={`flex ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
+    // min-w-0 everywhere: a long row of tabs scrolls sideways instead of widening the page on phones.
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
+      <div className={`flex min-w-0 max-w-full ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
         <div role="tablist" className="d-segmented">
           {tabs.map((tab) => (
             <button key={tab.id} type="button" role="tab" aria-selected={tab.id === active} onClick={() => setActive(tab.id)} className="d-segment">{tab.label}</button>
           ))}
         </div>
       </div>
-      <div className={className} role="tabpanel">{shown.map((item) => <div key={item.key} className="contents">{item.node}</div>)}</div>
+      <div className={`min-w-0 ${className}`} role="tabpanel">{shown.map((item) => <div key={item.key} className="contents">{item.node}</div>)}</div>
     </div>
   );
 }

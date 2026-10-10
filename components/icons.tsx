@@ -20,6 +20,8 @@ export function Icon({
 
   const paths: Record<string, React.ReactNode> = {
     // Glyphs for designs (Admin → Design → Icon). Simple line drawings, in the same style as the rest.
+    // A filled status dot (e.g. green for "available").
+    dot: <circle cx="12" cy="12" r="5.5" fill="currentColor" stroke="none" />,
     pin: (<><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.5" /></>),
     grid: (<><circle cx="6" cy="6" r="1.4" /><circle cx="12" cy="6" r="1.4" /><circle cx="18" cy="6" r="1.4" /><circle cx="6" cy="12" r="1.4" /><circle cx="12" cy="12" r="1.4" /><circle cx="18" cy="12" r="1.4" /><circle cx="6" cy="18" r="1.4" /><circle cx="12" cy="18" r="1.4" /><circle cx="18" cy="18" r="1.4" /></>),
     more: (<><circle cx="5" cy="12" r="1.3" fill="currentColor" /><circle cx="12" cy="12" r="1.3" fill="currentColor" /><circle cx="19" cy="12" r="1.3" fill="currentColor" /></>),
