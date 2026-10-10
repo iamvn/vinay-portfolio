@@ -2,14 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ANNOUNCEMENT_LABELS, type Announcement, type Guide, type GuideTab } from '@/lib/guide/content';
+import type { Missing } from '@/lib/support/access';
+import { TAB_LABELS } from '@/lib/auth/permissions';
 
 /**
  * "Know this app": a floating guide in the admin. It answers like a chat, from fixed text (no AI):
  * pick a tab to see what it's for and what it can do, or type a word to find the tab that does it.
- * The text comes from the platform owner (Sites → Admin guide). Also: the announcements bar.
+ * The text comes from the platform owner (Sites → Admin guide). It also lists the tabs and features this
+ * person can't use yet, with a way to ask for them (Support tab). Also: the announcements bar.
  */
 
-export type GuideData = { guide: Guide; announcements: Omit<Announcement, 'by'>[] };
+export type GuideData = { guide: Guide; announcements: Omit<Announcement, 'by'>[]; missing?: Missing; supportOpen?: number };
+/** "tab:design" or "feature:aiTemplates", with a label, for a prefilled access request. */
+export type AccessAsk = { target: string; label: string };
 type Message = { id: number; from: 'bot' | 'me'; body: ReactNode };
 
 const KIND_TONE: Record<Announcement['kind'], string> = {
@@ -78,8 +83,10 @@ function Bubble({ from, children }: { from: Message['from']; children: ReactNode
 
 const WORD = /[a-z0-9.+#]+/g;
 
-export function GuideBot({ data, tabs, onOpenTab, name }: {
+export function GuideBot({ data, tabs, onOpenTab, onRequest, name }: {
   data: GuideData | null; tabs: (readonly [string, string])[]; onOpenTab: (tab: string) => void; name: string;
+  /** Opens the Support tab with an access request filled in. */
+  onRequest?: (ask: AccessAsk) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -93,6 +100,9 @@ export function GuideBot({ data, tabs, onOpenTab, name }: {
 
   const push = (...items: Omit<Message, 'id'>[]) => setMessages((list) => [...list, ...items.map((m) => ({ ...m, id: ++counter.current }))]);
 
+  const missing = data?.missing;
+  const missingCount = (missing?.tabs.length ?? 0) + (missing?.features.length ?? 0);
+
   function tabChips(ids: string[] = known.map(([id]) => id)) {
     return (
       <div className="mt-2 flex flex-wrap gap-1.5">
@@ -100,8 +110,55 @@ export function GuideBot({ data, tabs, onOpenTab, name }: {
           <button key={id} type="button" onClick={() => explain(id)}
             className="rounded-full border border-white/15 bg-black/30 px-2.5 py-1 text-xs font-bold text-slate-100 hover:border-lime-300/60 hover:text-lime-200">{labelOf(id)}</button>
         ))}
+        {missingCount > 0 && (
+          <button type="button" onClick={() => showMissing(true)}
+            className="rounded-full border border-dashed border-amber-300/50 px-2.5 py-1 text-xs font-bold text-amber-200 hover:border-amber-300">🔒 Not on for me ({missingCount})</button>
+        )}
       </div>
     );
+  }
+
+  /** What to do about something this person can't use: ask the platform owner, or their site admin. */
+  function howToGet(target: string, label: string, reason: 'site' | 'user' | 'tab', tab?: string) {
+    if (reason === 'site' && missing?.canRequest && onRequest) {
+      return (
+        <button type="button" onClick={() => { onRequest({ target, label }); setOpen(false); }}
+          className="mt-1.5 rounded-lg border border-amber-300/50 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-amber-200 hover:bg-amber-300/10">Request access →</button>
+      );
+    }
+    const text = reason === 'site' ? 'Turned off for this site.'
+      : reason === 'tab' ? `Needs the ${tab} tab: ask your site admin for it (Users & security).`
+        : 'Your site has it: ask your site admin to give you access (Users & security).';
+    return <span className="mt-1 block text-xs text-slate-400">{text}</span>;
+  }
+
+  function showMissing(asked = false) {
+    if (!missing || !missingCount) return;
+    push(...(asked ? [{ from: 'me' as const, body: 'What can’t I use yet?' }] : []), {
+      from: 'bot',
+      body: (
+        <div>
+          <p className="font-black text-white">Not on for you yet</p>
+          <p className="mt-1 text-xs text-slate-300">{missing.canRequest ? 'Ask for any of these and you’ll see the answer in the Support tab.' : 'Turned off for you on this site.'}</p>
+          <ul className="mt-2 space-y-2.5">
+            {missing.features.map((f) => (
+              <li key={f.id}>
+                <span className="font-bold text-slate-100">✨ {f.label}</span> <span className="text-[10px] font-black uppercase text-slate-500">Feature · {TAB_LABELS[f.tab]}</span>
+                <span className="block text-xs text-slate-300">{f.summary}</span>
+                {howToGet(`feature:${f.id}`, f.label, f.reason, TAB_LABELS[f.tab])}
+              </li>
+            ))}
+            {missing.tabs.map((t) => (
+              <li key={t.id}>
+                <span className="font-bold text-slate-100">🔒 {t.label}</span> <span className="text-[10px] font-black uppercase text-slate-500">Tab</span>
+                {data?.guide.tabs[t.id as GuideTab] && <span className="block text-xs text-slate-300">{data.guide.tabs[t.id as GuideTab].summary}</span>}
+                {howToGet(`tab:${t.id}`, `${t.label} tab`, t.reason)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ),
+    });
   }
 
   function explain(id: string) {
@@ -143,7 +200,26 @@ export function GuideBot({ data, tabs, onOpenTab, name }: {
       const lines = entry.features.filter((f) => words.some((w) => w.length >= 3 && f.toLowerCase().includes(w))).slice(0, 2);
       return { id, score, lines };
     }).filter((s) => s.score > 0).sort((a, b) => b.score - a.score).slice(0, 3);
+    // Something they asked about may be in a tab or feature they can't use yet.
+    const locked = [
+      ...(missing?.tabs ?? []).map((t) => ({ target: `tab:${t.id}`, label: `${t.label} tab`, name: t.label, reason: t.reason as 'site' | 'user' | 'tab', tab: undefined as string | undefined, hay: [t.label, ...(data.guide.tabs[t.id as GuideTab] ? [data.guide.tabs[t.id as GuideTab].summary, ...data.guide.tabs[t.id as GuideTab].features] : [])] })),
+      ...(missing?.features ?? []).map((f) => ({ target: `feature:${f.id}`, label: f.label, name: f.label, reason: f.reason as 'site' | 'user' | 'tab', tab: TAB_LABELS[f.tab], hay: [f.label, f.summary] })),
+    ].filter((m) => words.some((w) => w.length >= 3 && m.hay.some((h) => h.toLowerCase().includes(w))));
     push({ from: 'me', body: question });
+    if (locked.length) {
+      push({
+        from: 'bot',
+        body: (
+          <div>
+            <p>{locked.length === 1 ? 'That’s part of something that isn’t on for you yet:' : 'These aren’t on for you yet:'}</p>
+            <ul className="mt-2 space-y-2">
+              {locked.slice(0, 3).map((m) => <li key={m.target}><span className="font-bold text-amber-200">🔒 {m.name}</span>{howToGet(m.target, m.label, m.reason, m.tab)}</li>)}
+            </ul>
+          </div>
+        ),
+      });
+      if (!scored.length) return;
+    }
     if (!scored.length) {
       push({ from: 'bot', body: <><p>I couldn’t find that. These are the parts of your admin:</p>{tabChips()}</> });
       return;
@@ -191,6 +267,7 @@ export function GuideBot({ data, tabs, onOpenTab, name }: {
       });
     }
     push(...items);
+    if (missingCount) setTimeout(() => showMissing(), 0);
   }
 
   useEffect(() => { listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' }); }, [messages]);

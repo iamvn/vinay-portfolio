@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, describeError } from './api';
 import { Button, Card, ConfirmButton, Loading, buttonBase, type Notify, useReadOnly } from './ui';
 import { THEME_PRESETS } from '@/lib/design/theme';
+import { AiTemplateCard } from './ai-template';
 
 type Status = {
   draft: { savedAt: string; savedBy: string; template?: string } | null;
@@ -11,6 +12,10 @@ type Status = {
   unpublishedChanges: boolean;
   history: { index: number; savedAt: string; savedBy: string }[];
   templates: { id: string; name: string; description: string }[];
+  /** The site's own templates (Create a template with AI). */
+  customTemplates: { id: string; name: string; description: string; theme: string; blocks: number; createdAt: string }[];
+  /** Whether this site has "Create a template with AI" (the platform owner turns it on). */
+  aiTemplates: boolean;
 };
 
 const when = (iso: string) => new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
@@ -29,8 +34,10 @@ const THUMBS: Record<string, { theme: keyof typeof THEME_PRESETS; layout: 'arcad
   'project-blank': { theme: 'clean', layout: 'blank' },
 };
 
-function Thumb({ id }: { id: string }) {
-  const { theme, layout } = THUMBS[id] ?? THUMBS.blank;
+function Thumb({ id, customTheme }: { id: string; customTheme?: string }) {
+  const { theme, layout } = customTheme !== undefined
+    ? { theme: customTheme in THEME_PRESETS ? customTheme : 'clean', layout: 'arcade' as const }
+    : THUMBS[id] ?? THUMBS.blank;
   const t = THEME_PRESETS[theme];
   const bar = (w: string, color: string = t.muted, h = 4) => <span className="block rounded-full" style={{ width: w, height: h, background: color, opacity: 0.8 }} />;
   const card = <span className="block h-7 rounded" style={{ background: t.surface, border: `1px solid ${t.line}` }} />;
@@ -177,6 +184,43 @@ export function DesignTab({ notify }: { notify: Notify }) {
           ))}
         </div>
       </Card>
+
+      {!readOnly && status.aiTemplates && (
+        <AiTemplateCard
+          query={P.query}
+          notify={notify}
+          hasDraft={Boolean(status.draft)}
+          onSaved={load}
+          onUse={(template) => startFrom(template.id, template.name)}
+        />
+      )}
+
+      {(status.customTemplates ?? []).length > 0 && (
+        <Card title="Your templates">
+          <p className="mb-4 text-sm text-slate-400">Templates made with AI for {page === 'home' ? 'the homepage' : 'project pages'}. Starting from one replaces your current draft.</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {status.customTemplates.map((template) => (
+              <article key={template.id} className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                <div className="relative">
+                  <Thumb id={template.id} customTheme={template.theme} />
+                  <span className="absolute right-2 top-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-black uppercase text-lime-200">AI</span>
+                </div>
+                <div>
+                  <h4 className="font-black text-white">{template.name}{status.draft?.template === template.id && <span className="ml-2 rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-black uppercase text-slate-400">In draft</span>}</h4>
+                  {template.description && <p className="mt-1 line-clamp-3 text-xs text-slate-400">{template.description}</p>}
+                  <p className="mt-1 text-[11px] text-slate-500">{template.blocks} blocks · made {new Date(template.createdAt).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                </div>
+                <div className="mt-auto flex flex-wrap gap-2">
+                  {status.draft
+                    ? <ConfirmButton onConfirm={() => startFrom(template.id, template.name)} disabled={busy} className="flex-1 border-white/15! text-slate-200!" confirmLabel="Replaces draft: tap again">Start from it</ConfirmButton>
+                    : <Button tone="primary" onClick={() => startFrom(template.id, template.name)} disabled={busy} className="flex-1">Start from it</Button>}
+                  {!readOnly && <ConfirmButton onConfirm={() => run(() => api('DELETE', `/api/design/templates/${template.id}`), `“${template.name}” deleted.`)} disabled={busy} confirmLabel="Delete? Tap again">Delete</ConfirmButton>}
+                </div>
+              </article>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {status.history.length > 0 && (
         <Card title="Previously published">

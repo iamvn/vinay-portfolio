@@ -8,7 +8,7 @@ import { ANNOUNCEMENT_KINDS, ANNOUNCEMENT_LABELS, DEFAULT_GUIDE, GUIDE_TABS, isL
 
 /** Platform owner (Sites tab): the Guide's text for every site, and announcements to every site's admins. */
 
-const tabName = (tab: GuideTab) => (tab === 'users' ? 'Users & security' : tab === 'sites' ? 'Sites' : tab === 'activity' ? 'Activity logs' : TAB_LABELS[tab as TabId]);
+const tabName = (tab: GuideTab) => (tab === 'users' ? 'Users & security' : tab === 'support' ? 'Support' : tab === 'sites' ? 'Sites' : tab === 'activity' ? 'Activity logs' : TAB_LABELS[tab as TabId]);
 
 export function GuideEditor({ notify }: { notify: Notify }) {
   const [guide, setGuide] = useState<(Guide & { changed: GuideTab[] }) | null>(null);

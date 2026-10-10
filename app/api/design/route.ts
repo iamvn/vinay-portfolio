@@ -5,6 +5,9 @@ import { requireTab } from '@/lib/auth/roles';
 import { designProblem, discardDraft, getDraft, getHistory, getPublished, saveDraft } from '@/lib/design/store';
 import { templatesFor, type DesignData } from '@/lib/design/templates';
 import { scopeFromRequest } from '@/lib/design/scope';
+import { listCustomTemplates } from '@/lib/design/custom-templates';
+import { kindOf } from '@/lib/design/ai-template';
+import { hasFeature } from '@/lib/sites/require-feature';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +18,7 @@ export async function GET(request: Request) {
   const { scope, error: badScope } = await scopeFromRequest(request);
   if (badScope) return badScope;
   try {
-    const [draft, published, history] = await Promise.all([getDraft(scope), getPublished(scope), getHistory(scope)]);
+    const [draft, published, history, custom, aiTemplates] = await Promise.all([getDraft(scope), getPublished(scope), getHistory(scope), listCustomTemplates(kindOf(scope)), hasFeature('aiTemplates')]);
     return NextResponse.json({
       draft,
       published: published && { savedAt: published.savedAt, savedBy: published.savedBy },
@@ -23,6 +26,10 @@ export async function GET(request: Request) {
       unpublishedChanges: Boolean(draft && (!published || JSON.stringify(draft.data) !== JSON.stringify(published.data))),
       history: history.map(({ savedAt, savedBy }, index) => ({ index, savedAt, savedBy })),
       templates: templatesFor(scope).map(({ id, name, description }) => ({ id, name, description })),
+      // This site's own templates (Create a template with AI), newest first.
+      customTemplates: custom,
+      // Create a template with AI: only when the platform owner turned it on for this site.
+      aiTemplates,
     });
   } catch (err) {
     return handleDbError(err);

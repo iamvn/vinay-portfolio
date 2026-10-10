@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     };
     await insertSite(site);
     await logActivity(manager, actorLabel(user), 'site.created', { slug: site.slug, name: site.name, ownerEmail: site.ownerEmail, ...(domain ? { domain } : {}) }, { includeMain: true });
-    return NextResponse.json({ ...publicSite({ ...site, isMain: false, canAddUsers: false, canAddSites: false, siteLimit: DEFAULT_SITE_LIMIT, tabs: '' }, request), note }, { status: 201 });
+    return NextResponse.json({ ...publicSite({ ...site, isMain: false, canAddUsers: false, canAddSites: false, siteLimit: DEFAULT_SITE_LIMIT, tabs: '', features: '' }, request), note }, { status: 201 });
   } catch (err) {
     console.error('Creating site failed:', err);
     // Don't leave a half-made database behind.

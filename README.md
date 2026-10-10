@@ -250,6 +250,20 @@ Admins can redesign the homepage without code in **Admin → Design**, using the
 - **Templates:** **Classic** (your original site rebuilt from blocks, pixel-identical to the built-in homepage
   but fully editable), **Arcade**, **Minimal**, **Studio**, and **Blank**. Starting from a template replaces
   the draft only. With no draft, the editor starts from Classic.
+- **Create a template with AI** (Design tab, for the homepage or project pages): describe the design you want (idea
+  chips such as *Streaming app*, *Cricket scoreboard*, *Retro arcade*, *Newspaper* fill in a themed request).
+  Only on sites where the platform owner turned on the *Create a template with AI* extra feature.
+  **Automatic** mode (on when the site has a provider in Admin → AI assistant; disabled otherwise) sends the prompt
+  to that provider, in fallback order, checks the answer (one correction round if it's broken and time allows) and
+  saves it as a template in one click. Other sites never use the platform owner's environment key.
+  **Manual** mode writes a complete prompt for any AI chat (ChatGPT, Claude, Gemini…): your request, the output rules,
+  every block with its settings, allowed values and defaults, the theme settings, the shared design settings, a
+  small example, and (optionally) your current design as compact JSON. Copy it, paste the AI's JSON answer back
+  (or upload a `.json` file), **Check it**, and **Save as template**. No AI is called by the site. The importer
+  is lenient with small mistakes (code fences around the JSON, missing or repeated ids, unknown settings, values
+  that aren't options, project-only blocks on the homepage) and lists every fix; anything it can't use is
+  refused with the reason. Saved templates appear under **Your templates** (up to 24 per site) with
+  *Start from it* and *Delete*.
 - **Editor** (`/admin/design`, best on a laptop): drag blocks from the left, click a block to edit it on the
   right, switch phone/tablet/desktop previews at the top. Click empty page space for the **Page** settings:
   color theme (7 presets), every palette color (background, cards, soft background, text, secondary text,
@@ -286,6 +300,9 @@ Admins can redesign the homepage without code in **Admin → Design**, using the
 API (admin session or token): `GET /api/design`, `PUT /api/design` `{ data }` (save draft),
 `POST /api/design/publish` (`{}` = publish draft, or `{ data }`), `DELETE /api/design/publish` (classic),
 `POST /api/design/template` `{ id }`, `POST /api/design/restore` `{ index }`, `DELETE /api/design` (revert draft to live).
+AI templates (`?page=project` for project pages): `GET /api/design/ai` (prompt rules, block catalog, current
+design and `ai.ready`), `POST /api/design/ai` `{ request, fromCurrent?, name? }` (automatic: design and save), `GET /api/design/templates` (this site's own), `POST /api/design/templates` `{ json, name, description?, check? }`
+(`check: true` only validates), `DELETE /api/design/templates/:id`. `POST /api/design/template` also takes their ids.
 
 ## Resume builder (ATS-friendly, Overleaf-style)
 
@@ -496,6 +513,22 @@ does affects another.
   can use. The platform owner rewrites any tab's text under Sites → *Admin guide (every site)*; it's stored once in the
   main database (Setting `platform.guide`, defaults in `lib/guide/content.ts`). `GET /api/guide` (any signed-in user),
   `GET/PUT /api/platform/guide` (owner; `{ tabs: { <tab>: { summary, features } | null } }`, null = default text).
+- **Not on for me (Guide):** the Guide also lists the tabs and extra features this person can't use, and why: turned
+  off for the whole site (a *Request access* button opens a prefilled request to the platform owner) or not in their
+  own access (their site admin decides, in Users & security). Typing a word that belongs to a locked tab says so.
+- **Extra features per site:** Sites → Security → *Extra features* turns on features beyond the tab list, off by default
+  for other sites and always on for the main site. First one: *Create a template with AI* (Design tab); while it's off
+  the card is hidden and `/api/design/ai` and `POST /api/design/templates` answer 403 (templates already made stay
+  usable). Stored in `Site.features`; `PATCH /api/platform/sites/:slug` `{ features: ["aiTemplates"] }`; changes are
+  logged. Definitions in `lib/sites/features.ts`.
+- **Support & requests:** a *Support* tab for everyone on every site (read-only users included): request access to a tab
+  or feature, ask for help, or send feedback, and see each request's status and the reply. The platform owner gets a
+  *Support inbox* (with an open count on the tab) for every site: filter by status, reply, change the status, delete,
+  and for access requests *Turn it on for <site>* enables the tab or feature for that site and marks it done with a
+  reply. Requests and answers appear in Activity logs. Stored in the main database (`SupportRequest`); limits: 10 a day
+  per person, 50 open per site; deleting a site deletes its requests. `GET/POST /api/support`,
+  `GET /api/platform/support?filter=active|all|open|in-progress|done|declined`,
+  `PATCH /api/platform/support/:id` `{ status?, reply?, grant? }`, `DELETE /api/platform/support/:id`.
 - **Announcements:** Sites → *Announcements (every site)* broadcasts a message (New / Note / Important, optional link and
   last day) to every site's admins: a bar at the top of their admin (dismissible, remembered per browser) and *What's new*
   in the Guide. Turn one off or delete it any time. Setting `platform.announcements` (newest 30 kept);

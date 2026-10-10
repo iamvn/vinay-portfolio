@@ -6,7 +6,7 @@ import { Button, Card, ConfirmButton, Loading, inputClass, type Notify } from '.
 import type { Post } from '@/lib/community/types';
 
 type Kind = 'user.login' | 'user.added' | 'user.updated' | 'user.removed' | 'site.created' | 'site.updated' | 'site.deleted'
-  | 'community.posted' | 'community.updated' | 'community.deleted' | 'community.hidden' | 'community.shown' | 'community.removed' | 'log.cleared';
+  | 'community.posted' | 'community.updated' | 'community.deleted' | 'community.hidden' | 'community.shown' | 'community.removed' | 'support.requested' | 'support.answered' | 'log.cleared';
 type Activity = { id: number; at: string; site: string; siteName: string; actor: string; kind: Kind; details: Record<string, string> };
 type Stats = { count: number; oldest: string | null };
 type Page = { items: Activity[]; total: number; sites: { site: string; siteName: string }[]; stats?: Stats };
@@ -27,6 +27,8 @@ const KIND_LABELS: Record<Kind, string> = {
   'community.hidden': 'Hid community post',
   'community.shown': 'Showed community post',
   'community.removed': 'Removed community post',
+  'support.requested': 'Sent a request',
+  'support.answered': 'Answered a request',
   'log.cleared': 'Cleared the log',
 };
 const KIND_TONES: Record<Kind, string> = {
@@ -43,6 +45,8 @@ const KIND_TONES: Record<Kind, string> = {
   'community.hidden': 'border-yellow-300/30 bg-yellow-300/10 text-yellow-200',
   'community.shown': 'border-cyan-300/30 bg-cyan-300/10 text-cyan-200',
   'community.removed': 'border-red-400/30 bg-red-400/10 text-red-200',
+  'support.requested': 'border-amber-300/30 bg-amber-300/10 text-amber-200',
+  'support.answered': 'border-lime-300/30 bg-lime-300/10 text-lime-200',
   'log.cleared': 'border-slate-400/30 bg-slate-400/10 text-slate-200',
 };
 
@@ -63,6 +67,9 @@ const FILTERS: { value: string; label: string }[] = [
   { value: 'community.deleted', label: '· Posts deleted by their site' },
   { value: 'community.hidden', label: '· Posts hidden by you' },
   { value: 'community.removed', label: '· Posts removed by you' },
+  { value: 'support.', label: 'Support & requests' },
+  { value: 'support.requested', label: '· Requests sent' },
+  { value: 'support.answered', label: '· Requests answered' },
   { value: 'log.cleared', label: 'Log cleared' },
 ];
 
@@ -89,11 +96,14 @@ function details(item: Activity): ReactNode {
     case 'community.shown':
     case 'community.removed':
       return <><b className="text-slate-100">“{d.title}”</b>{d.from && <span className="text-slate-400"> from {d.from}</span>}{d.status === 'draft' && <span className="text-slate-400"> (draft)</span>}</>;
+    case 'support.requested':
+    case 'support.answered':
+      return <><b className="text-slate-100">“{d.subject}”</b> <span className="text-slate-400">{d.kind}{d.status ? ` · ${d.status}` : ''}{d.granted ? ` · turned on ${d.granted}` : ''}</span></>;
     case 'log.cleared': return <span className="text-slate-400">{d.scope}: {d.deleted} deleted</span>;
     case 'site.updated': {
       const changes = [
         d.renamed && `renamed ${d.renamed}`, d.status, d.domain && `domain → ${d.domain}`,
-        d.canAddUsers && `add users ${d.canAddUsers}`, d.canAddSites && `create sites ${d.canAddSites}`, d.siteLimit && `site limit → ${d.siteLimit}`, d.tabs && `tabs → ${d.tabs}`,
+        d.canAddUsers && `add users ${d.canAddUsers}`, d.canAddSites && `create sites ${d.canAddSites}`, d.siteLimit && `site limit → ${d.siteLimit}`, d.tabs && `tabs → ${d.tabs}`, d.features && `features → ${d.features}`,
       ].filter(Boolean);
       return <>{site(d)} <span className="text-slate-400">{changes.join(' · ')}</span></>;
     }

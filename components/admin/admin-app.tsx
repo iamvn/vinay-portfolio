@@ -16,7 +16,8 @@ import { ApplicationsTab } from './applications-tab';
 import { CommunityTab } from './community-tab';
 import { UsersTab, type AdminUser } from './users-tab';
 import { ReadOnlyFieldset, ReadOnlyProvider, RequestProgress, type Notify } from './ui';
-import { AnnouncementBar, GuideBot, type GuideData } from './guide';
+import { AnnouncementBar, GuideBot, type AccessAsk, type GuideData } from './guide';
+import { SupportTab } from './support-tab';
 import { SectionScope, setAllSections } from './sections';
 import { api } from './api';
 
@@ -35,14 +36,15 @@ const TABS = [
   ['ai', 'AI assistant'],
   ['backup', 'Backup'],
   ['users', 'Users & security'],
+  ['support', 'Support'],
   ['sites', 'Sites'],
   ['activity', 'Activity logs'],
 ] as const;
 
 type Tab = (typeof TABS)[number][0];
-/** Tabs this user can open: the tabs they may use on this site (admins: every tab the site has), plus "My account". */
+/** Tabs this user can open: the tabs they may use on this site (admins: every tab the site has), plus "My account" and Support. */
 const visibleTabs = (user: AdminUser, platform: boolean, platformMain: boolean) =>
-  TABS.filter(([id]) => (id === 'sites' ? platform : id === 'activity' ? platformMain : id === 'users' || (user.tabs ?? []).includes(id as never)));
+  TABS.filter(([id]) => (id === 'sites' ? platform : id === 'activity' ? platformMain : id === 'users' || id === 'support' || (user.tabs ?? []).includes(id as never)));
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
 
 function subscribeToHash(callback: () => void) {
@@ -89,6 +91,9 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
   const [guide, setGuide] = useState<GuideData | null>(null);
+  // An access request the Guide filled in, for the Support tab.
+  const [ask, setAsk] = useState<AccessAsk | null>(null);
+  const [askKey, setAskKey] = useState(0); // a new ask re-opens the form even when Support is already showing
   // The Guide's text and the platform owner's announcements (shared by every site).
   useEffect(() => { api<GuideData>('GET', '/api/guide').then(setGuide).catch(() => setGuide(null)); }, []);
   // Read-only users can look at every tab they have, but not change anything ("My account" stays usable).
@@ -152,7 +157,10 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
               aria-current={tab === id ? 'page' : undefined}
               className={`min-h-11 shrink-0 snap-start whitespace-nowrap rounded-lg px-4 text-xs font-black uppercase tracking-wide transition sm:min-h-0 sm:px-3.5 sm:py-2 ${tab === id ? 'bg-lime-300 text-black' : 'bg-white/[.04] text-slate-300 hover:bg-white/5 hover:text-white sm:bg-transparent sm:text-slate-400'}`}
             >
-              {id === 'users' && user.role !== 'admin' ? 'My account' : label}
+              {id === 'users' && user.role !== 'admin' ? 'My account' : id === 'support' && platformMain ? 'Support inbox' : label}
+              {id === 'support' && platformMain && Boolean(guide?.supportOpen) && (
+                <span className="ml-1.5 rounded-full bg-amber-300 px-1.5 py-px text-[10px] text-black" aria-label={`${guide?.supportOpen} open`}>{guide?.supportOpen}</span>
+              )}
             </button>
           ))}
         </nav>
@@ -169,7 +177,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
           </div>
         )}
         <SectionScope.Provider value={tab}>
-        {viewOnly && tab !== 'users' && (
+        {viewOnly && tab !== 'users' && tab !== 'support' && (
           <p className="mb-4 rounded-xl border border-yellow-300/30 bg-yellow-300/[.06] px-4 py-3 text-sm text-yellow-100">
             <b>Read-only access.</b> You can look through everything here, but you can&apos;t save changes. Ask an admin if you need to edit something.
           </p>
@@ -190,6 +198,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
           {tab === 'backup' && <BackupTab notify={notify} onReplaced={() => setReloadKey((key) => key + 1)} />}
         </ReadOnlyProvider>
         {/* "My account" (password change) always works, even for read-only users. */}
+        {tab === 'support' && <ReadOnlyProvider value={false}><SupportTab key={askKey} notify={notify} owner={platformMain} prefill={ask} onPrefillUsed={() => setAsk(null)} /></ReadOnlyProvider>}
         {tab === 'sites' && platform && <SitesTab notify={notify} />}
         {tab === 'activity' && platformMain && <ActivityTab notify={notify} />}
         {tab === 'users' && <ReadOnlyProvider value={false}><UsersTab me={user} notify={notify} canAddUsers={canAddUsers} /></ReadOnlyProvider>}
@@ -226,7 +235,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
           </button>
         ))}
       </div>
-      <GuideBot data={guide} tabs={tabs.map(([id, label]) => [id, id === 'users' && user.role !== 'admin' ? 'My account' : label] as const)} onOpenTab={(id) => select(id as Tab)} name={user.name || ''} />
+      <GuideBot data={guide} tabs={tabs.map(([id, label]) => [id, id === 'users' && user.role !== 'admin' ? 'My account' : label] as const)} onOpenTab={(id) => select(id as Tab)} onRequest={(next) => { setAsk(next); setAskKey((k) => k + 1); select('support'); }} name={user.name || ''} />
     </div>
   );
 }

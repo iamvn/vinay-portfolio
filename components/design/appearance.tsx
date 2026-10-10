@@ -42,6 +42,8 @@ const label = 'mb-1.5 block text-[13px] font-semibold text-slate-700';
 export const colorField = (text: string) => ({
   type: 'custom' as const,
   label: text,
+  /** How "Create a template with AI" describes this value (lib/design/ai-template.ts). */
+  ai: 'color' as const,
   render: ({ value, onChange, readOnly, id }: { value?: string; onChange: (value: string) => void; readOnly?: boolean; id?: string; name?: string }) => {
     const current = typeof value === 'string' ? value : '';
     const valid = isSafeColor(current);
@@ -86,6 +88,7 @@ const clampPx = (value: string) => {
 export const spacingField = (text: string, hint?: string) => ({
   type: 'custom' as const,
   label: text,
+  ai: 'sides' as const,
   render: ({ value, onChange, readOnly }: { value?: Sides; onChange: (value: Sides) => void; readOnly?: boolean }) => {
     const current: Sides = value && typeof value === 'object' ? value : {};
     const set = (side: keyof Sides, raw: string) => onChange({ ...current, [side]: clampPx(raw) });

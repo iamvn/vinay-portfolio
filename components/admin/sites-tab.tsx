@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { api, describeError } from './api';
 import { TAB_IDS, TAB_LABELS, type TabId } from '@/lib/auth/permissions';
+import { FEATURE_INFO, SITE_FEATURES, type SiteFeature } from '@/lib/sites/features';
 import { AnnouncementsEditor, GuideEditor } from './platform-guide';
 import { Button, Card, Field, Loading, PasswordInput, TextInput, buttonBase, inputClass, type Notify } from './ui';
 
@@ -11,6 +12,8 @@ type SiteRow = {
   canAddUsers: boolean; canAddSites: boolean; siteLimit: number | null; createdBy: string; createdByUser: string;
   /** Admin tabs everyone on the site may use, its own admins included. */
   tabs: TabId[];
+  /** Extra features turned on for the site (always all for the main site). */
+  features?: SiteFeature[];
 };
 type Platform = { isMain: boolean; siteLimit: number | null; sitesCreated: number; rootDomain: string | null; turso: boolean; onVercel: boolean; vercelApi: boolean; exampleUrl: string | null };
 
@@ -137,7 +140,7 @@ function NumberStepper({ id, value, onChange, min, max, disabled, invalid }: {
   );
 }
 
-type SecurityChanges = { canAddUsers: boolean; canAddSites: boolean; siteLimit: number; tabs: TabId[] };
+type SecurityChanges = { canAddUsers: boolean; canAddSites: boolean; siteLimit: number; tabs: TabId[]; features: SiteFeature[] };
 
 function Security({ site, busy, save }: { site: SiteRow; busy: boolean; save: (changes: SecurityChanges) => void }) {
   const savedLimit = site.siteLimit ?? 2;
@@ -146,10 +149,13 @@ function Security({ site, busy, save }: { site: SiteRow; busy: boolean; save: (c
   const [limit, setLimit] = useState(String(savedLimit));
   const savedTabs = site.tabs ?? [...TAB_IDS];
   const [tabs, setTabs] = useState<TabId[]>(savedTabs);
+  const savedFeatures = site.features ?? [];
+  const [features, setFeatures] = useState<SiteFeature[]>(savedFeatures);
+  const featuresDirty = features.length !== savedFeatures.length || features.some((f) => !savedFeatures.includes(f));
   const limitNumber = Number(limit);
   const limitValid = limit.trim() !== '' && Number.isInteger(limitNumber) && limitNumber >= 0 && limitNumber <= 100;
   const tabsDirty = tabs.length !== savedTabs.length || tabs.some((tab) => !savedTabs.includes(tab));
-  const dirty = users !== site.canAddUsers || sites !== site.canAddSites || (limitValid && limitNumber !== savedLimit) || tabsDirty;
+  const dirty = users !== site.canAddUsers || sites !== site.canAddSites || (limitValid && limitNumber !== savedLimit) || tabsDirty || featuresDirty;
   const toggleTab = (tab: TabId) => setTabs(TAB_IDS.filter((item) => (item === tab ? !tabs.includes(tab) : tabs.includes(item))));
   return (
     <div className="rounded-xl border border-white/10 bg-white/[.02] p-3">
@@ -186,9 +192,23 @@ function Security({ site, busy, save }: { site: SiteRow; busy: boolean; save: (c
           <span className="min-h-9 py-2 font-normal text-slate-500">{tabs.length} of {TAB_IDS.length} on</span>
         </div>
       </fieldset>
+      <fieldset className="mt-3 border-t border-white/10 pt-3">
+        <legend className="sr-only">Extra features</legend>
+        <p className="text-sm font-bold text-slate-100">Extra features</p>
+        <p className="mb-2 text-xs leading-5 text-slate-400">Off unless you turn them on. Their admins can ask for one from the Support tab.</p>
+        {SITE_FEATURES.map((feature) => {
+          const info = FEATURE_INFO[feature];
+          const tabOff = !tabs.includes(info.tab);
+          return (
+            <Check key={feature} checked={features.includes(feature)} label={info.label}
+              onChange={(on) => setFeatures(SITE_FEATURES.filter((f) => (f === feature ? on : features.includes(f))))}
+              hint={`${info.summary} In the ${TAB_LABELS[info.tab]} tab${tabOff ? ` (turned off above, so they won’t see it)` : ''}.`} />
+          );
+        })}
+      </fieldset>
       <div className="mt-2 flex flex-wrap gap-2">
-        <Button tone="primary" disabled={busy || !dirty || !limitValid} onClick={() => save({ canAddUsers: users, canAddSites: sites, siteLimit: limitNumber, tabs })}>{busy ? 'Saving…' : 'Save security'}</Button>
-        <Button disabled={busy || !dirty} onClick={() => { setUsers(site.canAddUsers); setSites(site.canAddSites); setLimit(String(savedLimit)); setTabs(savedTabs); }}>Cancel</Button>
+        <Button tone="primary" disabled={busy || !dirty || !limitValid} onClick={() => save({ canAddUsers: users, canAddSites: sites, siteLimit: limitNumber, tabs, features })}>{busy ? 'Saving…' : 'Save security'}</Button>
+        <Button disabled={busy || !dirty} onClick={() => { setUsers(site.canAddUsers); setSites(site.canAddSites); setLimit(String(savedLimit)); setTabs(savedTabs); setFeatures(savedFeatures); }}>Cancel</Button>
       </div>
     </div>
   );
@@ -247,7 +267,7 @@ function SiteItem({ site, isMain, onChanged, notify }: { site: SiteRow; isMain: 
         </Button>
       </div>
       {isMain && (
-        <Security key={`${site.canAddUsers}-${site.canAddSites}-${site.siteLimit}-${(site.tabs ?? []).join(',')}`} site={site} busy={busy}
+        <Security key={`${site.canAddUsers}-${site.canAddSites}-${site.siteLimit}-${(site.tabs ?? []).join(',')}-${(site.features ?? []).join(',')}`} site={site} busy={busy}
           save={(changes) => run('PATCH', changes, `Saved security for ${site.name}.`)} />
       )}
       {!deleting ? (

@@ -10,10 +10,12 @@ export const ACTIVITY_KINDS = [
   'user.login', 'user.added', 'user.updated', 'user.removed', 'site.created', 'site.updated', 'site.deleted',
   // Community board: only who did what to which post, and when (the post itself lives in CommunityPost).
   'community.posted', 'community.updated', 'community.deleted', 'community.hidden', 'community.shown', 'community.removed',
+  // Support & requests: that someone asked, and that it was answered (the request lives in SupportRequest).
+  'support.requested', 'support.answered',
   'log.cleared',
 ] as const;
 /** Filters that match a whole group of kinds. */
-export const ACTIVITY_GROUPS = ['user.', 'site.', 'community.'] as const;
+export const ACTIVITY_GROUPS = ['user.', 'site.', 'community.', 'support.'] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 export type Activity = {
   id: number;

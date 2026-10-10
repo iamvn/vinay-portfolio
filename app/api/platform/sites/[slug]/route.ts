@@ -4,9 +4,11 @@ import { jsonError, parseBody } from '@/lib/api-utils';
 import { MAX_SITE_LIMIT, removeSite, siteBySlug, updateSite } from '@/lib/sites/registry';
 import { deleteSiteDatabase } from '@/lib/sites/provision';
 import { removeSitePosts } from '@/lib/community/store';
+import { removeSiteRequests } from '@/lib/support/store';
 import { canSeeSite, publicSite, requirePlatformAdmin } from '@/lib/sites/platform';
 import { actorLabel, logActivity } from '@/lib/sites/activity';
 import { TAB_IDS, TAB_LABELS, parseSiteTabs, serializeSiteTabs } from '@/lib/auth/permissions';
+import { FEATURE_INFO, SITE_FEATURES, parseFeatures, serializeFeatures } from '@/lib/sites/features';
 import { addProjectDomain, removeProjectDomain, vercelApiConfigured } from '@/lib/sites/vercel';
 
 export const dynamic = 'force-dynamic';
@@ -23,6 +25,8 @@ const patchSchema = z.object({
   siteLimit: z.number().int().min(0).max(MAX_SITE_LIMIT),
   // Admin tabs everyone on the site may use, its own admins included (main site's admins only).
   tabs: z.array(z.enum(TAB_IDS)).max(TAB_IDS.length),
+  // Extra features turned on for the site (main site's admins only), e.g. Create a template with AI.
+  features: z.array(z.enum(SITE_FEATURES)).max(SITE_FEATURES.length),
 }).partial().strict();
 
 /** Rename, suspend/resume, set a custom domain, or (main site's admins) change the site's security settings. */
@@ -32,7 +36,7 @@ export async function PATCH(request: Request, { params }: Context) {
   const { slug } = await params;
   const { data, error } = await parseBody(request, patchSchema);
   if (error) return error;
-  if (!manager.isMain && (data.canAddUsers !== undefined || data.canAddSites !== undefined || data.siteLimit !== undefined || data.tabs !== undefined)) {
+  if (!manager.isMain && (data.canAddUsers !== undefined || data.canAddSites !== undefined || data.siteLimit !== undefined || data.tabs !== undefined || data.features !== undefined)) {
     return jsonError('Only the platform owner can change security settings.', 403);
   }
   try {
@@ -44,8 +48,11 @@ export async function PATCH(request: Request, { params }: Context) {
       const added = await addProjectDomain(nextDomain);
       if (!added.ok) return jsonError(added.message ?? 'Vercel could not add that domain.', 400);
     }
-    const { tabs, ...rest } = data;
-    const site = await updateSite(slug, { ...rest, ...(nextDomain !== undefined ? { domain: nextDomain } : {}), ...(tabs ? { tabs: serializeSiteTabs(tabs) } : {}) });
+    const { tabs, features, ...rest } = data;
+    const site = await updateSite(slug, {
+      ...rest, ...(nextDomain !== undefined ? { domain: nextDomain } : {}), ...(tabs ? { tabs: serializeSiteTabs(tabs) } : {}),
+      ...(features ? { features: serializeFeatures(features) } : {}),
+    });
     if (site && nextDomain !== undefined && before.domain && before.domain !== nextDomain && vercelApiConfigured()) await removeProjectDomain(before.domain);
     if (site) {
       // What changed, in words, for the activity log.
@@ -59,6 +66,10 @@ export async function PATCH(request: Request, { params }: Context) {
       if (site.tabs !== before.tabs) {
         const on = parseSiteTabs(site.tabs);
         changes.tabs = on ? (on.length ? on.map((tab) => TAB_LABELS[tab]).join(', ') : 'none') : 'all tabs';
+      }
+      if (site.features !== before.features) {
+        const on = parseFeatures(site.features);
+        changes.features = on.length ? on.map((f) => FEATURE_INFO[f].label).join(', ') : 'none';
       }
       if (Object.keys(changes).length > 2) await logActivity(manager, actorLabel(user), 'site.updated', changes, { includeMain: true });
     }
@@ -84,6 +95,7 @@ export async function DELETE(request: Request, { params }: Context) {
     await deleteSiteDatabase(site);
     await removeSite(slug);
     await removeSitePosts(slug).catch((err) => console.error('Could not remove community posts:', err));
+    await removeSiteRequests(slug).catch((err) => console.error('Could not remove support requests:', err));
     if (site.domain && vercelApiConfigured()) await removeProjectDomain(site.domain);
     await logActivity(manager, actorLabel(user), 'site.deleted', { slug: site.slug, name: site.name, ownerEmail: site.ownerEmail }, { includeMain: true });
     return new Response(null, { status: 204 });

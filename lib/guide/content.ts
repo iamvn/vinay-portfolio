@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 export const GUIDE_TABS = [
   'profile', 'experience', 'skills', 'projects', 'copy', 'design', 'resume', 'builder', 'applications', 'community',
-  'insights', 'ai', 'backup', 'users', 'sites', 'activity',
+  'insights', 'ai', 'backup', 'users', 'support', 'sites', 'activity',
 ] as const;
 export type GuideTab = (typeof GUIDE_TABS)[number];
 export type GuideEntry = { summary: string; features: string[] };
@@ -39,7 +39,7 @@ export const DEFAULT_GUIDE: Guide = {
     },
     design: {
       summary: 'A no-code designer for your homepage and project pages.',
-      features: ['Drag and drop blocks, sections and templates', 'Design every project page once, or one by one', 'PDF portfolio viewer', 'Publish checklist reviews your page before it goes live', 'Version history and guided tours'],
+      features: ['Drag and drop blocks, sections and templates', 'Create a template with AI: describe a theme (streaming app, cricket…) and your AI provider builds it, or copy the prompt into any AI chat', 'Design every project page once, or one by one', 'PDF portfolio viewer', 'Publish checklist reviews your page before it goes live', 'Version history and guided tours'],
     },
     resume: {
       summary: 'The resume file visitors can download from your site.',
@@ -72,6 +72,10 @@ export const DEFAULT_GUIDE: Guide = {
     users: {
       summary: 'Your account, and (for admins) who else can use this admin.',
       features: ['Change your password', 'Add users as admins or editors', 'Choose which tabs each editor can use', 'Read-only accounts', 'API tokens for scripts'],
+    },
+    support: {
+      summary: 'Ask the platform owner for help, send feedback, or request a tab or feature your site doesn’t have.',
+      features: ['Request access to a tab or feature', 'Report a problem or ask a question', 'Share feedback and ideas', 'See the status of each request and the reply', 'Platform owner: one inbox for every site, reply and grant access in one click'],
     },
     sites: {
       summary: 'Create and manage the portfolio sites hosted on this platform.',

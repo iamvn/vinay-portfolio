@@ -750,6 +750,9 @@ for (const [name, component] of Object.entries(designConfig.components) as [stri
   const own = component.fields ?? {};
   const contentKeys = Object.entries(own).filter(([, field]) => field.type !== 'slot').map(([key]) => key);
   const hasContent = contentKeys.length > 0;
+  // A block's own setting can share a name with a Design group (e.g. a Heading's text "size"): the importer
+  // for AI templates (lib/design/ai-template.ts) still needs the block's own definition.
+  Object.assign(component, { ownFields: own, ownDefaults: component.defaultProps ?? {} });
   component.fields = { ...(hasContent ? { _view: viewField } : {}), ...own, ...styleFields } as never;
   component.defaultProps = { ...(component.defaultProps ?? {}), ...STYLE_DEFAULTS, _view: 'content' };
   if (hasContent) {

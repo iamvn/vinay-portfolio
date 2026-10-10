@@ -53,8 +53,9 @@ export const canUseTab = (user: Who, tab: TabId) => allowedTabs(user).includes(t
  * The only things they may still do are signing out and changing their own password.
  */
 export const isReadOnly = (user: Who) => user.role !== 'admin' && Boolean(user.readOnly);
-// Signing out, your own password, and the resume builder's live preview (it only reads).
-const READ_ONLY_ALLOWED = /^\/api\/(auth\/(logout|password)|resume-builder\/compile)$/;
+// Signing out, your own password, the resume builder's live preview (it only reads), and asking the platform
+// owner for help or access (Support tab).
+const READ_ONLY_ALLOWED = /^\/api\/(auth\/(logout|password)|resume-builder\/compile|support)$/;
 export const blockedForReadOnly = (method: string, path: string) =>
   !['GET', 'HEAD', 'OPTIONS'].includes(method) && !READ_ONLY_ALLOWED.test(path);
 
