@@ -72,8 +72,8 @@ const feature = (id: string, icon: string, color: string, title: string, text: s
 const fact = (id: string, icon: string, source: string, color = '') => b('Flex', id, {
   gap: 10, align: 'start', wrap: false,
   items: [
-    // The icon lines up with the first line of text, also when the text wraps on a phone.
-    b('Icon', `${id}-icon`, { name: icon, size: 15, ...(color ? { tone: 'custom', color } : { tone: 'muted' }), spacing: { margin: { top: '3' } } }),
+    // The icon sits centred on the first line of text (16px icon, 4px down, in a 24px line), also when the text wraps on a phone.
+    b('Icon', `${id}-icon`, { name: icon, size: 16, ...(color ? { tone: 'custom', color } : { tone: 'muted' }), spacing: { margin: { top: '4' } } }),
     b('Text', `${id}-text`, { source, size: 'sm', tone: 'normal' }),
   ],
 });
@@ -263,7 +263,7 @@ const glassStudio: DesignData = {
 export const OWNER_TEMPLATES: { key: string; version: number; name: string; description: string; data: DesignData }[] = [
   {
     key: 'glass-studio',
-    version: 2,
+    version: 3,
     name: 'Glass Studio',
     description: 'Apple-style Liquid Glass: a floating glass navigation bar, a sunrise-wallpaper hero with a frosted profile window and an app dock, glass panels on a soft grey page, projects in app windows with a Featured / All switch, tabbed skill chips and a side-by-side journey.',
     data: glassStudio,

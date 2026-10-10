@@ -576,7 +576,7 @@ export const designConfig: Config<Components, RootProps> = {
       defaultProps: { source: 'custom', text: 'Write something here.', size: 'md', sizePx: 0, weight: 'default', font: 'body', tracking: 'default', tone: 'muted', align: 'left', maxWidth: 'prose', uppercase: false },
       render: ({ source, text, size, sizePx, weight, font, tracking, tone, align, maxWidth, uppercase, puck }) => {
         const content = boundText(source, text, meta(puck).portfolio);
-        if (!content && !puck.isEditing) return <></>;
+        if (!content && !puck.isEditing) return <span className="d-text-empty" hidden />; // lets an icon + text row hide itself (design.css)
         const sizes: Record<string, string> = { xs: 'text-xs leading-5', sm: 'text-sm leading-6', md: 'text-base leading-7', lg: 'text-lg leading-8 md:text-xl', xl: 'text-xl leading-8 md:text-2xl' };
         const toneCls = tone === 'muted' ? 'd-muted' : tone === 'accent' ? 'd-accent' : tone === 'accent2' ? 'd-accent-2' : '';
         return (

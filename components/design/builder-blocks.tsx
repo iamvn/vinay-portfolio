@@ -407,7 +407,7 @@ export const IconBlock: ComponentConfig<IconProps> = {
       : background === 'tile' ? { ...tile, color: '#fff', ['--tile' as string]: fg, background: `linear-gradient(180deg, color-mix(in srgb, ${fg} 65%, white), ${fg})`, boxShadow: `inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(0,0,0,.08), 0 6px 14px -6px color-mix(in srgb, ${fg} 70%, transparent)` }
       : background === 'glass' ? { ...tile, color: fg }
       : { ...tile, color: fg, background: 'color-mix(in srgb, currentColor 14%, transparent)', borderRadius: background === 'circle' ? 9999 : 'var(--d-radius)' };
-    return <div className={`d-prim flex ${justify(align)}`}><span style={box} className={background === 'glass' ? 'd-glass d-glass-light' : undefined} aria-hidden="true"><Icon name={ICON_NAMES.includes(name) ? name : 'sparkle'} size={background === 'tile' || background === 'glass' ? Math.round(px * 1.05) : px} /></span></div>;
+    return <div className={`d-prim d-icon flex ${justify(align)}`}><span style={box} className={background === 'glass' ? 'd-glass d-glass-light' : undefined} aria-hidden="true"><Icon name={ICON_NAMES.includes(name) ? name : 'sparkle'} size={background === 'tile' || background === 'glass' ? Math.round(px * 1.05) : px} /></span></div>;
   },
 };
 

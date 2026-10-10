@@ -85,6 +85,8 @@
   @media (min-width: 768px) { .d-prim { padding-inline: 2rem; } }
   :is(.d-section-inner, .d-col, .d-cardbox, .d-flex, .d-grid, .d-slot-extra) .d-prim { max-width: none; margin-inline: 0; padding-inline: 0; }
   :is(.d-flex, .d-grid) .d-prim { width: auto; }
+  /* A row of icons + live text whose text is empty (say, no availability note) hides itself, so no icon floats alone. */
+  .d-prim:has(> .d-flex > .d-text-empty):not(:has(> .d-flex > :not(.d-text-empty, .d-icon, .d-styled))) { display: none; }
   :is(.d-section-inner, .d-col, .d-cardbox, .d-flex, .d-grid, .d-slot-extra) .d-container { max-width: none; padding-inline: 0; }
   :is(.d-section-inner, .d-col, .d-cardbox, .d-flex, .d-grid, .d-slot-extra) .d-block { padding-block: 1rem; }
 
