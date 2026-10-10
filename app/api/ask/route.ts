@@ -6,6 +6,7 @@ import { getAssistantSettings } from '@/lib/ai/settings';
 import { recordEvent, startOfTodayUtc } from '@/lib/events';
 import { prisma } from '@/lib/prisma';
 import { clientIp, rateLimited } from '@/lib/rate-limit';
+import { recordGoal } from '@/lib/traffic';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
   if (rateLimited(`ask:${ip}`, settings.visitorLimit, 10 * 60_000)) return jsonError('You’ve asked a lot of questions in a short time. Please try again in a few minutes.', 429);
   if ((await usedToday()) >= settings.dailyLimit) return jsonError('The assistant has reached today’s question limit. Please use the contact options instead.', 429);
 
-  await recordEvent('ask', question.content.slice(0, 300));
+  await Promise.all([recordEvent('ask', question.content.slice(0, 300)), recordGoal(request, 'ask')]);
   try {
     const { answer } = await askAssistant(messages);
     return NextResponse.json({ answer });

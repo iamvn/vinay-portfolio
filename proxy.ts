@@ -13,6 +13,7 @@ import { TAB_LABELS, blockedForReadOnly, canUseTab, isReadOnly, tabForRequest } 
  *   - POST /api/contact                       (the site's contact form)
  *   - POST /api/forms                         (forms built in Admin → Design)
  *   - POST /api/track                         (anonymous contact-click counts)
+ *   - POST /api/collect                       (anonymous page views for Admin → Insights)
  *   - GET/POST /api/ask                       (the "Ask my resume" assistant)
  *   - GET  /api/resume, /api/profile-image,
  *          /api/projects/<slug>/image,
@@ -25,12 +26,12 @@ const PUBLIC_API: { method: string; pattern: RegExp }[] = [
   { method: 'POST', pattern: /^\/api\/contact$/ },
   { method: 'POST', pattern: /^\/api\/forms$/ }, // forms built in Admin → Design
   { method: 'POST', pattern: /^\/api\/track$/ },
+  { method: 'POST', pattern: /^\/api\/collect$/ }, // page views (Admin → Insights)
   { method: 'POST', pattern: /^\/api\/ask$/ },
   { method: 'GET', pattern: /^\/api\/ask$/ },
   { method: 'GET', pattern: /^\/api\/resume$/ },
   { method: 'GET', pattern: /^\/api\/profile-image$/ },
   { method: 'GET', pattern: /^\/api\/projects\/[^/]+\/image$/ },
-  { method: 'GET', pattern: /^\/api\/files\/[a-f0-9-]{36}(\/[^/]+)?$/ }, // uploaded PDFs
   { method: 'GET', pattern: /^\/api\/files\/[a-f0-9-]{36}(\/[^/]+)?$/ }, // uploaded PDFs
 ];
 

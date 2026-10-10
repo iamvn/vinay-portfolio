@@ -25,3 +25,11 @@ CREATE TABLE IF NOT EXISTS FormSubmission (id INTEGER PRIMARY KEY AUTOINCREMENT,
 -- Uploaded documents (PDFs), stored in 256 KB blocks so uploads and reads fit Vercel's 4.5 MB limit (lib/assets.ts).
 CREATE TABLE IF NOT EXISTS Asset (id TEXT PRIMARY KEY, fileName TEXT NOT NULL, mimeType TEXT NOT NULL, size INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'uploading', uploadedBy TEXT NOT NULL DEFAULT '', createdAt TEXT NOT NULL, uploadedAt TEXT NOT NULL DEFAULT '');
 CREATE TABLE IF NOT EXISTS AssetBlock (assetId TEXT NOT NULL, idx INTEGER NOT NULL, data BLOB NOT NULL, PRIMARY KEY (assetId, idx));
+
+-- Visitor analytics for Admin → Insights (lib/traffic.ts). No IPs or cookies: `visitor` is a one-way hash that
+-- changes every day. Kept for 400 days.
+CREATE TABLE IF NOT EXISTS PageView (id TEXT PRIMARY KEY, createdAt TEXT NOT NULL, path TEXT NOT NULL, visitor TEXT NOT NULL, entry INTEGER NOT NULL DEFAULT 0, source TEXT NOT NULL DEFAULT '', medium TEXT NOT NULL DEFAULT '', referrer TEXT NOT NULL DEFAULT '', campaign TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '', region TEXT NOT NULL DEFAULT '', city TEXT NOT NULL DEFAULT '', device TEXT NOT NULL DEFAULT '', browser TEXT NOT NULL DEFAULT '', os TEXT NOT NULL DEFAULT '', duration INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX IF NOT EXISTS PageView_createdAt ON PageView (createdAt);
+CREATE INDEX IF NOT EXISTS PageView_visitor ON PageView (visitor, createdAt);
+CREATE TABLE IF NOT EXISTS TrafficGoal (id INTEGER PRIMARY KEY AUTOINCREMENT, createdAt TEXT NOT NULL, type TEXT NOT NULL, visitor TEXT NOT NULL, path TEXT NOT NULL DEFAULT '');
+CREATE INDEX IF NOT EXISTS TrafficGoal_createdAt ON TrafficGoal (createdAt);

@@ -193,8 +193,29 @@ They are filled in from the profile when the page renders, so updating `yearsExp
   `content/portfolio-project.json` is the full case study of this site; case studies can also have a "deep dive" write-up.
 - **Insights** (Admin → Insights): anonymous counts of resume downloads (not your own while signed in),
   email/copy/LinkedIn clicks and assistant questions, plus the latest questions. No IPs or cookies are stored.
-- **Page views**: Vercel Web Analytics (`@vercel/analytics`). Enable it once in Vercel → Project → Analytics.
-  Admin and login pages are not tracked.
+- **Visitor analytics** (Admin → Insights, every site has its own): visitors, visits, page views, time per visit and
+  bounce rate (with the change from the previous period), a chart by hour / day / month, and where visitors come from:
+  sources (LinkedIn, Google, ChatGPT, GitHub, Naukri, Indeed… ~50 known sites, plus any other website), channels
+  (social, search, AI assistants, job sites, email, messaging), the exact linking pages, and campaigns. Also countries
+  and cities, top and landing pages (project pages by title), devices, browsers and systems, which sources led to
+  resume downloads, contact clicks, assistant questions and form messages, "online now", and a log of recent visits
+  (place, source, device, pages seen, time, what they did). Click any source, country, page or device to see only those
+  visitors. Ranges: today, 7, 30, 90 days, 12 months, in your time zone.
+  - **Share links that count:** LinkedIn's app often hides the referrer, so Insights offers tagged links
+    (`/?utm_source=linkedin`, `resume`, `whatsapp`, `email`). Any `utm_source` / `utm_campaign` / `ref` works; the tags
+    are removed from the address bar after the visit is counted. The LinkedIn in-app browser is also recognized by itself.
+  - **Privacy:** no cookies and no IP addresses. A visitor is a one-way hash of (AUTH_SECRET, the date, the site, IP,
+    browser) that changes daily, so people can't be followed across days. Location comes from the host's headers
+    (`x-vercel-ip-country` / `-country-region` / `-city` on Vercel, `cf-ipcountry` behind Cloudflare; empty elsewhere).
+    Signed-in users, admin/login pages and bots aren't counted. Rows older than 400 days are deleted; "Delete visitor
+    data" clears them.
+  - **How:** `components/visit-tracker.tsx` (in the root layout) sends `POST /api/collect` (public, rate limited) on
+    every page and the time on screen when the page is left; goals are recorded by `/api/track`, `/api/resume`,
+    `/api/ask` and `/api/forms`. Stored in each site's `PageView` and `TrafficGoal` tables (`lib/traffic.ts`; sources in
+    `lib/traffic-sources.ts`). Report: `GET /api/insights/traffic?range=7d&tz=330&source=LinkedIn` (also `country`,
+    `device`, `page`); `DELETE` clears it. Needs the Insights tab.
+- **Vercel Web Analytics** (`@vercel/analytics`) still runs too, for the whole deployment (all sites together). Enable it
+  once in Vercel → Project → Analytics. Admin and login pages are not tracked.
 
 ### Ask my resume (AI assistant)
 

@@ -5,6 +5,7 @@ import { currentSiteUrl } from '@/lib/sites/url';
 import './globals.css';
 import { SiteAnalytics } from '@/components/site-analytics';
 import { NavProgress } from '@/components/nav-progress';
+import { VisitTracker } from '@/components/visit-tracker';
 
 // Site-wide defaults, per site (each site has its own address and owner). Pages refine these.
 export async function generateMetadata(): Promise<Metadata> {
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <NavProgress />
         {children}
         <SiteAnalytics />
+        <VisitTracker />
       </body>
     </html>
   );

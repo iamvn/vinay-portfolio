@@ -4,6 +4,7 @@ import { handleDbError, jsonError, parseBody } from '@/lib/api-utils';
 import { requireTab } from '@/lib/auth/roles';
 import { clientIp, rateLimited } from '@/lib/rate-limit';
 import { listSubmissions, saveSubmission } from '@/lib/forms';
+import { recordGoal } from '@/lib/traffic';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
   if (email && !z.email().safeParse(email).success) return jsonError('Please enter a valid email address.', 400);
   try {
     await saveSubmission({ form: data.form, fields, page: data.page });
+    await recordGoal(request, 'form');
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
     return handleDbError(err);
