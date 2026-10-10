@@ -6,7 +6,14 @@ import type { Site } from './registry';
  * (sign-ins, users added/changed/removed, sites created/changed/deleted by their admins) and what the main
  * admin does to sites. Kept in the main site's database (table SiteActivity).
  */
-export const ACTIVITY_KINDS = ['user.login', 'user.added', 'user.updated', 'user.removed', 'site.created', 'site.updated', 'site.deleted'] as const;
+export const ACTIVITY_KINDS = [
+  'user.login', 'user.added', 'user.updated', 'user.removed', 'site.created', 'site.updated', 'site.deleted',
+  // Community board: only who did what to which post, and when (the post itself lives in CommunityPost).
+  'community.posted', 'community.updated', 'community.deleted', 'community.hidden', 'community.shown', 'community.removed',
+  'log.cleared',
+] as const;
+/** Filters that match a whole group of kinds. */
+export const ACTIVITY_GROUPS = ['user.', 'site.', 'community.'] as const;
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 export type Activity = {
   id: number;
@@ -40,6 +47,33 @@ export async function logActivity(
   } catch (error) {
     console.error('Could not record activity:', error);
   }
+}
+
+/** True when the same kind of entry for the same post was logged in the last `minutes` (to keep repeated edits to one line). */
+export async function loggedRecently(kind: ActivityKind, postId: string, minutes = 30) {
+  try {
+    await ensureTable();
+    const since = new Date(Date.now() - minutes * 60_000).toISOString();
+    const rows = await mainClient.$queryRaw<{ n: number | bigint }[]>`SELECT COUNT(*) AS n FROM SiteActivity WHERE kind = ${kind} AND at >= ${since} AND details LIKE ${`%"id":"${postId}"%`}`;
+    return Number(rows[0]?.n ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+/** Deletes log entries older than `days` days (null = all of them). Returns how many were deleted. */
+export async function clearActivity(days: number | null): Promise<number> {
+  await ensureTable();
+  if (days === null) return mainClient.$executeRaw`DELETE FROM SiteActivity`;
+  const before = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  return mainClient.$executeRaw`DELETE FROM SiteActivity WHERE at < ${before}`;
+}
+
+/** How many entries the log holds, and since when. */
+export async function activityStats() {
+  await ensureTable();
+  const [row] = await mainClient.$queryRaw<{ n: number | bigint; oldest: string | null }[]>`SELECT COUNT(*) AS n, MIN(at) AS oldest FROM SiteActivity`;
+  return { count: Number(row?.n ?? 0), oldest: row?.oldest ?? null };
 }
 
 type Row = { id: number | bigint; at: string; site: string; siteName: string; actor: string; kind: string; details: string };

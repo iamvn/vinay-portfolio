@@ -13,6 +13,7 @@ import { ResumeBuilderTab } from './resume-builder-tab';
 import { SitesTab } from './sites-tab';
 import { ActivityTab } from './activity-tab';
 import { ApplicationsTab } from './applications-tab';
+import { CommunityTab } from './community-tab';
 import { UsersTab, type AdminUser } from './users-tab';
 import { ReadOnlyFieldset, ReadOnlyProvider, RequestProgress, type Notify } from './ui';
 
@@ -26,6 +27,7 @@ const TABS = [
   ['resume', 'Resume'],
   ['builder', 'Resume builder'],
   ['applications', 'Applications'],
+  ['community', 'Community'],
   ['insights', 'Insights'],
   ['ai', 'AI assistant'],
   ['backup', 'Backup'],
@@ -166,6 +168,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
           {tab === 'resume' && <ReadOnlyFieldset><ResumeTab notify={notify} /></ReadOnlyFieldset>}
           {tab === 'builder' && can('builder') && <ResumeBuilderTab notify={notify} />}
           {tab === 'applications' && can('applications') && <ApplicationsTab notify={notify} />}
+          {tab === 'community' && can('community') && <CommunityTab notify={notify} canUseApplications={can('applications')} />}
           {tab === 'insights' && can('insights') && <InsightsTab notify={notify} />}
           {tab === 'ai' && can('ai') && <ReadOnlyFieldset><AiTab notify={notify} /></ReadOnlyFieldset>}
           {tab === 'design' && can('design') && <DesignTab notify={notify} />}

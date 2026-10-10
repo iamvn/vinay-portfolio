@@ -2,11 +2,14 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api, describeError } from './api';
-import { Button, Card, Loading, inputClass, type Notify } from './ui';
+import { Button, Card, ConfirmButton, Loading, inputClass, type Notify } from './ui';
+import type { Post } from '@/lib/community/types';
 
-type Kind = 'user.login' | 'user.added' | 'user.updated' | 'user.removed' | 'site.created' | 'site.updated' | 'site.deleted';
+type Kind = 'user.login' | 'user.added' | 'user.updated' | 'user.removed' | 'site.created' | 'site.updated' | 'site.deleted'
+  | 'community.posted' | 'community.updated' | 'community.deleted' | 'community.hidden' | 'community.shown' | 'community.removed' | 'log.cleared';
 type Activity = { id: number; at: string; site: string; siteName: string; actor: string; kind: Kind; details: Record<string, string> };
-type Page = { items: Activity[]; total: number; sites: { site: string; siteName: string }[] };
+type Stats = { count: number; oldest: string | null };
+type Page = { items: Activity[]; total: number; sites: { site: string; siteName: string }[]; stats?: Stats };
 
 const PAGE_SIZE = 25;
 
@@ -18,6 +21,13 @@ const KIND_LABELS: Record<Kind, string> = {
   'site.created': 'Created site',
   'site.updated': 'Changed site',
   'site.deleted': 'Deleted site',
+  'community.posted': 'Posted to community',
+  'community.updated': 'Edited community post',
+  'community.deleted': 'Deleted community post',
+  'community.hidden': 'Hid community post',
+  'community.shown': 'Showed community post',
+  'community.removed': 'Removed community post',
+  'log.cleared': 'Cleared the log',
 };
 const KIND_TONES: Record<Kind, string> = {
   'user.login': 'border-slate-400/30 bg-slate-400/10 text-slate-200',
@@ -27,6 +37,13 @@ const KIND_TONES: Record<Kind, string> = {
   'site.created': 'border-lime-300/30 bg-lime-300/10 text-lime-200',
   'site.updated': 'border-cyan-300/30 bg-cyan-300/10 text-cyan-200',
   'site.deleted': 'border-red-400/30 bg-red-400/10 text-red-200',
+  'community.posted': 'border-purple-300/30 bg-purple-300/10 text-purple-200',
+  'community.updated': 'border-purple-300/30 bg-purple-300/10 text-purple-200',
+  'community.deleted': 'border-red-400/30 bg-red-400/10 text-red-200',
+  'community.hidden': 'border-yellow-300/30 bg-yellow-300/10 text-yellow-200',
+  'community.shown': 'border-cyan-300/30 bg-cyan-300/10 text-cyan-200',
+  'community.removed': 'border-red-400/30 bg-red-400/10 text-red-200',
+  'log.cleared': 'border-slate-400/30 bg-slate-400/10 text-slate-200',
 };
 
 const FILTERS: { value: string; label: string }[] = [
@@ -40,6 +57,13 @@ const FILTERS: { value: string; label: string }[] = [
   { value: 'site.created', label: '· Sites created' },
   { value: 'site.updated', label: '· Sites changed' },
   { value: 'site.deleted', label: '· Sites deleted' },
+  { value: 'community.', label: 'All community activity' },
+  { value: 'community.posted', label: '· Posts shared' },
+  { value: 'community.updated', label: '· Posts edited' },
+  { value: 'community.deleted', label: '· Posts deleted by their site' },
+  { value: 'community.hidden', label: '· Posts hidden by you' },
+  { value: 'community.removed', label: '· Posts removed by you' },
+  { value: 'log.cleared', label: 'Log cleared' },
 ];
 
 const person = (d: Record<string, string>) => (d.name ? <><b className="text-slate-100">{d.name}</b> <span className="text-slate-400">{d.email}</span></> : <b className="text-slate-100">{d.email}</b>);
@@ -58,10 +82,18 @@ function details(item: Activity): ReactNode {
     }
     case 'site.created': return <>{site(d)} <span className="text-slate-400">owner {d.ownerEmail}</span></>;
     case 'site.deleted': return <>{site(d)}</>;
+    case 'community.posted':
+    case 'community.updated':
+    case 'community.deleted':
+    case 'community.hidden':
+    case 'community.shown':
+    case 'community.removed':
+      return <><b className="text-slate-100">“{d.title}”</b>{d.from && <span className="text-slate-400"> from {d.from}</span>}{d.status === 'draft' && <span className="text-slate-400"> (draft)</span>}</>;
+    case 'log.cleared': return <span className="text-slate-400">{d.scope}: {d.deleted} deleted</span>;
     case 'site.updated': {
       const changes = [
         d.renamed && `renamed ${d.renamed}`, d.status, d.domain && `domain → ${d.domain}`,
-        d.canAddUsers && `add users ${d.canAddUsers}`, d.canAddSites && `create sites ${d.canAddSites}`, d.siteLimit && `site limit → ${d.siteLimit}`,
+        d.canAddUsers && `add users ${d.canAddUsers}`, d.canAddSites && `create sites ${d.canAddSites}`, d.siteLimit && `site limit → ${d.siteLimit}`, d.tabs && `tabs → ${d.tabs}`,
       ].filter(Boolean);
       return <>{site(d)} <span className="text-slate-400">{changes.join(' · ')}</span></>;
     }
@@ -74,8 +106,133 @@ function when(iso: string) {
   return { short: date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), full: date.toLocaleString() };
 }
 
-/** Activity logs (main site's admins only): sign-ins and changes on other sites, and changes made to sites. */
+/** Frees space: deletes old log entries (one entry saying so is kept). */
+function ClearLog({ stats, onCleared, notify }: { stats?: Stats; onCleared: () => void; notify: Notify }) {
+  const [scope, setScope] = useState('30');
+  const label = scope === 'all' ? 'every entry' : `entries older than ${scope} days`;
+  async function clear() {
+    try {
+      const result = await api<{ deleted: number }>('DELETE', `/api/platform/activity?olderThan=${scope}`);
+      notify(result.deleted ? `Deleted ${result.deleted.toLocaleString()} log ${result.deleted === 1 ? 'entry' : 'entries'}.` : 'Nothing that old to delete.');
+      onCleared();
+    } catch (error) {
+      notify(describeError(error), 'error');
+    }
+  }
+  return (
+    <Card title="Free up space">
+      <p className="mb-3 text-sm leading-6 text-slate-300">
+        The log holds <b className="text-white">{(stats?.count ?? 0).toLocaleString()}</b> {stats?.count === 1 ? 'entry' : 'entries'}
+        {stats?.oldest ? <>, the oldest from {new Date(stats.oldest).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}</> : null}.
+        Deleting old entries frees space in your database. It can’t be undone; one entry recording what you cleared is kept.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <select className={`${inputClass} sm:w-auto`} value={scope} onChange={(e) => setScope(e.target.value)} aria-label="Which entries to delete">
+          <option value="7">Older than 7 days</option>
+          <option value="15">Older than 15 days</option>
+          <option value="30">Older than 30 days</option>
+          <option value="all">Everything</option>
+        </select>
+        <ConfirmButton onConfirm={clear} confirmLabel={`Delete ${label}?`}>Delete {scope === 'all' ? 'the whole log' : 'old entries'}</ConfirmButton>
+      </div>
+    </Card>
+  );
+}
+
+const MOD_STATUS: Record<Post['status'], [string, string]> = {
+  published: ['On the board', 'bg-lime-300/10 text-lime-200'],
+  draft: ['Draft', 'bg-white/5 text-slate-300'],
+  hidden: ['Hidden', 'bg-red-400/10 text-red-200'],
+};
+
+/** Every community post, to keep the public board clean: hide (reversible) or remove for good. */
+function CommunityPosts({ notify }: { notify: Notify }) {
+  const [posts, setPosts] = useState<(Post & { authorUser: string })[] | null>(null);
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState('');
+  const load = useCallback(() => {
+    const params = new URLSearchParams();
+    if (q.trim()) params.set('q', q.trim());
+    if (status) params.set('status', status);
+    return api<(Post & { authorUser: string })[]>('GET', `/api/platform/community?${params}`, undefined, { fresh: true })
+      .then(setPosts).catch((error) => notify(describeError(error), 'error'));
+  }, [q, status, notify]);
+  useEffect(() => { const t = setTimeout(() => { void load(); }, 250); return () => clearTimeout(t); }, [load]);
+
+  async function hide(post: Post, hidden: boolean) {
+    try {
+      await api('PATCH', `/api/platform/community/${post.id}`, { hidden });
+      notify(hidden ? `“${post.title}” is hidden from the board.` : `“${post.title}” is back on the board.`);
+      void load();
+    } catch (error) { notify(describeError(error), 'error'); }
+  }
+  async function remove(post: Post) {
+    try {
+      await api('DELETE', `/api/platform/community/${post.id}`);
+      notify(`Removed “${post.title}”.`);
+      void load();
+    } catch (error) { notify(describeError(error), 'error'); }
+  }
+
+  return (
+    <Card title={`Community posts${posts ? ` (${posts.length})` : ''}`} actions={<a href="/community" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-lg border border-white/15 px-3.5 text-xs font-black uppercase tracking-wide text-slate-200 hover:border-cyan-300/60 sm:min-h-0 sm:py-2">Open the board ↗</a>}>
+      <p className="mb-3 text-sm leading-6 text-slate-300">
+        What every site has shared on the public community board, newest first, with who wrote it. Hide a post to take it off the board (its site can still see it), or remove it for good.
+      </p>
+      <div className="mb-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+        <input className={inputClass} type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search titles, companies, sites, people…" aria-label="Search posts" />
+        <select className={`${inputClass} sm:w-auto`} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
+          <option value="">Every status</option><option value="published">On the board</option><option value="draft">Drafts</option><option value="hidden">Hidden</option>
+        </select>
+      </div>
+      {!posts ? <Loading /> : posts.length === 0 ? <p className="text-sm text-slate-400">No posts{q || status ? ' match' : ' yet'}.</p> : (
+        <ul className="divide-y divide-white/5">
+          {posts.map((post) => {
+            const [label, tone] = MOD_STATUS[post.status];
+            return (
+              <li key={post.id} className="flex flex-wrap items-start gap-3 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-white">{post.title}</p>
+                  <p className="text-xs text-slate-400">{post.company} · {post.role} · {post.category}</p>
+                  <p className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                    <span className={`rounded px-1.5 py-0.5 font-bold ${tone}`}>{label}</span>
+                    <span className="text-lime-200">{post.siteName || post.site}</span>
+                    <span>{post.authorUser}{post.anonymous ? ' (shown as Anonymous)' : ''}</span>
+                    <span>{new Date(post.createdAt).toLocaleString([], { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {post.status === 'published' && <a href={`/community/${post.id}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-lg border border-white/15 px-3 text-xs font-bold text-cyan-200 hover:border-cyan-300/60 sm:min-h-9">View ↗</a>}
+                  <Button onClick={() => hide(post, post.status !== 'hidden')}>{post.status === 'hidden' ? 'Show again' : 'Hide'}</Button>
+                  <ConfirmButton onConfirm={() => remove(post)} confirmLabel="Remove for good?">Remove</ConfirmButton>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+/** Activity logs (main site's admins only): the log, and the community board's posts. */
 export function ActivityTab({ notify }: { notify: Notify }) {
+  const [view, setView] = useState<'log' | 'community'>('log');
+  return (
+    <div className="space-y-4 sm:space-y-5">
+      <div role="tablist" aria-label="Activity sections" className="flex gap-1">
+        {([['log', 'Activity log'], ['community', 'Community posts']] as const).map(([key, label]) => (
+          <button key={key} type="button" role="tab" aria-selected={view === key} onClick={() => setView(key)}
+            className={`min-h-10 rounded-lg px-3 text-xs font-black uppercase tracking-wide ${view === key ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'}`}>{label}</button>
+        ))}
+      </div>
+      {view === 'log' ? <ActivityLog notify={notify} /> : <CommunityPosts notify={notify} />}
+    </div>
+  );
+}
+
+/** The log: sign-ins and changes on other sites, changes made to sites, and community posts. */
+function ActivityLog({ notify }: { notify: Notify }) {
   const [filters, setFilters] = useState({ site: '', kind: '', q: '' });
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -112,8 +269,8 @@ export function ActivityTab({ notify }: { notify: Notify }) {
     <div className="space-y-4 sm:space-y-5">
       <Card title="Activity logs">
         <p className="mb-4 text-sm leading-6 text-slate-300">
-          What happens on the sites you host: sign-ins, users added, changed or removed, and sites created, changed or deleted,
-          including changes you make to sites from the Sites tab. Newest first.
+          What happens on the sites you host: sign-ins, users added, changed or removed, sites created, changed or deleted
+          (including changes you make from the Sites tab), and posts shared to the community board. Newest first.
         </p>
         <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center">
           <input className={inputClass} type="search" placeholder="Search people, emails, sites…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search activity" />
@@ -176,6 +333,7 @@ export function ActivityTab({ notify }: { notify: Notify }) {
           </div>
         )}
       </Card>
+      <ClearLog stats={data?.stats} notify={notify} onCleared={() => { setPage(0); void load(true); }} />
     </div>
   );
 }

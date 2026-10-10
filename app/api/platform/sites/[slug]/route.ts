@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { jsonError, parseBody } from '@/lib/api-utils';
 import { MAX_SITE_LIMIT, removeSite, siteBySlug, updateSite } from '@/lib/sites/registry';
 import { deleteSiteDatabase } from '@/lib/sites/provision';
+import { removeSitePosts } from '@/lib/community/store';
 import { canSeeSite, publicSite, requirePlatformAdmin } from '@/lib/sites/platform';
 import { actorLabel, logActivity } from '@/lib/sites/activity';
 import { TAB_IDS, TAB_LABELS, parseSiteTabs, serializeSiteTabs } from '@/lib/auth/permissions';
@@ -82,6 +83,7 @@ export async function DELETE(request: Request, { params }: Context) {
   try {
     await deleteSiteDatabase(site);
     await removeSite(slug);
+    await removeSitePosts(slug).catch((err) => console.error('Could not remove community posts:', err));
     if (site.domain && vercelApiConfigured()) await removeProjectDomain(site.domain);
     await logActivity(manager, actorLabel(user), 'site.deleted', { slug: site.slug, name: site.name, ownerEmail: site.ownerEmail }, { includeMain: true });
     return new Response(null, { status: 204 });

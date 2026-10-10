@@ -205,8 +205,8 @@ html[data-game-mode='off'] [class*='bg-red-950'] { background-color: #fdecec !im
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
-/* Admin panel: hide the scanline overlay. */
-body:has(.admin-shell)::after { display: none; }
+/* Admin panel and the community board: hide the scanline overlay. */
+body:has(.admin-shell)::after, body:has(.community-shell)::after { display: none; }
 
 /* Designed pages (Admin → Design) bring their own background effects. */
 body:has(.d-root).scanlines::after { display: none; }

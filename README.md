@@ -488,6 +488,24 @@ does affects another.
   sign-ins, users added/changed/removed and sites created/changed/deleted on other sites, plus the changes you make
   to sites (pause, domain, security, limits). Stored in the main database (`SiteActivity` table);
   `GET /api/platform/activity?site=&kind=&q=&limit=&offset=`.
+- **Clearing the activity log (main site admins only):** Activity logs → *Free up space* deletes entries older than
+  7, 15 or 30 days, or everything; one entry recording the clearing is kept. `DELETE /api/platform/activity?olderThan=7|15|30|all`.
+- **Community board:** a public, read-only board at `/community` (on every site's address; canonical on the main site,
+  listed in its sitemap) where people on every site share interview experiences: company, role, field (Frontend,
+  Backend, Interior design…), level, outcome, difficulty, month, topics (#React, #Node.js…), the rounds, the questions
+  asked (answers fold until opened), how they prepared and links. Search (all words must match), filter by field, topic,
+  level and outcome; newest first; each post shows who posted it (linking to their portfolio) and when, or *Anonymous*.
+  - **Posting:** Admin → **Community** (a tab like the others, so the platform owner can turn it off per site under
+    Sites → Security). *Start from one of your applications* copies the company, role, the questions from its Prep notes,
+    the prep material and links. Drafts stay private. Limits: 20 new posts a day and 300 in total per site.
+  - **Storage:** table `CommunityPost` in the main site's database (shared by all sites); each post belongs to the site it
+    was written on, and deleting a site deletes its posts. Site API: `GET/POST /api/community`,
+    `PUT/DELETE /api/community/:id` (only that site's posts).
+  - **Moderation (main site admins):** Activity logs → *Community posts* lists every post with the site and the person
+    who wrote it; *Hide* takes it off the board (the site still sees it, edits don't un-hide it), *Remove* deletes it.
+    `GET /api/platform/community`, `PATCH /api/platform/community/:id` `{ hidden }`, `DELETE …/:id`. The activity log
+    keeps one short entry per post shared, edited (repeat edits within 30 minutes count once), deleted, hidden or
+    removed: only the post's id, title and status, never its content.
 - **Other pages follow the design:** project pages use the published design's theme (colors, background, buttons),
   so they match the homepage.
 
