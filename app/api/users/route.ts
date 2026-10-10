@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { handleDbError, jsonError, parseBody } from '@/lib/api-utils';
 import { hashPassword, passwordProblem } from '@/lib/auth/password';
 import { ROLES, ownerId, requireAdmin } from '@/lib/auth/roles';
-import { publicUser } from '@/lib/auth/session';
+import { currentSiteTabs, publicUser } from '@/lib/auth/session';
 import { TAB_IDS } from '@/lib/auth/permissions';
 import { accessById, setAccess } from '@/lib/auth/permissions-store';
 import { canAddUsersHere } from '@/lib/sites/platform';
@@ -26,8 +26,8 @@ export async function GET(request: Request) {
   const { error } = await requireAdmin(request);
   if (error) return error;
   try {
-    const [users, owner, access] = await Promise.all([prisma.user.findMany({ orderBy: { id: 'asc' } }), ownerId(), accessById()]);
-    return NextResponse.json(users.map((user) => ({ ...publicUser({ ...user, ...access.get(user.id) }), owner: user.id === owner })));
+    const [users, owner, access, siteTabs] = await Promise.all([prisma.user.findMany({ orderBy: { id: 'asc' } }), ownerId(), accessById(), currentSiteTabs()]);
+    return NextResponse.json(users.map((user) => ({ ...publicUser({ ...user, ...access.get(user.id), siteTabs }), owner: user.id === owner })));
   } catch (err) {
     return handleDbError(err);
   }
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     await logActivity(site, actorLabel(me), 'user.added', {
       email: user.email, name: user.name ?? '', role: user.role, ...(user.role !== 'admin' && access.readOnly ? { access: 'read-only' } : {}),
     });
-    return NextResponse.json(publicUser({ ...user, ...access }), { status: 201 });
+    return NextResponse.json(publicUser({ ...user, ...access, siteTabs: await currentSiteTabs() }), { status: 201 });
   } catch (err) {
     return handleDbError(err);
   }

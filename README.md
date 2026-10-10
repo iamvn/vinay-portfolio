@@ -435,6 +435,14 @@ Skills, plus what you write on a resume). `lib/career/evidence.ts` turns that in
   version sent**, which interview prep uses even if you edit the resume later. Stored per site (`JobApplication`).
 - **Application kit:** cover letter, recruiter message, LinkedIn note (≤300 chars), application email; tone and
   recipient; editable, copyable, each with the truth-guard check.
+- **Prep notes** (each application → Prep notes): your own interview notes. Questions you were asked (or want to
+  practise) with your answer, round and date and a *Practised* tick; free-form prep material; and links to notes kept
+  elsewhere (Notion, Google Drive, docs: only http(s) links). Stored in `JobApplication.prep`; `PATCH /api/applications/:id`
+  `{ prep: { questions, notes, links } }`.
+- **Question bank** (Applications → Question bank): every question and link from all applications plus your *General
+  prep* (not tied to a job, Setting `career.prep`), with search, filters (asked / to practise, round, application, not
+  practised yet) and Shuffle. Answers stay folded until opened, for practice. `GET /api/applications/bank`,
+  `PUT` `{ prep }` (general), `PATCH` `{ appId | null, questionId, practiced }`.
 - **Interview prep:** 10–14 questions from the sent resume and the job: about your claims and numbers, the job's
   required skills, your gaps (answered honestly), behavioural; with follow-ups, tips, evidence and your own notes.
 
@@ -470,6 +478,12 @@ does affects another.
     the API refuses; deleting one of their sites frees a slot. The main site's admins have no limit.
   Switching either off applies on the next request. Sites created that way show "Created by …"; when a site is
   deleted, the sites it created are handed to the main site.
+- **Admin tabs per site (main site admins only):** under each site → Security → *Admin tabs this site can use*, tick
+  which tabs (Profile, Design, Resume builder, Applications, Insights, AI assistant, Backup…) that site has at all. It limits
+  everyone on the site, its own admins included: turned-off tabs disappear from their admin, their pages redirect, and
+  their API calls are refused (proxy.ts and `requireTab`). Users & security (their account) always stays. New sites start
+  with every tab; stored in `Site.tabs` ('' = all). `PATCH /api/platform/sites/<slug>` `{ tabs: ["profile", …] }`.
+  Their admins can only give their users tabs the site has. Changes show up in Activity logs.
 - **Activity logs tab (main site admins only):** a searchable table (filter by site and type, 25 per page) of
   sign-ins, users added/changed/removed and sites created/changed/deleted on other sites, plus the changes you make
   to sites (pause, domain, security, limits). Stored in the main database (`SiteActivity` table);

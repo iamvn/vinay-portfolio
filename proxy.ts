@@ -113,11 +113,15 @@ async function guard(request: NextRequest, site: Site) {
     return NextResponse.json({ error: 'API tokens are only available to admins. Use the admin panel instead.' }, { status: 403 });
   }
 
-  // Per-user tab access (Users & security → Access): non-admins only reach the tabs an admin enabled.
-  if (isApi && user.role !== 'admin') {
+  // Tab access: the site's tabs (Sites → Security, set by the platform owner) limit everyone, admins included;
+  // within those, non-admins only reach the tabs an admin enabled for them (Users & security → Access).
+  if (isApi) {
     const tab = tabForRequest(request.method, pathname);
     if (tab && !canUseTab(user, tab)) {
-      return NextResponse.json({ error: `You don't have access to ${TAB_LABELS[tab]}. Ask an admin to enable it for you.` }, { status: 403 });
+      const offForSite = !canUseTab({ role: 'admin', siteTabs: user.siteTabs }, tab);
+      return NextResponse.json({ error: offForSite
+        ? `${TAB_LABELS[tab]} isn't included for this site. The platform owner can turn it on.`
+        : `You don't have access to ${TAB_LABELS[tab]}. Ask an admin to enable it for you.` }, { status: 403 });
     }
     // Read-only users can look at everything they have access to, but can't change anything.
     if (isReadOnly(user) && blockedForReadOnly(request.method, pathname)) {

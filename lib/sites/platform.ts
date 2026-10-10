@@ -1,3 +1,4 @@
+import { TAB_IDS, parseSiteTabs } from '@/lib/auth/permissions';
 import { jsonError } from '@/lib/api-utils';
 import { requireAdmin } from '@/lib/auth/roles';
 import type { SessionUser } from '@/lib/auth/session';
@@ -49,6 +50,7 @@ export const publicSite = (site: Site, request: Request) => ({
   slug: site.slug, name: site.name, ownerEmail: site.ownerEmail, domain: site.domain, status: site.status, createdAt: site.createdAt,
   url: siteLink(site, request), storage: site.dbName ? 'turso' : site.dbUrl.startsWith('file:') ? 'local file' : 'database',
   canAddUsers: site.canAddUsers, canAddSites: site.canAddSites, siteLimit: site.isMain ? null : site.siteLimit, createdBy: site.createdBy, createdByUser: site.createdByUser,
+  tabs: parseSiteTabs(site.tabs) ?? [...TAB_IDS],
 });
 
 export const platformInfo = (request: Request, manager: Site, created = 0) => ({

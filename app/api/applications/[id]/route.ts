@@ -7,7 +7,7 @@ import { analyzeJob } from '@/lib/career/job';
 import { resumeFor } from '@/lib/career/context';
 import { careerEvidence } from '@/lib/career/profile';
 import { snapshotResume } from '@/lib/career/snapshot';
-import { KIT_KINDS, STATUSES, STATUS_LABELS, contactSchema } from '@/lib/career/types';
+import { KIT_KINDS, STATUSES, STATUS_LABELS, contactSchema, prepSchema } from '@/lib/career/types';
 
 export const dynamic = 'force-dynamic';
 type Context = { params: Promise<{ id: string }> };
@@ -30,6 +30,8 @@ const patchSchema = z.object({
   interviewNotes: z.record(z.string().regex(/^\d+$/), z.string().max(5000)),
   /** A note added to the timeline. */
   timelineNote: z.string().trim().min(1).max(500),
+  /** Your own interview notes: questions asked, prep material, links (replaces the whole set). */
+  prep: prepSchema,
 }).partial().strict();
 
 async function load(request: Request, params: Context['params']) {
@@ -60,7 +62,7 @@ export async function PATCH(request: Request, { params }: Context) {
     if (denied) return denied;
     const { data, error } = await parseBody(request, patchSchema);
     if (error) return error;
-    const { kit, interviewNotes, timelineNote, ...fields } = data;
+    const { kit, interviewNotes, timelineNote, prep, ...fields } = data;
     const before = { ...app };
     Object.assign(app, fields);
     if (fields.jobDescription !== undefined && fields.jobDescription !== before.jobDescription) {
@@ -83,6 +85,12 @@ export async function PATCH(request: Request, { params }: Context) {
     }
     if (interviewNotes && app.interview) {
       app.interview.questions = app.interview.questions.map((q, i) => (interviewNotes[String(i)] !== undefined ? { ...q, notes: interviewNotes[String(i)] } : q));
+    }
+    if (prep) {
+      const asked = (p: typeof prep) => p.questions.filter((q) => q.kind === 'asked').length;
+      const added = asked(prep) - asked(app.prep);
+      if (added > 0) addEvent(app, 'note', `Added ${added} interview question${added === 1 ? '' : 's'} you were asked`);
+      app.prep = prep;
     }
     if (timelineNote) addEvent(app, 'note', timelineNote);
     return NextResponse.json(await saveApplication(app));

@@ -35,9 +35,9 @@ const TABS = [
 ] as const;
 
 type Tab = (typeof TABS)[number][0];
-/** Tabs this user can open: admins get all; others get the tabs an admin enabled, plus "My account". */
+/** Tabs this user can open: the tabs they may use on this site (admins: every tab the site has), plus "My account". */
 const visibleTabs = (user: AdminUser, platform: boolean, platformMain: boolean) =>
-  TABS.filter(([id]) => (id === 'sites' ? platform : id === 'activity' ? platformMain : user.role === 'admin' || id === 'users' || (user.tabs ?? []).includes(id as never)));
+  TABS.filter(([id]) => (id === 'sites' ? platform : id === 'activity' ? platformMain : id === 'users' || (user.tabs ?? []).includes(id as never)));
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
 
 function subscribeToHash(callback: () => void) {

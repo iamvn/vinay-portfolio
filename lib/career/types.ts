@@ -47,6 +47,37 @@ export type InterviewQuestion = {
 };
 export type InterviewPrep = { at: string; provider?: string; basedOn: string; questions: InterviewQuestion[] };
 
+/**
+ * Your own interview notes ("Prep notes"): questions you were asked (or want to practise) with your answers,
+ * free-form prep material, and links to notes kept elsewhere (Notion, Google Drive…). Per application, plus one
+ * general set that isn't tied to a job (lib/career/prep.ts). All of it shows up in the question bank.
+ */
+export const PREP_ROUNDS = ['Recruiter screen', 'Online test', 'Technical', 'Coding', 'System design', 'Managerial', 'HR', 'Other'] as const;
+const prepId = z.string().regex(/^[\w-]{6,40}$/);
+export const prepQuestionSchema = z.object({
+  id: prepId,
+  kind: z.enum(['asked', 'practice']).default('asked'),
+  question: z.string().trim().min(1, 'A question can’t be empty.').max(1000),
+  answer: z.string().max(10_000).default(''),
+  round: z.string().trim().max(60).default(''),
+  date: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal('')]).default(''),
+  practiced: z.boolean().default(false),
+}).strict();
+export const prepLinkSchema = z.object({
+  id: prepId,
+  label: z.string().trim().max(120).default(''),
+  url: z.url('must be a full link (https://…)').max(2000).refine((url) => /^https?:\/\//i.test(url), 'must start with http:// or https://'),
+}).strict();
+export const prepSchema = z.object({
+  questions: z.array(prepQuestionSchema).max(300).default([]),
+  notes: z.string().max(50_000).default(''),
+  links: z.array(prepLinkSchema).max(60).default([]),
+}).strict();
+export type PrepQuestion = z.output<typeof prepQuestionSchema>;
+export type PrepLink = z.output<typeof prepLinkSchema>;
+export type Prep = z.output<typeof prepSchema>;
+export const EMPTY_PREP: Prep = { questions: [], notes: '', links: [] };
+
 export type Application = {
   id: number;
   company: string;
@@ -65,6 +96,8 @@ export type Application = {
   appliedAt: string;
   kit: Kit;
   interview: InterviewPrep | null;
+  /** Your own notes: questions asked, prep material and links. */
+  prep: Prep;
   timeline: TimelineEvent[];
   createdAt: string;
   updatedAt: string;
@@ -73,4 +106,6 @@ export type Application = {
 /** What the board needs (no job text, snapshot or generated documents). */
 export type ApplicationSummary = Pick<Application, 'id' | 'company' | 'role' | 'location' | 'url' | 'status' | 'resumeId' | 'nextStep' | 'nextStepAt' | 'appliedAt' | 'createdAt' | 'updatedAt'> & {
   hasKit: boolean; hasInterview: boolean; sent: boolean; workMode: string | null;
+  /** How many of your own questions and links it has (Prep notes). */
+  prepQuestions: number; prepLinks: number;
 };

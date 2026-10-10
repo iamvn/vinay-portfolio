@@ -29,6 +29,9 @@ const ADDED_COLUMNS: Record<string, Record<string, string>> = {
     published: 'BOOLEAN NOT NULL DEFAULT 1',
     pdf: "TEXT NOT NULL DEFAULT ''",
   },
+  JobApplication: {
+    prep: "TEXT NOT NULL DEFAULT '{}'",
+  },
 };
 
 /**

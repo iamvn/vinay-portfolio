@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api, describeError } from './api';
 import { Button, Card, Field, Loading, TextArea, inputClass, useReadOnly, type Notify } from './ui';
 import { ApplicationDetail } from '@/components/career/application-detail';
+import { QuestionBank } from '@/components/career/prep-notes';
 import { JobFacts, SkillChips } from '@/components/career/job-facts';
 import { STATUS_TONES } from '@/components/career/status';
 import type { JobAnalysis } from '@/lib/career/job';
@@ -108,6 +109,7 @@ function AppCard({ app, onOpen, onMove }: { app: ApplicationSummary; onOpen: () 
           <span className={`rounded px-1.5 py-0.5 ${app.resumeId ? 'bg-lime-300/10 text-lime-200' : 'bg-white/5 text-slate-500'}`}>{app.sent ? 'Resume sent' : app.resumeId ? 'Resume' : 'No resume'}</span>
           {app.hasKit && <span className="rounded bg-cyan-300/10 px-1.5 py-0.5 text-cyan-200">Kit</span>}
           {app.hasInterview && <span className="rounded bg-purple-300/10 px-1.5 py-0.5 text-purple-200">Prep</span>}
+          {(app.prepQuestions > 0 || app.prepLinks > 0) && <span className="rounded bg-yellow-300/10 px-1.5 py-0.5 text-yellow-200">Notes{app.prepQuestions ? ` · ${app.prepQuestions} Q` : ''}</span>}
           {app.workMode && <span className="rounded bg-white/5 px-1.5 py-0.5 capitalize text-slate-400">{app.workMode}</span>}
         </div>
         {app.nextStep && (
@@ -132,6 +134,8 @@ export function ApplicationsTab({ notify }: { notify: Notify }) {
   const [adding, setAdding] = useState(false);
   const [openId, setOpenId] = useState<number | null>(null);
   const [showClosed, setShowClosed] = useState(false);
+  const [bank, setBank] = useState(false);
+  const [openFromBank, setOpenFromBank] = useState(false);
 
   const load = useCallback(() => api<ApplicationSummary[]>('GET', '/api/applications').then(setApps).catch((error) => notify(describeError(error), 'error')), [notify]);
   useEffect(() => { void load(); }, [load]);
@@ -147,7 +151,11 @@ export function ApplicationsTab({ notify }: { notify: Notify }) {
   }
 
   if (openId !== null) {
-    return <ApplicationDetail id={openId} notify={notify} onBack={() => { setOpenId(null); void load(); }} />;
+    return <ApplicationDetail key={openId} id={openId} notify={notify} initialSection={openFromBank ? 'prep' : 'overview'}
+      onBack={() => { setOpenId(null); void load(); }} />;
+  }
+  if (bank) {
+    return <QuestionBank notify={notify} onBack={() => { setBank(false); void load(); }} onOpen={(id) => { setOpenFromBank(true); setOpenId(id); }} />;
   }
   if (!apps) return <Loading />;
   const closed = apps.filter((a) => CLOSED.includes(a.status));
@@ -158,9 +166,12 @@ export function ApplicationsTab({ notify }: { notify: Notify }) {
   return (
     <div className="space-y-4 sm:space-y-5">
       {adding ? (
-        <NewApplication notify={notify} onCancel={() => setAdding(false)} onSaved={(id) => { setAdding(false); setOpenId(id); }} />
+        <NewApplication notify={notify} onCancel={() => setAdding(false)} onSaved={(id) => { setAdding(false); setOpenFromBank(false); setOpenId(id); }} />
       ) : (
-        <Card title="Applications" actions={<Button tone="primary" disabled={readOnly} onClick={() => setAdding(true)}>+ New application</Button>}>
+        <Card title="Applications" actions={<>
+          <Button onClick={() => setBank(true)}>Question bank</Button>
+          <Button tone="primary" disabled={readOnly} onClick={() => setAdding(true)}>+ New application</Button>
+        </>}>
           <p className="text-sm leading-6 text-slate-300">
             Paste a job link: see what it asks for and what you can prove, make a tailored resume, write the cover letter and messages, and prepare for the interview.
             Each application remembers the exact resume you sent.
@@ -187,7 +198,7 @@ export function ApplicationsTab({ notify }: { notify: Notify }) {
                 </h3>
                 {column.length === 0 ? <p className="px-1 py-3 text-center text-[11px] text-slate-600">—</p> : (
                   <ul className="space-y-2">
-                    {column.map((app) => <AppCard key={app.id} app={app} onOpen={() => setOpenId(app.id)} onMove={() => move(app, NEXT[app.status]!)} />)}
+                    {column.map((app) => <AppCard key={app.id} app={app} onOpen={() => { setOpenFromBank(false); setOpenId(app.id); }} onMove={() => move(app, NEXT[app.status]!)} />)}
                   </ul>
                 )}
               </section>
@@ -199,7 +210,7 @@ export function ApplicationsTab({ notify }: { notify: Notify }) {
       {closed.length > 0 && (
         <div>
           <button type="button" onClick={() => setShowClosed(!showClosed)} className="text-xs font-bold text-slate-400 hover:text-white">{showClosed ? '▾' : '▸'} Closed ({closed.length})</button>
-          {showClosed && <ul className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{closed.map((app) => <AppCard key={app.id} app={app} onOpen={() => setOpenId(app.id)} />)}</ul>}
+          {showClosed && <ul className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{closed.map((app) => <AppCard key={app.id} app={app} onOpen={() => { setOpenFromBank(false); setOpenId(app.id); }} />)}</ul>}
         </div>
       )}
     </div>

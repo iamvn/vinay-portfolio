@@ -9,17 +9,21 @@ import { EDITOR_DEFAULT_TABS, TAB_IDS, TAB_LABELS, type TabId } from '@/lib/auth
 export type AdminUser = {
   id: number; email: string; name: string; role: string; createdAt?: string; owner?: boolean;
   permissions?: TabId[] | null; tabs?: TabId[]; readOnly?: boolean; viewOnly?: boolean;
+  /** Tabs this site may use at all (set by the platform owner). */
+  siteTabs?: TabId[];
 };
 
 /** Checkboxes for the admin tabs a non-admin may use (nothing is saved until the form's Save button). */
-function AccessPicker({ value, onChange, disabled }: { value: TabId[]; onChange: (tabs: TabId[]) => void; disabled?: boolean }) {
-  // Keep the tab order fixed, whatever order the boxes were ticked in.
-  const toggle = (tab: TabId) => onChange(TAB_IDS.filter((item) => (item === tab ? !value.includes(tab) : value.includes(item))));
+function AccessPicker({ value, onChange, disabled, available = [...TAB_IDS] }: { value: TabId[]; onChange: (tabs: TabId[]) => void; disabled?: boolean; available?: TabId[] }) {
+  // Only the tabs this site may use; keep the tab order fixed, whatever order the boxes were ticked in.
+  const options = TAB_IDS.filter((tab) => available.includes(tab));
+  const toggle = (tab: TabId) => onChange(options.filter((item) => (item === tab ? !value.includes(tab) : value.includes(item))));
+  const hidden = TAB_IDS.length - options.length;
   const quick = 'min-h-9 text-xs font-bold text-cyan-300 hover:text-white disabled:opacity-40';
   return (
     <div>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 sm:grid-cols-3 lg:grid-cols-5">
-        {TAB_IDS.map((tab) => (
+        {options.map((tab) => (
           <label key={tab} className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm text-slate-200 sm:min-h-8">
             <input type="checkbox" className="size-5 accent-lime-300 sm:size-4" checked={value.includes(tab)} onChange={() => toggle(tab)} disabled={disabled} />
             {TAB_LABELS[tab]}
@@ -27,10 +31,11 @@ function AccessPicker({ value, onChange, disabled }: { value: TabId[]; onChange:
         ))}
       </div>
       <div className="mt-1 flex flex-wrap gap-x-4">
-        <button type="button" className={quick} disabled={disabled} onClick={() => onChange([...TAB_IDS])}>Select all</button>
+        <button type="button" className={quick} disabled={disabled} onClick={() => onChange(options)}>Select all</button>
         <button type="button" className={quick} disabled={disabled} onClick={() => onChange([])}>Clear all</button>
-        <button type="button" className={quick} disabled={disabled} onClick={() => onChange(EDITOR_DEFAULT_TABS)}>Default tabs</button>
+        <button type="button" className={quick} disabled={disabled} onClick={() => onChange(EDITOR_DEFAULT_TABS.filter((tab) => options.includes(tab)))}>Default tabs</button>
       </div>
+      {hidden > 0 && <p className="mt-1 text-xs text-slate-500">{hidden} tab{hidden === 1 ? ' is' : 's are'} turned off for this site by the platform owner.</p>}
     </div>
   );
 }
@@ -294,7 +299,7 @@ function UserRow({ user, onChanged, notify }: { user: AdminUser; onChanged: () =
           ? <p className="text-xs text-slate-500">Admins can use every tab and change everything.</p>
           : (
             <>
-              <AccessPicker value={tabs} onChange={setTabs} disabled={busy} />
+              <AccessPicker value={tabs} onChange={setTabs} disabled={busy} available={user.siteTabs} />
               <div className="mt-3"><ReadOnlySwitch checked={readOnly} onChange={setReadOnly} disabled={busy} /></div>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
                 <Button onClick={() => { setTabs(savedTabs); setReadOnly(savedReadOnly); }} disabled={busy || !accessDirty}>Cancel</Button>

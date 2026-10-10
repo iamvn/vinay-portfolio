@@ -11,9 +11,10 @@ import {
   type Application, type ApplicationStatus, type Contact, type KitKind,
 } from '@/lib/career/types';
 import { JobFacts } from './job-facts';
+import { PrepEditor } from './prep-notes';
 
 type Detail = { application: Application; resume: { label: string; kind: 'sent' | 'linked' | 'profile'; data: ResumeData }; profile: EvidenceItem[] };
-type Section = 'overview' | 'resume' | 'kit' | 'interview' | 'timeline';
+type Section = 'overview' | 'resume' | 'kit' | 'interview' | 'prep' | 'timeline';
 type ResumeSummary = { id: number; name: string; updatedAt: string };
 
 const COVERAGE_TONE: Record<Coverage, string> = {
@@ -414,10 +415,10 @@ function TimelineSection({ app, onSaved, notify }: { app: Application; onSaved: 
 // ---------- the page ----------
 
 /** One application: status, the job and your evidence, resume, kit, interview prep and timeline. */
-export function ApplicationDetail({ id, onBack, notify }: { id: number; onBack: () => void; notify: Notify }) {
+export function ApplicationDetail({ id, onBack, notify, initialSection = 'overview' }: { id: number; onBack: () => void; notify: Notify; initialSection?: Section }) {
   const readOnly = useReadOnly();
   const [detail, setDetail] = useState<Detail | null>(null);
-  const [section, setSection] = useState<Section>('overview');
+  const [section, setSection] = useState<Section>(initialSection);
 
   const load = useCallback(() => api<Detail>('GET', `/api/applications/${id}`).then(setDetail).catch((error) => { notify(describeError(error), 'error'); onBack(); }), [id, notify, onBack]);
   useEffect(() => { void load(); }, [load]);
@@ -451,7 +452,9 @@ export function ApplicationDetail({ id, onBack, notify }: { id: number; onBack: 
 
   const sections: [Section, string][] = [
     ['overview', 'Overview'], ['resume', app.snapshot ? 'Resume ✓' : 'Resume'], ['kit', Object.keys(app.kit).length ? 'Kit ✓' : 'Kit'],
-    ['interview', app.interview ? 'Interview ✓' : 'Interview'], ['timeline', `Timeline (${app.timeline.length})`],
+    ['interview', app.interview ? 'Interview ✓' : 'Interview'],
+    ['prep', app.prep.questions.length || app.prep.links.length ? `Prep notes (${app.prep.questions.length})` : 'Prep notes'],
+    ['timeline', `Timeline (${app.timeline.length})`],
   ];
 
   return (
@@ -484,6 +487,10 @@ export function ApplicationDetail({ id, onBack, notify }: { id: number; onBack: 
       {section === 'resume' && <ResumeSection detail={detail} onChanged={load} notify={notify} />}
       {section === 'kit' && <KitSection detail={detail} onSaved={onSaved} notify={notify} />}
       {section === 'interview' && <InterviewSection detail={detail} onSaved={onSaved} notify={notify} />}
+      {section === 'prep' && (
+        <PrepEditor key={app.id} value={app.prep} scope="application" notify={notify}
+          onSave={async (prep) => { onSaved(await api<Application>('PATCH', `/api/applications/${app.id}`, { prep })); }} />
+      )}
       {section === 'timeline' && <TimelineSection app={app} onSaved={onSaved} notify={notify} />}
     </div>
   );

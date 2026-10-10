@@ -1,7 +1,8 @@
 /**
  * Per-user access to admin tabs.
  *
- * Admins (and the owner) always have every tab. For other users an admin ticks which tabs they may use
+ * The platform owner chooses which tabs each site may use at all (Sites → Security → Admin tabs); that
+ * limits everyone on the site, its own admins included. Within that, admins (and the owner) have every tab. For other users an admin ticks which tabs they may use
  * (Users & security → Access). The same list is enforced on the server: proxy.ts blocks API calls for
  * tabs a user doesn't have, so hiding a tab is never the only protection.
  *
@@ -19,7 +20,7 @@ export const TAB_LABELS: Record<TabId, string> = {
 /** What an editor gets when no admin has chosen tabs for them (the access editors always had). */
 export const EDITOR_DEFAULT_TABS: TabId[] = ['profile', 'experience', 'skills', 'projects', 'copy', 'resume', 'backup'];
 
-type Who = { role: string; permissions?: string | null; readOnly?: boolean | null };
+type Who = { role: string; permissions?: string | null; readOnly?: boolean | null; siteTabs?: string | null };
 
 /** Stored as a comma-separated list; empty means "role default". Unknown names are ignored. */
 export function parsePermissions(raw: string | null | undefined): TabId[] | null {
@@ -33,9 +34,16 @@ export const serializePermissions = (tabs: readonly string[]) => {
   return valid.length ? valid.join(',') : '-';
 };
 
+/** The tabs a whole site may use, as stored on the site ('' = all tabs, '-' = none). null = no limit. */
+export const parseSiteTabs = (raw: string | null | undefined): TabId[] | null => parsePermissions(raw);
+
+/** Stores a site's tab list: every tab → '' (no limit, so tabs added later are included too). */
+export const serializeSiteTabs = (tabs: readonly string[]) => (TAB_IDS.every((tab) => tabs.includes(tab)) ? '' : serializePermissions(tabs));
+
 export function allowedTabs(user: Who): TabId[] {
-  if (user.role === 'admin') return [...TAB_IDS];
-  return parsePermissions(user.permissions) ?? EDITOR_DEFAULT_TABS;
+  const own = user.role === 'admin' ? [...TAB_IDS] : parsePermissions(user.permissions) ?? EDITOR_DEFAULT_TABS;
+  const site = parseSiteTabs(user.siteTabs);
+  return site ? own.filter((tab) => site.includes(tab)) : own;
 }
 
 export const canUseTab = (user: Who, tab: TabId) => allowedTabs(user).includes(tab);
@@ -61,7 +69,7 @@ const WRITE_GATED: [RegExp, TabId][] = [
 const ALWAYS_GATED: [RegExp, TabId][] = [
   [/^\/api\/portfolio$/, 'backup'],
   [/^\/api\/design(\/.*)?$/, 'design'],
-  [/^\/api\/insights$/, 'insights'],
+  [/^\/api\/insights(\/.*)?$/, 'insights'],
   [/^\/api\/forms(\/.*)?$/, 'insights'], // reading/deleting form messages (sending is public)
   [/^\/api\/ai(\/.*)?$/, 'ai'],
   [/^\/api\/resume-builder(\/.*)?$/, 'builder'],

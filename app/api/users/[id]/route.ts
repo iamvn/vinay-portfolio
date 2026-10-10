@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { handleDbError, jsonError, parseBody, parseId } from '@/lib/api-utils';
 import { ROLES, ownerId, requireAdmin } from '@/lib/auth/roles';
-import { publicUser } from '@/lib/auth/session';
+import { currentSiteTabs, publicUser } from '@/lib/auth/session';
 import { TAB_IDS } from '@/lib/auth/permissions';
 import { setAccess } from '@/lib/auth/permissions-store';
 import { currentSite } from '@/lib/sites/context';
@@ -48,7 +48,7 @@ export async function PATCH(request: Request, { params }: Context) {
     if (permissions !== undefined) details.tabs = permissions === null ? 'default' : permissions.join(', ') || 'none';
     if (readOnly !== undefined) details.readOnly = readOnly ? 'on' : 'off';
     await logActivity(await currentSite(), actorLabel(me), 'user.updated', details);
-    return NextResponse.json(publicUser({ ...user, ...access }));
+    return NextResponse.json(publicUser({ ...user, ...access, siteTabs: await currentSiteTabs() }));
   } catch (err) {
     return handleDbError(err, NOT_FOUND);
   }

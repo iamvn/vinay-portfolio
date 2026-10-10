@@ -2,11 +2,14 @@
 
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { api, describeError } from './api';
+import { TAB_IDS, TAB_LABELS, type TabId } from '@/lib/auth/permissions';
 import { Button, Card, Field, Loading, PasswordInput, TextInput, buttonBase, inputClass, type Notify } from './ui';
 
 type SiteRow = {
   slug: string; name: string; ownerEmail: string; domain: string | null; status: 'active' | 'suspended'; createdAt: string; url: string | null; storage: string;
   canAddUsers: boolean; canAddSites: boolean; siteLimit: number | null; createdBy: string; createdByUser: string;
+  /** Admin tabs everyone on the site may use, its own admins included. */
+  tabs: TabId[];
 };
 type Platform = { isMain: boolean; siteLimit: number | null; sitesCreated: number; rootDomain: string | null; turso: boolean; onVercel: boolean; vercelApi: boolean; exampleUrl: string | null };
 
@@ -133,16 +136,20 @@ function NumberStepper({ id, value, onChange, min, max, disabled, invalid }: {
   );
 }
 
-type SecurityChanges = { canAddUsers: boolean; canAddSites: boolean; siteLimit: number };
+type SecurityChanges = { canAddUsers: boolean; canAddSites: boolean; siteLimit: number; tabs: TabId[] };
 
 function Security({ site, busy, save }: { site: SiteRow; busy: boolean; save: (changes: SecurityChanges) => void }) {
   const savedLimit = site.siteLimit ?? 2;
   const [users, setUsers] = useState(site.canAddUsers);
   const [sites, setSites] = useState(site.canAddSites);
   const [limit, setLimit] = useState(String(savedLimit));
+  const savedTabs = site.tabs ?? [...TAB_IDS];
+  const [tabs, setTabs] = useState<TabId[]>(savedTabs);
   const limitNumber = Number(limit);
   const limitValid = limit.trim() !== '' && Number.isInteger(limitNumber) && limitNumber >= 0 && limitNumber <= 100;
-  const dirty = users !== site.canAddUsers || sites !== site.canAddSites || (limitValid && limitNumber !== savedLimit);
+  const tabsDirty = tabs.length !== savedTabs.length || tabs.some((tab) => !savedTabs.includes(tab));
+  const dirty = users !== site.canAddUsers || sites !== site.canAddSites || (limitValid && limitNumber !== savedLimit) || tabsDirty;
+  const toggleTab = (tab: TabId) => setTabs(TAB_IDS.filter((item) => (item === tab ? !tabs.includes(tab) : tabs.includes(item))));
   return (
     <div className="rounded-xl border border-white/10 bg-white/[.02] p-3">
       <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-400">Security</p>
@@ -157,9 +164,30 @@ function Security({ site, busy, save }: { site: SiteRow; busy: boolean; save: (c
           <span className="basis-full text-xs text-slate-500">Default 2. Deleting one of their sites frees a slot. Your own (main) account has no limit.</span>
         </div>
       </div>
+      <fieldset className="mt-3 border-t border-white/10 pt-3">
+        <legend className="sr-only">Admin tabs this site can use</legend>
+        <p className="text-sm font-bold text-slate-100">Admin tabs this site can use</p>
+        <p className="mb-2 text-xs leading-5 text-slate-400">
+          Applies to everyone on {site.name}, their own admins included. A tab you turn off disappears from their admin and its API is refused.
+          {' '}Users &amp; security (their account and password) always stays.
+        </p>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 sm:grid-cols-3">
+          {TAB_IDS.map((tab) => (
+            <label key={tab} className="inline-flex min-h-10 cursor-pointer items-center gap-2 text-sm text-slate-200 sm:min-h-8">
+              <input type="checkbox" className="size-4 accent-lime-300" checked={tabs.includes(tab)} onChange={() => toggleTab(tab)} />
+              {TAB_LABELS[tab]}
+            </label>
+          ))}
+        </div>
+        <div className="mt-1 flex flex-wrap gap-x-4 text-xs font-bold">
+          <button type="button" className="min-h-9 text-cyan-300 hover:text-white" onClick={() => setTabs([...TAB_IDS])}>Select all</button>
+          <button type="button" className="min-h-9 text-cyan-300 hover:text-white" onClick={() => setTabs([])}>Clear all</button>
+          <span className="min-h-9 py-2 font-normal text-slate-500">{tabs.length} of {TAB_IDS.length} on</span>
+        </div>
+      </fieldset>
       <div className="mt-2 flex flex-wrap gap-2">
-        <Button tone="primary" disabled={busy || !dirty || !limitValid} onClick={() => save({ canAddUsers: users, canAddSites: sites, siteLimit: limitNumber })}>{busy ? 'Saving…' : 'Save security'}</Button>
-        <Button disabled={busy || !dirty} onClick={() => { setUsers(site.canAddUsers); setSites(site.canAddSites); setLimit(String(savedLimit)); }}>Cancel</Button>
+        <Button tone="primary" disabled={busy || !dirty || !limitValid} onClick={() => save({ canAddUsers: users, canAddSites: sites, siteLimit: limitNumber, tabs })}>{busy ? 'Saving…' : 'Save security'}</Button>
+        <Button disabled={busy || !dirty} onClick={() => { setUsers(site.canAddUsers); setSites(site.canAddSites); setLimit(String(savedLimit)); setTabs(savedTabs); }}>Cancel</Button>
       </div>
     </div>
   );
@@ -218,7 +246,7 @@ function SiteItem({ site, isMain, onChanged, notify }: { site: SiteRow; isMain: 
         </Button>
       </div>
       {isMain && (
-        <Security key={`${site.canAddUsers}-${site.canAddSites}-${site.siteLimit}`} site={site} busy={busy}
+        <Security key={`${site.canAddUsers}-${site.canAddSites}-${site.siteLimit}-${(site.tabs ?? []).join(',')}`} site={site} busy={busy}
           save={(changes) => run('PATCH', changes, `Saved security for ${site.name}.`)} />
       )}
       {!deleting ? (

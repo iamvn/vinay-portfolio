@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     await logActivity(site, actorLabel(user), 'user.login', { email: user.email, role: user.role });
     // Only admins get the token in the body (for curl/scripts); editors use the session cookie only.
     const apiToken = user.role === 'admin' ? { token, expiresAt: expiresAt.toISOString() } : {};
-    const response = NextResponse.json({ user: publicUser((await findSessionUser(user.id)) ?? user), ...apiToken });
+    const response = NextResponse.json({ user: publicUser({ ...((await findSessionUser(user.id)) ?? user), siteTabs: (await currentSite()).tabs }), ...apiToken });
     response.cookies.set(sessionCookie(token));
     return response;
   } catch (err) {

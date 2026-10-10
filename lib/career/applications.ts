@@ -1,15 +1,33 @@
 import { prisma } from '@/lib/prisma';
-import { STATUSES, STATUS_LABELS, type Application, type ApplicationStatus, type ApplicationSummary, type TimelineEvent } from './types';
+import { currentSite } from '@/lib/sites/context';
+import { EMPTY_PREP, STATUSES, STATUS_LABELS, prepSchema, type Application, type ApplicationStatus, type ApplicationSummary, type TimelineEvent } from './types';
 
 /**
  * Job applications, stored per site in the JobApplication table (plain SQL, like the resume builder, so it
  * works before and after `prisma generate`). Structured parts (analysis, contacts, kit…) are JSON columns.
  */
-const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS JobApplication (id INTEGER PRIMARY KEY AUTOINCREMENT, company TEXT NOT NULL DEFAULT '', role TEXT NOT NULL DEFAULT '', location TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'saved', jobDescription TEXT NOT NULL DEFAULT '', analysis TEXT NOT NULL DEFAULT '', resumeId INTEGER, snapshot TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '', contacts TEXT NOT NULL DEFAULT '[]', nextStep TEXT NOT NULL DEFAULT '', nextStepAt TEXT NOT NULL DEFAULT '', appliedAt TEXT NOT NULL DEFAULT '', kit TEXT NOT NULL DEFAULT '{}', interview TEXT NOT NULL DEFAULT '', timeline TEXT NOT NULL DEFAULT '[]', createdAt TEXT NOT NULL, updatedAt TEXT NOT NULL)`;
+const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS JobApplication (id INTEGER PRIMARY KEY AUTOINCREMENT, company TEXT NOT NULL DEFAULT '', role TEXT NOT NULL DEFAULT '', location TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'saved', jobDescription TEXT NOT NULL DEFAULT '', analysis TEXT NOT NULL DEFAULT '', resumeId INTEGER, snapshot TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '', contacts TEXT NOT NULL DEFAULT '[]', nextStep TEXT NOT NULL DEFAULT '', nextStepAt TEXT NOT NULL DEFAULT '', appliedAt TEXT NOT NULL DEFAULT '', kit TEXT NOT NULL DEFAULT '{}', interview TEXT NOT NULL DEFAULT '', prep TEXT NOT NULL DEFAULT '{}', timeline TEXT NOT NULL DEFAULT '[]', createdAt TEXT NOT NULL, updatedAt TEXT NOT NULL)`;
 export const MAX_APPLICATIONS = 500;
 
-let ready: Promise<unknown> | null = null;
-const ensureTable = () => (ready ??= prisma.$executeRawUnsafe(CREATE_TABLE).catch((error) => { ready = null; throw error; }));
+// Once per site's database (each site has its own). `prep` came later: deploys add it (lib/db-migrate.ts);
+// this covers a database that skipped that step.
+const ready = new Map<string, Promise<void>>();
+async function ensureTable() {
+  const site = await currentSite();
+  const key = `${site.slug}|${site.createdAt}`;
+  let done = ready.get(key);
+  if (!done) {
+    done = (async () => {
+      await prisma.$executeRawUnsafe(CREATE_TABLE);
+      await prisma.$executeRawUnsafe(`ALTER TABLE JobApplication ADD COLUMN prep TEXT NOT NULL DEFAULT '{}'`).catch((error) => {
+        if (!/duplicate column/i.test(String(error))) throw error;
+      });
+    })();
+    done.catch(() => ready.delete(key));
+    ready.set(key, done);
+  }
+  await done;
+}
 
 type Row = Record<keyof Omit<Application, 'id' | 'resumeId'>, string> & { id: number | bigint; resumeId: number | bigint | null };
 
@@ -17,6 +35,12 @@ const parse = <T,>(value: string | null | undefined, fallback: T): T => {
   if (!value) return fallback;
   try { return JSON.parse(value) as T; } catch { return fallback; }
 };
+
+/** Stored prep notes, tolerant of older or damaged rows. */
+export function parsePrep(value: string | null | undefined) {
+  const parsed = prepSchema.safeParse(parse(value, {}));
+  return parsed.success ? parsed.data : { ...EMPTY_PREP };
+}
 
 function toApplication(row: Row): Application {
   return {
@@ -32,6 +56,7 @@ function toApplication(row: Row): Application {
     nextStep: row.nextStep, nextStepAt: row.nextStepAt, appliedAt: row.appliedAt,
     kit: parse(row.kit, {}),
     interview: parse(row.interview, null),
+    prep: parsePrep(row.prep),
     timeline: parse(row.timeline, []),
     createdAt: row.createdAt, updatedAt: row.updatedAt,
   };
@@ -42,6 +67,7 @@ export const toSummary = (app: Application): ApplicationSummary => ({
   nextStep: app.nextStep, nextStepAt: app.nextStepAt, appliedAt: app.appliedAt, createdAt: app.createdAt, updatedAt: app.updatedAt,
   hasKit: Object.keys(app.kit).length > 0, hasInterview: Boolean(app.interview?.questions.length), sent: Boolean(app.snapshot),
   workMode: app.analysis?.workMode ?? null,
+  prepQuestions: app.prep.questions.length, prepLinks: app.prep.links.length,
 });
 
 export async function listApplications(): Promise<Application[]> {
@@ -79,12 +105,13 @@ export async function createApplication(input: Pick<Application, 'company' | 'ro
 
 /** Saves the whole record (the API merges changes and adds timeline events before calling this). */
 export async function saveApplication(app: Application): Promise<Application> {
+  await ensureTable();
   const next = { ...app, updatedAt: new Date().toISOString(), timeline: app.timeline.slice(-200) };
   await prisma.$executeRaw`UPDATE JobApplication SET company = ${next.company}, role = ${next.role}, location = ${next.location}, url = ${next.url},
     status = ${next.status}, jobDescription = ${next.jobDescription}, analysis = ${next.analysis ? JSON.stringify(next.analysis) : ''},
     resumeId = ${next.resumeId}, snapshot = ${next.snapshot ? JSON.stringify(next.snapshot) : ''}, notes = ${next.notes},
     contacts = ${JSON.stringify(next.contacts)}, nextStep = ${next.nextStep}, nextStepAt = ${next.nextStepAt}, appliedAt = ${next.appliedAt},
-    kit = ${JSON.stringify(next.kit)}, interview = ${next.interview ? JSON.stringify(next.interview) : ''}, timeline = ${JSON.stringify(next.timeline)},
+    kit = ${JSON.stringify(next.kit)}, interview = ${next.interview ? JSON.stringify(next.interview) : ''}, prep = ${JSON.stringify(next.prep)}, timeline = ${JSON.stringify(next.timeline)},
     updatedAt = ${next.updatedAt} WHERE id = ${next.id}`;
   return next;
 }

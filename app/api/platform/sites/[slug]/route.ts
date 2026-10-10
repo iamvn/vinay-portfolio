@@ -5,6 +5,7 @@ import { MAX_SITE_LIMIT, removeSite, siteBySlug, updateSite } from '@/lib/sites/
 import { deleteSiteDatabase } from '@/lib/sites/provision';
 import { canSeeSite, publicSite, requirePlatformAdmin } from '@/lib/sites/platform';
 import { actorLabel, logActivity } from '@/lib/sites/activity';
+import { TAB_IDS, TAB_LABELS, parseSiteTabs, serializeSiteTabs } from '@/lib/auth/permissions';
 import { addProjectDomain, removeProjectDomain, vercelApiConfigured } from '@/lib/sites/vercel';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,8 @@ const patchSchema = z.object({
   canAddUsers: z.boolean(),
   canAddSites: z.boolean(),
   siteLimit: z.number().int().min(0).max(MAX_SITE_LIMIT),
+  // Admin tabs everyone on the site may use, its own admins included (main site's admins only).
+  tabs: z.array(z.enum(TAB_IDS)).max(TAB_IDS.length),
 }).partial().strict();
 
 /** Rename, suspend/resume, set a custom domain, or (main site's admins) change the site's security settings. */
@@ -28,7 +31,7 @@ export async function PATCH(request: Request, { params }: Context) {
   const { slug } = await params;
   const { data, error } = await parseBody(request, patchSchema);
   if (error) return error;
-  if (!manager.isMain && (data.canAddUsers !== undefined || data.canAddSites !== undefined || data.siteLimit !== undefined)) {
+  if (!manager.isMain && (data.canAddUsers !== undefined || data.canAddSites !== undefined || data.siteLimit !== undefined || data.tabs !== undefined)) {
     return jsonError('Only the platform owner can change security settings.', 403);
   }
   try {
@@ -40,7 +43,8 @@ export async function PATCH(request: Request, { params }: Context) {
       const added = await addProjectDomain(nextDomain);
       if (!added.ok) return jsonError(added.message ?? 'Vercel could not add that domain.', 400);
     }
-    const site = await updateSite(slug, { ...data, ...(nextDomain !== undefined ? { domain: nextDomain } : {}) });
+    const { tabs, ...rest } = data;
+    const site = await updateSite(slug, { ...rest, ...(nextDomain !== undefined ? { domain: nextDomain } : {}), ...(tabs ? { tabs: serializeSiteTabs(tabs) } : {}) });
     if (site && nextDomain !== undefined && before.domain && before.domain !== nextDomain && vercelApiConfigured()) await removeProjectDomain(before.domain);
     if (site) {
       // What changed, in words, for the activity log.
@@ -51,6 +55,10 @@ export async function PATCH(request: Request, { params }: Context) {
       if (site.canAddUsers !== before.canAddUsers) changes.canAddUsers = site.canAddUsers ? 'on' : 'off';
       if (site.canAddSites !== before.canAddSites) changes.canAddSites = site.canAddSites ? 'on' : 'off';
       if (site.siteLimit !== before.siteLimit) changes.siteLimit = String(site.siteLimit);
+      if (site.tabs !== before.tabs) {
+        const on = parseSiteTabs(site.tabs);
+        changes.tabs = on ? (on.length ? on.map((tab) => TAB_LABELS[tab]).join(', ') : 'none') : 'all tabs';
+      }
       if (Object.keys(changes).length > 2) await logActivity(manager, actorLabel(user), 'site.updated', changes, { includeMain: true });
     }
     return site ? NextResponse.json(publicSite(site, request)) : jsonError('Site not found.', 404);
