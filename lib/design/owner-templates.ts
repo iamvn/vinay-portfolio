@@ -32,7 +32,7 @@ const panel = (id: string, content: Block[], anchor = '') => b('Box', id, {
   size: { width: '97%', maxWidth: '1680px', center: true },
   layout: { display: 'flex', direction: 'column', gap: 26 },
   spacing: { padding: pad(36, 40), paddingMobile: pad(24, 18), margin: { top: '18' } },
-  look: { glass: 'light', radius: 28 },
+  look: { glass: 'clear', radius: 28 },
   advanced: { tag: 'section', fitSections: true, anchor },
   content,
 });
@@ -58,7 +58,7 @@ const header = (id: string, eyebrow: string, title: string, side?: Block) => b('
 const feature = (id: string, icon: string, color: string, title: string, text: string) => b('Box', id, {
   layout: { display: 'flex', direction: 'row', gap: 14, align: 'flex-start', wrap: 'nowrap', stackOnMobile: false },
   spacing: { padding: pad(20) },
-  look: { fill: 'custom', fillColor: 'rgba(255,255,255,0.85)', borderWidth: 1, borderTone: 'line', radius: 18, shadow: 'sm' },
+  look: { glass: 'light', radius: 22 },
   content: [
     b('Icon', `${id}-icon`, { name: icon, size: 20, tone: 'custom', color, background: 'circle' }),
     b('Box', `${id}-copy`, {
@@ -87,7 +87,7 @@ const glassStudio: DesignData = {
       theme: 'clean',
       colors: { bg: '#eef0f6', surface: '#ffffff', surface2: '#f5f5f7', text: INK, muted: '#6e6e73', line: '#e5e5ea', accent: INK, accent2: BLUE, accent3: PURPLE },
       headingFont: 'system', bodyFont: 'system', textSize: 'medium', headingWeight: 'bold', headingCase: 'normal',
-      radius: 'large', buttonShape: 'pill', buttonStyle: 'solid', width: 'full', direction: 'ltr', effects: 'none', showAskAi: 'yes',
+      radius: 'large', buttonShape: 'pill', buttonStyle: 'solid', width: 'full', direction: 'ltr', effects: 'aurora', showAskAi: 'yes',
     },
   },
   content: [
@@ -212,7 +212,7 @@ const glassStudio: DesignData = {
       header('projects', '@projectsEyebrow', '@projectsTitle', b('Link', 'projects-all', { label: 'View all', href: '/projects', style: 'accent', size: 'sm', icon: 'arrow', colors: { accentColor: BLUE } })),
       b('Projects', 'projects-list', {
         layout: 'grid', columns: '3', columnsMobile: '1', filter: 'all', sort: 'featured', limit: 6, image: 'video', frame: 'window', linkStyle: 'arrow', tabs: true, tagStyle: 'chips',
-        cardStyle: 'card', cardAlign: 'left', showDescription: true, showStack: true, showLinks: true, showType: false, hover: 'lift', eyebrow: '-', title: '-',
+        cardStyle: 'glass', cardAlign: 'left', showDescription: true, showStack: true, showLinks: true, showType: false, hover: 'lift', eyebrow: '-', title: '-',
       }),
     ]),
 
@@ -266,7 +266,7 @@ const glassStudio: DesignData = {
 export const OWNER_TEMPLATES: { key: string; version: number; name: string; description: string; data: DesignData }[] = [
   {
     key: 'glass-studio',
-    version: 4,
+    version: 5,
     name: 'Glass Studio',
     description: 'Apple-style Liquid Glass: a floating glass navigation bar, a sunrise-wallpaper hero with a frosted profile window and an app dock, glass panels on a soft grey page, projects in app windows with a Featured / All switch, tabbed skill chips and a side-by-side journey.',
     data: glassStudio,

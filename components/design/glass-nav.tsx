@@ -46,7 +46,7 @@ export function GlassNav({ brand, links, showResume, sticky, overlay, editing }:
     <header className={`d-gnav z-30 ${sticky && !editing ? 'sticky top-0' : 'relative'} ${overlay ? 'd-nav-overlay' : ''}`} data-solid={scrolled || open ? 'true' : undefined}>
       <div className="d-gnav-inner">
         <div className="d-gnav-bar">
-          <a href="#home" className="flex min-h-11 min-w-0 items-center truncate px-1 text-[15px] font-semibold tracking-tight no-underline md:text-base">{brand}</a>
+          <a href="#home" className="d-gnav-brand flex min-h-11 min-w-0 items-center truncate px-1 font-semibold tracking-tight no-underline md:text-base">{brand}</a>
           <nav aria-label="Sections" className="hidden items-center justify-center gap-0.5 md:flex">
             {links.map((link, i) => <a key={link.label + link.href} href={link.href} aria-current={i === 0 ? 'location' : undefined} className="d-nav-pill">{link.label}</a>)}
           </nav>
@@ -61,16 +61,21 @@ export function GlassNav({ brand, links, showResume, sticky, overlay, editing }:
           </div>
         </div>
         {open && (
-          <div ref={menuRef} id="d-gnav-menu" className="d-gnav-menu d-glass d-glass-light md:hidden">
-            <nav aria-label="Sections (menu)" className="grid gap-1">
-              {links.map((link, i) => (
-                <a key={link.label + link.href} href={link.href} onClick={() => setOpen(false)} aria-current={i === 0 ? 'location' : undefined} className="d-gnav-item">
-                  {link.label}<Icon name="arrow" size={16} />
-                </a>
-              ))}
-            </nav>
-            {showResume && <a href="/api/resume" onClick={() => setOpen(false)} className="d-nav-cta mt-3 w-full justify-center">Resume <Icon name="arrowUpRight" size={14} /></a>}
-          </div>
+          <>
+            {/* Dims and softly blurs the page behind the menu, like an iOS popover; a tap on it closes the menu. */}
+            <div className="d-gnav-scrim md:hidden" aria-hidden="true" />
+            <div ref={menuRef} id="d-gnav-menu" className="d-gnav-menu md:hidden">
+              <nav aria-label="Sections (menu)" className="d-gnav-list">
+                {links.map((link, i) => (
+                  <a key={link.label + link.href} href={link.href} onClick={() => setOpen(false)} aria-current={i === 0 ? 'location' : undefined} className="d-gnav-item">
+                    <span className="d-gnav-check" aria-hidden="true">{i === 0 && <Icon name="check" size={16} />}</span>
+                    <span className="min-w-0 flex-1 truncate">{link.label}</span>
+                  </a>
+                ))}
+              </nav>
+              {showResume && <a href="/api/resume" onClick={() => setOpen(false)} className="d-nav-cta d-gnav-menu-cta">Resume <Icon name="arrowUpRight" size={14} /></a>}
+            </div>
+          </>
         )}
       </div>
     </header>

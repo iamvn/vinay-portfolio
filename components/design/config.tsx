@@ -157,7 +157,7 @@ export const designConfig: Config<Components, RootProps> = {
       buttonStyle: { type: 'radio', label: 'Main buttons', options: [{ label: 'Filled', value: 'solid' }, { label: 'Outline', value: 'outline' }] },
       width: { type: 'select', label: 'Page width', options: [{ label: 'Narrow', value: 'narrow' }, { label: 'Normal', value: 'normal' }, { label: 'Wide', value: 'wide' }, { label: 'Full width', value: 'full' }] },
       direction: { type: 'radio', label: 'Text direction', options: [{ label: 'Left → right', value: 'ltr' }, { label: 'Right → left', value: 'rtl' }] },
-      effects: { type: 'radio', label: 'Background effect', options: [{ label: 'None', value: 'none' }, { label: 'Grid', value: 'grid' }, { label: 'Scanlines', value: 'scanlines' }] },
+      effects: { type: 'radio', label: 'Background effect', options: [{ label: 'None', value: 'none' }, { label: 'Grid', value: 'grid' }, { label: 'Scanlines', value: 'scanlines' }, { label: 'Soft color wallpaper (for glass)', value: 'aurora' }] },
       showAskAi: { type: 'radio', label: '“Ask AI” button', options: [{ label: 'Show', value: 'yes' }, { label: 'Hide', value: 'no' }] },
     },
     defaultProps: DEFAULT_ROOT,
@@ -165,7 +165,7 @@ export const designConfig: Config<Components, RootProps> = {
       const { portfolio, assistant } = meta(puck);
       const classes = [
         'd-root',
-        props.effects === 'grid' || props.effects === 'scanlines' ? `d-effect-${props.effects}` : '',
+        ['grid', 'scanlines', 'aurora'].includes(props.effects ?? '') ? `d-effect-${props.effects}` : '',
         recolorsClassic(props) ? 'd-recolor' : '',
         props.buttonStyle === 'outline' ? 'd-buttons-outline' : '',
         props.headingWeight === 'bold' ? 'd-headings-bold' : props.headingWeight === 'normal' ? 'd-headings-normal' : '',
@@ -311,7 +311,7 @@ export const designConfig: Config<Components, RootProps> = {
         sort: { type: 'radio', label: 'Projects order', options: [{ label: 'Featured first', value: 'featured' }, { label: 'As in Admin', value: 'order' }, { label: 'A → Z', value: 'title' }] },
         limit: { type: 'number', label: 'Max projects (0 = all)', min: 0, max: 50 },
         image: { type: 'select', label: 'Image', options: [{ label: 'Wide (16:9)', value: 'video' }, { label: 'Extra wide (21:9)', value: 'wide' }, { label: 'Square', value: 'square' }, { label: 'Portrait (4:5)', value: 'portrait' }, { label: 'No image', value: 'hide' }] },
-        cardStyle: { type: 'radio', label: 'Card', options: [{ label: 'Box', value: 'card' }, { label: 'No box', value: 'plain' }] },
+        cardStyle: { type: 'radio', label: 'Card', options: [{ label: 'Box', value: 'card' }, { label: 'Glass', value: 'glass' }, { label: 'No box', value: 'plain' }] },
         cardAlign: { type: 'radio', label: 'Text in cards', options: [{ label: 'Left', value: 'left' }, { label: 'Center', value: 'center' }] },
         showDescription: yesNo('Short description'),
         showStack: yesNo('Tags'),

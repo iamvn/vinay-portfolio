@@ -61,7 +61,7 @@ export type RootProps = {
   buttonStyle: 'solid' | 'outline';
   width: keyof typeof WIDTHS;
   direction: 'ltr' | 'rtl';
-  effects: 'none' | 'grid' | 'scanlines';
+  effects: 'none' | 'grid' | 'scanlines' | 'aurora';
   showAskAi: 'yes' | 'no';
 };
 

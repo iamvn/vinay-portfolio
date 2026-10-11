@@ -23,6 +23,18 @@
     content: ''; pointer-events: none; position: fixed; inset: 0; z-index: 40; opacity: .035;
     background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.7) 4px);
   }
+  /* Soft color wallpaper: pastel light behind the page, so Liquid Glass panels and cards have something to frost. */
+  .d-root.d-effect-aurora { isolation: isolate; }
+  .d-root.d-effect-aurora::before {
+    content: ''; pointer-events: none; position: fixed; inset: 0; z-index: -1;
+    background:
+      radial-gradient(42% 38% at 6% 10%, rgba(255, 179, 199, .55), transparent 70%),
+      radial-gradient(40% 42% at 94% 6%, rgba(160, 196, 255, .6), transparent 70%),
+      radial-gradient(46% 46% at 88% 72%, rgba(196, 168, 255, .45), transparent 70%),
+      radial-gradient(42% 42% at 10% 88%, rgba(255, 212, 160, .5), transparent 70%),
+      radial-gradient(34% 34% at 50% 46%, rgba(168, 236, 226, .32), transparent 70%),
+      var(--d-bg);
+  }
   .d-root.d-effect-grid {
     background-image:
       linear-gradient(color-mix(in srgb, var(--d-accent-2) 5%, transparent) 1px, transparent 1px),
@@ -266,6 +278,41 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
     background: var(--d-surface); border: 1px solid var(--d-line); transition: transform .2s, background .2s; }
   .d-round-btn:hover { transform: translate(1px, -1px); background: color-mix(in srgb, var(--d-text) 6%, var(--d-surface)); }
 
+  /* Liquid Glass project card: frosted and translucent, a bright rim and top edge, a specular sheen, a soft float. */
+  .d-card-glass {
+    position: relative; border-radius: 26px; padding: .7rem .7rem 1rem;
+    background:
+      radial-gradient(120% 60% at 15% -8%, rgba(255, 255, 255, .7), transparent 55%),
+      linear-gradient(180deg, rgba(255, 255, 255, .66), rgba(255, 255, 255, .38));
+    -webkit-backdrop-filter: blur(24px) saturate(185%); backdrop-filter: blur(24px) saturate(185%);
+    border: 1px solid rgba(255, 255, 255, .85);
+    box-shadow:
+      inset 0 1px 0 #fff, inset 0 -1px 1px rgba(255, 255, 255, .35), inset 0 0 0 .5px rgba(255, 255, 255, .45),
+      0 1px 2px rgba(15, 23, 42, .05), 0 22px 44px -28px rgba(15, 23, 42, .38);
+    transition: transform .4s cubic-bezier(.2, .8, .2, 1), box-shadow .4s ease, background .4s ease;
+  }
+  .d-card-glass:hover {
+    background:
+      radial-gradient(120% 60% at 15% -8%, rgba(255, 255, 255, .85), transparent 55%),
+      linear-gradient(180deg, rgba(255, 255, 255, .78), rgba(255, 255, 255, .5));
+    box-shadow:
+      inset 0 1px 0 #fff, inset 0 -1px 1px rgba(255, 255, 255, .4), inset 0 0 0 .5px rgba(255, 255, 255, .55),
+      0 2px 4px rgba(15, 23, 42, .05), 0 34px 60px -30px rgba(15, 23, 42, .45);
+  }
+  /* The text sits a little further in than the cover, like a window's content inset. */
+  .d-card-glass > :not(:first-child) { padding-inline: .55rem; }
+  .d-card-glass h3 { font-weight: 650; letter-spacing: -.012em; }
+  .d-card-glass .d-window { border-radius: 18px; border-color: rgba(255, 255, 255, .8); box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 14px 28px -20px rgba(15, 23, 42, .45); }
+  .d-card-glass .d-window-bar { background: rgba(255, 255, 255, .7); border-bottom-color: rgba(15, 23, 42, .06); }
+  .d-card-glass .d-round-btn { background: rgba(255, 255, 255, .65); border-color: rgba(255, 255, 255, .9);
+    box-shadow: inset 0 1px 0 #fff, 0 6px 14px -8px rgba(15, 23, 42, .35); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .d-card-glass .d-round-btn:hover { background: #fff; }
+  /* Chips on glass: small glass capsules instead of white pills with a grey line. */
+  :is(.d-glass, .d-card-glass) .d-chip { background: rgba(255, 255, 255, .55); border-color: rgba(255, 255, 255, .9);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), 0 1px 2px rgba(15, 23, 42, .06), 0 4px 10px -8px rgba(15, 23, 42, .25); }
+  @media (prefers-reduced-motion: reduce) { .d-card-glass { transition: none; } }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .d-card-glass { background: rgba(255, 255, 255, .92); } }
+
   /* Project cover in an app window */
   .d-window { overflow: hidden; border-radius: 14px; border: 1px solid var(--d-line); background: var(--d-surface); box-shadow: 0 8px 22px -14px rgba(15, 23, 42, .35); }
   .d-window-bar { display: flex; gap: 6px; padding: 9px 11px; background: color-mix(in srgb, var(--d-text) 4%, var(--d-surface)); border-bottom: 1px solid var(--d-line); }
@@ -298,15 +345,48 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
   .d-gnav-burger { display: inline-grid; width: 2.75rem; height: 2.75rem; place-items: center; border-radius: 999px; color: var(--d-text);
     background: rgba(255, 255, 255, .55); border: 1px solid rgba(255, 255, 255, .75); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 4px 12px -6px rgba(15,23,42,.25); }
-  .d-gnav-menu { position: absolute; left: .6rem; right: .6rem; top: calc(100% + .5rem); border-radius: 22px; padding: .6rem; animation: d-gnav-in .18s ease-out; }
-  .d-gnav-item { display: flex; min-height: 3rem; align-items: center; justify-content: space-between; border-radius: 14px; padding: 0 .9rem; font-size: 1rem; font-weight: 600; color: var(--d-text); text-decoration: none; }
-  .d-gnav-item:hover, .d-gnav-item[aria-current] { background: rgba(255, 255, 255, .7); }
-  .d-gnav-item svg { opacity: .45; }
-  @keyframes d-gnav-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
 
   .d-nav-cta { display: inline-flex; min-height: 2.5rem; align-items: center; gap: .35rem; border-radius: 999px; padding: 0 1.1rem; font-size: .84rem; font-weight: 600;
     text-decoration: none; background: var(--d-accent); color: var(--d-accent-text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 6px 16px -8px rgba(0, 0, 0, .5); transition: transform .2s; }
   .d-nav-cta:hover { transform: translateY(-1px); }
+  /* Phones, Apple style: a slim floating glass capsule with a round menu button, a soft "scroll edge" fade above the
+     content under it, and the menu as a glass popover (checkmark on the current section) over a dimmed page. */
+  .d-gnav-brand { font-size: 1.0625rem; letter-spacing: -.02em; }
+  @media (max-width: 767px) {
+    .d-gnav-inner { padding: calc(env(safe-area-inset-top) + .55rem) .75rem 0; }
+    .d-gnav-bar { min-height: 3.25rem; border-radius: 999px; padding: .3rem .3rem .3rem 1.1rem; gap: .5rem; }
+    .d-gnav-burger { width: 2.65rem; height: 2.65rem; }
+    .d-gnav[data-solid] .d-gnav-burger { background: rgba(15, 23, 42, .05); border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .d-gnav::before {
+      content: ''; pointer-events: none; position: absolute; inset: 0 0 -1.25rem; z-index: -1; opacity: 0; transition: opacity .35s ease;
+      background: linear-gradient(to bottom, color-mix(in srgb, var(--d-bg) 88%, transparent) 30%, transparent);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent); mask-image: linear-gradient(to bottom, #000 45%, transparent);
+    }
+    .d-gnav[data-solid]::before { opacity: 1; }
+  }
+  .d-gnav-scrim { position: fixed; inset: 0; z-index: -2; background: rgba(15, 23, 42, .14); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: d-fade-in .2s ease-out; }
+  .d-gnav-menu {
+    position: absolute; right: .75rem; top: calc(100% + .45rem); left: auto; width: min(17.5rem, calc(100% - 1.5rem));
+    border-radius: 28px; padding: .4rem; transform-origin: top right; animation: d-gnav-pop .32s cubic-bezier(.2, 1.2, .3, 1);
+    background: radial-gradient(120% 60% at 20% -10%, rgba(255, 255, 255, .75), transparent 55%), rgba(255, 255, 255, .72);
+    -webkit-backdrop-filter: blur(30px) saturate(190%); backdrop-filter: blur(30px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, .85);
+    box-shadow: inset 0 1px 0 #fff, 0 24px 48px -18px rgba(15, 23, 42, .35), 0 4px 12px -4px rgba(15, 23, 42, .12);
+  }
+  .d-gnav-list { display: grid; }
+  .d-gnav-item { display: flex; min-height: 2.9rem; align-items: center; gap: .55rem; border-radius: 18px; padding: 0 .9rem 0 .6rem;
+    font-size: 1.0625rem; font-weight: 500; letter-spacing: -.01em; color: var(--d-text); text-decoration: none; position: relative; }
+  .d-gnav-item + .d-gnav-item::before { content: ''; position: absolute; top: 0; left: 2.35rem; right: .9rem; height: .5px; background: rgba(15, 23, 42, .12); }
+  .d-gnav-item:active, .d-gnav-item:hover { background: rgba(15, 23, 42, .06); }
+  .d-gnav-item:hover::before, .d-gnav-item:hover + .d-gnav-item::before { opacity: 0; }
+  .d-gnav-check { display: inline-grid; width: 1.25rem; flex-shrink: 0; place-items: center; color: var(--d-accent-2); }
+  .d-gnav-item[aria-current] { font-weight: 600; }
+  .d-gnav-menu-cta { margin-top: .4rem; width: 100%; min-height: 2.9rem; justify-content: center; font-size: .95rem; }
+  @keyframes d-gnav-pop { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: none; } }
+  @keyframes d-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .d-gnav-menu, .d-gnav-scrim { animation: none; } }
+
   /* The bar is one row everywhere now (phones use the menu): the next section starts under it. */
   .d-nav-overlay { margin-bottom: -5.15rem; }
 }

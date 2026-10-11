@@ -299,7 +299,8 @@ export type ProjectsProps = {
   sort: 'featured' | 'order' | 'title';
   limit: number;
   image: 'video' | 'wide' | 'square' | 'portrait' | 'hide';
-  cardStyle: 'card' | 'plain';
+  /** "glass": Liquid Glass cards (frosted, bright rim), best on a glass panel or the soft color wallpaper. */
+  cardStyle: 'card' | 'glass' | 'plain';
   showDescription: boolean;
   showStack: boolean;
   showLinks: boolean;
@@ -398,7 +399,7 @@ export function Projects(input: ProjectsProps & { portfolio: Portfolio }) {
       ) : <ProjectCover project={project} label={labels.featured} className={`${ASPECTS[props.image] ?? 'aspect-video'} ${className}`} zoom={props.hover === 'zoom'} typeBadge={props.showType} />}
     </ProjectLink>
   );
-  const card = props.cardStyle === 'card' ? 'd-card p-4' : '';
+  const card = props.cardStyle === 'glass' ? 'd-card-glass' : props.cardStyle === 'card' ? 'd-card p-4' : '';
   const hover = props.hover === 'lift' ? 'transition hover:-translate-y-1' : '';
   const cols = { '1': '', '2': 'sm:grid-cols-2', '3': 'sm:grid-cols-2 lg:grid-cols-3', '4': 'sm:grid-cols-2 lg:grid-cols-4' }[props.columns] ?? 'sm:grid-cols-2 lg:grid-cols-3';
   const phoneCols = props.columnsMobile === '2' ? 'grid-cols-2' : 'grid-cols-1';

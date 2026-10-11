@@ -14,7 +14,7 @@ export async function PageTheme({ children, design: given }: { children: ReactNo
   const props = ((design.data as { root?: { props?: Partial<RootProps> } }).root?.props ?? {}) as Partial<RootProps>;
   const classes = [
     'd-root d-page',
-    props.effects === 'grid' || props.effects === 'scanlines' ? `d-effect-${props.effects}` : '',
+    ['grid', 'scanlines', 'aurora'].includes(props.effects ?? '') ? `d-effect-${props.effects}` : '',
     recolorsClassic(props) ? 'd-recolor' : '',
     props.buttonStyle === 'outline' ? 'd-buttons-outline' : '',
   ].filter(Boolean).join(' ');
