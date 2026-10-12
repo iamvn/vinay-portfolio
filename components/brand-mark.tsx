@@ -21,3 +21,8 @@ export function BrandMark({ size = 20, className = '' }: { size?: number; classN
     </svg>
   );
 }
+
+/** The brand name as written in the logo: कृतिपथ in Devanagari (read as "Kritipath"). */
+export function BrandName({ className = '' }: { className?: string }) {
+  return <span lang="hi" className={`brand-hi ${className}`} title="Kritipath">कृतिपथ</span>;
+}

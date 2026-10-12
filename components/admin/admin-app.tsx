@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import { BrandMark } from '../brand-mark';
+import { BrandMark, BrandName } from '../brand-mark';
 import { BRAND, brandUrl } from '@/lib/brand';
 import { BackupTab } from './backup-tab';
 import { CopyTab } from './copy-tab';
@@ -134,7 +134,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
           <div className="min-w-0">
             <p className="hidden font-mono text-[10px] uppercase tracking-[.3em] text-lime-300 sm:block">Control room</p>
             <h1 className="flex items-center gap-2 truncate text-lg font-black tracking-tight sm:text-xl">
-              <BrandMark size={22} /><span className="truncate">{BRAND.name}</span>
+              <BrandMark size={22} /><BrandName className="truncate" />
             </h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">

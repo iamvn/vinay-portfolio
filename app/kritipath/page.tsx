@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { BrandMark } from '@/components/brand-mark';
+import { BrandMark, BrandName } from '@/components/brand-mark';
 import { RequestForm } from '@/components/kritipath/request-form';
 import { Icon } from '@/components/icons';
 import { BRAND, brandUrl } from '@/lib/brand';
@@ -73,7 +73,7 @@ export default async function KritipathPage() {
       <header className="cl-nav">
         <div className="cl-wrap">
           <div className="cl-nav-bar cl-glass">
-            <a href="#top" className="cl-brand"><BrandMark size={26} />{BRAND.name}</a>
+            <a href="#top" className="cl-brand" aria-label={`${BRAND.name} home`}><BrandMark size={26} /><BrandName /></a>
             <nav className="cl-nav-links" aria-label="Page sections">
               <a href="#features">Features</a><a href="#how">How it works</a><a href="#founder">Founder</a><a href="/login">Sign in</a>
             </nav>
@@ -84,7 +84,7 @@ export default async function KritipathPage() {
 
       <main id="top">
         <section className="cl-hero cl-wrap">
-          <span className="cl-eyebrow cl-glass"><span className="cl-dot" aria-hidden="true" /><span lang="hi">{BRAND.nameHindi}</span> · The complete career suite</span>
+          <span className="cl-eyebrow cl-glass"><span className="cl-dot" aria-hidden="true" />{BRAND.name} · The complete career suite</span>
           <h1 className="cl-h1">Your work, your story,<br /><span className="cl-gradient">one path forward.</span></h1>
           <p className="cl-lead">
             {BRAND.name} gives every professional a portfolio website they design themselves, ATS-ready resumes, an AI assistant that answers recruiters,
@@ -213,7 +213,7 @@ export default async function KritipathPage() {
 
       <footer className="cl-footer">
         <div className="cl-wrap cl-footer-row">
-          <span className="cl-brand" style={{ fontSize: '.95rem' }}><BrandMark size={20} />{BRAND.name}</span>
+          <span className="cl-brand" style={{ fontSize: '.95rem' }}><BrandMark size={20} /><BrandName /></span>
           <nav aria-label="Footer">
             <a href="#features">Features</a><a href="#get-started">Get started</a><a href="/community">Community</a><a href="/login">Sign in</a>
           </nav>

@@ -1,5 +1,5 @@
 import { BRAND, brandUrl } from '@/lib/brand';
-import { BrandMark } from './brand-mark';
+import { BrandMark, BrandName } from './brand-mark';
 
 /**
  * "Built on Kritipath": shown at the bottom of every public page of every site on the platform.
@@ -12,7 +12,7 @@ export function PlatformBadge({ source = 'site-badge' }: { source?: string }) {
       <a href={brandUrl(source)} target="_blank" rel="noopener" aria-label={`Built on ${BRAND.name}: about the platform`}>
         <span>Built on</span>
         <BrandMark size={16} />
-        <b>{BRAND.name}</b>
+        <b><BrandName /></b>
       </a>
     </div>
   );
