@@ -309,9 +309,11 @@ export function boxStyle(props: Partial<Omit<BoxProps, 'content'>>, editing: boo
   if (look.edge && ['torn-bottom', 'torn-top', 'tape'].includes(look.edge)) classes.push(`d-edge-${look.edge}`);
   const tilt = clamp(look.tilt, -10, 10);
   if (tilt) { classes.push('d-tilt'); style['--tilt'] = `${tilt}deg`; }
-  if (advanced.visibility === 'desktop') classes.push(editing ? 'opacity-50' : 'max-md:hidden!');
-  if (advanced.visibility === 'mobile') classes.push(editing ? 'opacity-50' : 'md:hidden!');
+  // Same in the editor as on the site: the preview frame is the chosen device's width, so it shows what visitors see.
+  if (advanced.visibility === 'desktop') classes.push('max-md:hidden!');
+  if (advanced.visibility === 'mobile') classes.push('md:hidden!');
   if (editing) classes.push('d-box-editing');
+  if (editing && safeLength(size.height)) classes.push('d-box-sized');
 
   const tag: ElementType = (TAGS as readonly string[]).includes(advanced.tag) ? advanced.tag : 'div';
   return { style: style as CSSProperties, className: classes.join(' '), tag, id: anchorId(advanced.anchor), layout };
@@ -357,7 +359,9 @@ export const Box: ComponentConfig<BoxProps> = {
     return (
       <>
         {id && <span id={id} aria-hidden="true" className="pointer-events-none absolute scroll-mt-20" />}
-        <Content as={tag} ref={puck.dragRef} className={className} style={style} minEmptyHeight={64} collisionAxis={axis} />
+        {/* An empty box with a set height is a shape (a dot, a bar, a swatch): keep its size in the editor too,
+            instead of stretching it to the usual drop-area height. */}
+        <Content as={tag} ref={puck.dragRef} className={className} style={style} minEmptyHeight={safeLength(props.size?.height) ? 1 : 64} collisionAxis={axis} />
       </>
     );
   },

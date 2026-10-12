@@ -286,7 +286,8 @@ export function StyledBlock({ props, editing, panel = false, children }: { props
   const hasBox = Object.keys(box).some((key) => key !== 'textAlign' && key !== 'color') || Boolean(id) || padded;
   if (!hasBox && !Object.keys(vars).length && !box.textAlign && !box.color && !hidden) return <>{children}</>;
 
-  const visibilityClass = editing ? (hidden ? 'opacity-50' : '') : hidden;
+  // Same in the editor as on the site (see appearance.tsx): no ghost copies of device-only blocks.
+  const visibilityClass = hidden;
   return (
     <div
       id={id}

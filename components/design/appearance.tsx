@@ -264,7 +264,9 @@ export function Styled({ appearance, editing, panel = false, children }: { appea
   if (!hasAnything) return <>{children}</>;
 
   // While editing, blocks hidden on this screen size stay visible (faded) so they can still be selected.
-  const visibilityClass = editing ? (hidden ? 'opacity-50' : '') : hidden;
+  // Same in the editor as on the site: the editor's preview frame is the chosen device's width, so a block shows
+  // exactly where it will be live (switch the preview to Phone to see and edit phone-only blocks; the Outline lists all).
+  const visibilityClass = hidden;
   return (
     <div
       id={id}

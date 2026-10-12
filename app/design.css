@@ -214,7 +214,9 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
    boxes size like on the live page instead, so a flex row really shows boxes side by side while designing.
    Sizes you set (width/height) are inline styles and still win. */
 .d-box[class*="_DropZone_"] { width: auto; height: auto; }
-.d-box[class*="_DropZone_"]:not([class*="hasChildren"]) { min-width: 120px; min-height: 64px; }
+.d-box[class*="_DropZone_"]:not([class*="hasChildren"]):not(.d-box-sized) { min-width: 120px; min-height: 64px; }
+/* An empty box with a set height is a shape (a dot, a bar, a swatch): it keeps its real size in the editor. */
+.d-box-sized[class*="_DropZone_"]:not([class*="hasChildren"]) { min-width: 0; min-height: 0; }
 
 /* Design editor header: the "· Your design is live" note next to the page title, in the normal font. */
 .design-editor [class*="_PuckHeader-path"] { font-family: inherit; font-size: 12px; font-weight: 600; color: #64748b; }
