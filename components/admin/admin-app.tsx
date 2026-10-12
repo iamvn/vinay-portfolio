@@ -176,7 +176,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
         {guide && <AnnouncementBar announcements={guide.announcements} />}
         {database && <DatabaseNotice database={database} />}
         {/* Every titled section folds; these set all of this tab's sections at once. */}
-        {tab !== 'design' && (
+        {tab !== 'design' && tab !== 'progress' && (
           <div className="-mt-1 mb-2 flex justify-end gap-3 text-[11px] font-bold">
             <button type="button" onClick={() => setAllSections(tab, true)} className="min-h-9 text-slate-400 hover:text-white">Expand all</button>
             <button type="button" onClick={() => setAllSections(tab, false)} className="min-h-9 text-slate-400 hover:text-white">Collapse all</button>

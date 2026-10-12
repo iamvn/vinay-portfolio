@@ -178,60 +178,48 @@ function GoalCard({ board, update }: { board: Board; update: (fn: (b: Board) => 
   if (!goal || editing) {
     return (
       <Card title={editing === 'new' ? 'Set your next goal' : goal ? 'Edit your goal' : 'Set your goal'} collapsible={false}>
-        {!goal && <p className="mb-4 text-sm text-slate-400">What are you working towards? Name it, pick how long you&apos;ll prepare, then break it into focus areas and tasks below.</p>}
+        {!goal && <p className="mb-4 text-sm text-slate-400">What are you working towards? Name it and pick how long you&apos;ll prepare. You can add tasks after that.</p>}
         {editing === 'new' && <p className="mb-4 text-sm text-slate-400">Your focus areas, tasks and vision boards stay. Clear finished tasks from the board if you want a fresh start.</p>}
         <GoalForm key={editing ?? 'none'} goal={editing === 'edit' ? goal : null}
           onSave={(g) => { update((b) => ({ ...b, goal: g })); setEditing(null); }}
           onCancel={goal ? () => setEditing(null) : undefined} />
+        {editing === 'edit' && (
+          <button type="button" onClick={() => setEditing('new')} className="mt-3 min-h-9 text-xs font-bold text-slate-400 underline hover:text-white">Start a new goal instead</button>
+        )}
       </Card>
     );
   }
   const t = timeline(goal);
   const tasks = board.tasks.filter((x) => !x.daily);
   const done = tasks.filter((x) => x.status === 'done').length;
-  const ticks = goal.months <= 12 ? Array.from({ length: goal.months - 1 }, (_, i) => ((i + 1) / goal.months) * 100) : [];
+  const stats: [string, string, string][] = [
+    [String(Math.abs(t.daysLeft)), t.daysLeft >= 0 ? 'days left' : 'days over', t.daysLeft < 0 || t.daysLeft <= 14 ? 'text-amber-200' : 'text-white'],
+    [`${pct(done, tasks.length)}%`, 'tasks done', 'text-lime-300'],
+    [String(streak(board)), 'day streak', 'text-cyan-200'],
+  ];
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-lime-300/20 bg-gradient-to-br from-lime-300/[.07] via-slate-950/80 to-cyan-300/[.06] p-4 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section className="rounded-2xl border border-lime-300/20 bg-gradient-to-br from-lime-300/[.07] via-slate-950/80 to-cyan-300/[.06] p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-mono text-[10px] uppercase tracking-[.3em] text-lime-300">Current goal</p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight text-white sm:text-3xl">{goal.title}</h2>
-          {goal.target && <p className="mt-1 text-sm font-bold text-cyan-200">{goal.target}</p>}
-          {goal.why && <p className="mt-2 max-w-2xl text-sm text-slate-300">“{goal.why}”</p>}
+          <p className="font-mono text-[10px] uppercase tracking-[.3em] text-lime-300">Your goal</p>
+          <h2 className="mt-1 text-xl font-black tracking-tight text-white sm:text-2xl">{goal.title}</h2>
+          {(goal.target || goal.why) && <p className="mt-0.5 line-clamp-2 text-sm text-slate-400">{[goal.target, goal.why && `“${goal.why}”`].filter(Boolean).join(' · ')}</p>}
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setEditing('edit')}>Edit</Button>
-          <Button onClick={() => setEditing('new')}>New goal</Button>
-        </div>
+        <Button onClick={() => setEditing('edit')}>Edit</Button>
       </div>
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{t.daysLeft >= 0 ? 'Days left' : 'Past the end by'}</p>
-          <p className={`text-3xl font-black ${t.daysLeft < 0 ? 'text-amber-300' : t.daysLeft <= 14 ? 'text-amber-200' : 'text-white'}`}>{Math.abs(t.daysLeft)}</p>
-          <p className="text-xs text-slate-500">of {t.totalDays} · ends {fmtDay(t.end)}</p>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tasks done</p>
-          <p className="text-3xl font-black text-lime-300">{pct(done, tasks.length)}%</p>
-          <p className="text-xs text-slate-500">{done} of {tasks.length} on the board</p>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Daily streak</p>
-          <p className="text-3xl font-black text-cyan-200">{streak(board)}<span className="ml-1 text-base text-slate-400">days</span></p>
-          <p className="text-xs text-slate-500">every daily task done</p>
-        </div>
-      </div>
-      <div className="mt-5">
-        <div className="mb-1.5 flex justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400">
-          <span>{fmtDay(goal.start)}</span><span className="hidden sm:inline">Timeline · {goal.months} month{goal.months === 1 ? '' : 's'} · {t.percent}% gone</span><span>{fmtDay(t.end)}</span>
-        </div>
-        <div className="relative">
-          <Bar value={t.percent} tone="bg-gradient-to-r from-cyan-300 to-lime-300" label="Time gone" />
-          {ticks.map((left) => <span key={left} aria-hidden="true" className="absolute top-0 h-2 w-px bg-black/60" style={{ left: `${left}%` }} />)}
-        </div>
-        <p className="mt-1.5 text-[11px] text-slate-500 sm:hidden">{goal.months} month{goal.months === 1 ? '' : 's'} · {t.percent}% of the time gone</p>
+      <dl className="mt-4 grid grid-cols-3 gap-2">
+        {stats.map(([value, label, tone]) => (
+          <div key={label} className="rounded-xl bg-black/30 px-2 py-2.5 text-center">
+            <dd className={`text-2xl font-black leading-none sm:text-3xl ${tone}`}>{value}</dd>
+            <dt className="mt-1 text-[11px] text-slate-400">{label}</dt>
+          </div>
+        ))}
+      </dl>
+      <div className="mt-4">
+        <Bar value={t.percent} tone="bg-gradient-to-r from-cyan-300 to-lime-300" label="Time gone" />
+        <p className="mt-1.5 text-xs text-slate-500">{t.percent}% of your {goal.months}-month plan gone · ends {fmtDay(t.end)}</p>
         {t.percent > pct(done, tasks.length) + 15 && tasks.length > 0 && (
-          <p className="mt-2 text-xs text-amber-200">Time is running ahead of your tasks. Pick one task to finish today.</p>
+          <p className="mt-1 text-xs text-amber-200">Time is running ahead of your tasks. Finish one today.</p>
         )}
       </div>
     </section>
@@ -252,7 +240,7 @@ function TodayCard({ board, update, openTask }: { board: Board; update: (fn: (b:
   // The last 7 days, for a small habit strip.
   const week = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); return localDay(d); });
   return (
-    <Card title={`Today · ${daily.length ? `${doneCount}/${daily.length} done` : 'daily tasks'}`}>
+    <Card collapsible={false} title={`Today${daily.length ? ` · ${doneCount}/${daily.length} done` : ''}`}>
       {daily.length ? (
         <ul className="mb-3 divide-y divide-white/5">
           {daily.map((t) => (
@@ -260,15 +248,15 @@ function TodayCard({ board, update, openTask }: { board: Board; update: (fn: (b:
               <Check checked={ticked.has(t.id)} onChange={(v) => tick(t.id, v)} label={`Done today: ${t.title}`}>
                 <span className={`text-sm ${ticked.has(t.id) ? 'text-slate-500 line-through' : 'text-slate-100'}`}>{t.title}</span>
               </Check>
-              <span className="ml-auto flex shrink-0 gap-1" aria-label="Last 7 days">
+              <span className="ml-auto hidden shrink-0 gap-1 sm:flex" aria-label="Last 7 days">
                 {week.map((day) => <i key={day} title={fmtDay(day)} className={`size-2 rounded-full ${(board.daily[day] ?? []).includes(t.id) ? 'bg-lime-300' : 'bg-white/10'}`} />)}
               </span>
-              <button type="button" onClick={() => openTask(t.id)} className="min-h-11 px-2 text-xs font-bold text-slate-400 hover:text-white sm:min-h-9">Edit</button>
+              <button type="button" onClick={() => openTask(t.id)} className="ml-auto min-h-11 px-2 text-xs font-bold text-slate-400 hover:text-white sm:ml-0 sm:min-h-9">Edit</button>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mb-3 text-sm text-slate-400">Small things you&apos;ll do every day, like “Solve 2 LeetCode problems” or “Read one system design article”.</p>
+        <p className="mb-3 text-sm text-slate-400">Add small things you&apos;ll do every day, like “Solve 2 LeetCode problems”.</p>
       )}
       <QuickAdd label="Add a daily task" placeholder="Add a daily task…" disabled={board.tasks.length >= 400}
         onAdd={(title) => update((b) => ({ ...b, tasks: [...b.tasks, newTask(title, { daily: true })] }))} />
@@ -290,7 +278,7 @@ function BoardCard({ board, update, openTask, setStatus }: {
   const tracks = new Map(board.tracks.map((t) => [t.id, t]));
   const tasks = board.tasks.filter((t) => !t.daily && (!filter || t.trackId === filter));
   return (
-    <Card title="Board">
+    <Card collapsible={false}>
       {board.tracks.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Show focus area">
           {[{ id: '', title: 'All', color: '#94a3b8' }, ...board.tracks].map((t) => (
@@ -308,7 +296,7 @@ function BoardCard({ board, update, openTask, setStatus }: {
             <div key={status} data-column={status}
               onDragOver={(e) => { e.preventDefault(); setOver(status); }} onDragLeave={() => setOver((o) => (o === status ? null : o))}
               onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) setStatus(id, status); setOver(null); }}
-              className={`flex min-h-32 flex-col gap-2 rounded-xl border bg-black/25 p-2.5 transition ${over === status ? 'border-lime-300/60 bg-lime-300/[.04]' : STATUS_STYLE[status].ring}`}>
+              className={`flex min-h-20 flex-col gap-2 rounded-xl border sm:min-h-32 bg-black/25 p-2.5 transition ${over === status ? 'border-lime-300/60 bg-lime-300/[.04]' : STATUS_STYLE[status].ring}`}>
               <h4 className="flex items-center gap-2 px-1 text-[11px] font-black uppercase tracking-wider text-slate-300">
                 <i className={`size-2 rounded-full ${STATUS_STYLE[status].dot}`} />{STATUS_LABELS[status]}<span className="ml-auto text-slate-500">{list.length}</span>
               </h4>
@@ -319,7 +307,7 @@ function BoardCard({ board, update, openTask, setStatus }: {
                 const next = NEXT[task.status];
                 return (
                   <article key={task.id} draggable onDragStart={(e) => { e.dataTransfer.setData('text/plain', task.id); e.dataTransfer.effectAllowed = 'move'; }}
-                    className="group rounded-lg border border-white/10 bg-slate-900/80 p-2.5 shadow-sm hover:border-white/25">
+                    className="group relative rounded-lg border border-white/10 bg-slate-900/80 p-2.5 pr-9 shadow-sm hover:border-white/25">
                     <button type="button" onClick={() => openTask(task.id)} className="block w-full text-left">
                       {track && <span className="mb-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: track.color }}><i className="size-1.5 rounded-full" style={{ background: track.color }} />{track.title}</span>}
                       <span className={`block text-sm font-bold leading-snug ${task.status === 'done' ? 'text-slate-400 line-through decoration-slate-600' : 'text-white'}`}>{task.title}</span>
@@ -333,9 +321,8 @@ function BoardCard({ board, update, openTask, setStatus }: {
                     </button>
                     {next && (
                       <button type="button" onClick={() => setStatus(task.id, next)}
-                        className="mt-2 inline-flex min-h-9 items-center text-[11px] font-black uppercase tracking-wide text-slate-500 hover:text-lime-200">
-                        Move to {STATUS_LABELS[next]} →
-                      </button>
+                        aria-label={`Move to ${STATUS_LABELS[next]}`} title={`Move to ${STATUS_LABELS[next]}`}
+                        className="absolute right-1 top-1 grid size-9 place-items-center rounded-md text-slate-500 hover:bg-white/5 hover:text-lime-200">→</button>
                     )}
                   </article>
                 );
@@ -378,25 +365,14 @@ function TaskDialog({ board, id, onClose, setTask, setStatus, remove }: {
           <input className={`${inputClass} !text-lg font-black`} aria-label="Task title" maxLength={160} value={task.title} onChange={(e) => setTask(id, { title: e.target.value })} />
           <Button onClick={onClose} label="Close">✕</Button>
         </div>
-        <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="Status">
+        <div className={`mb-4 gap-1.5 ${task.daily ? 'flex' : 'grid grid-cols-2 sm:grid-cols-4'}`} role="group" aria-label="Status">
           {task.daily ? <span className="rounded-full bg-cyan-300/10 px-3 py-1.5 text-xs font-bold text-cyan-200">Daily task · ticked off under Today</span> : STATUSES.map((s) => (
             <button key={s} type="button" aria-pressed={task.status === s} onClick={() => setStatus(id, s)}
-              className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-xs font-black uppercase tracking-wide sm:min-h-9 ${task.status === s ? 'bg-white text-black' : 'border border-white/15 text-slate-300 hover:border-white/40'}`}>
+              className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-black uppercase tracking-wide sm:min-h-9 ${task.status === s ? 'bg-white text-black' : 'border border-white/15 text-slate-300 hover:border-white/40'}`}>
               <i className={`size-2 rounded-full ${STATUS_STYLE[s].dot}`} />{STATUS_LABELS[s]}
             </button>
           ))}
         </div>
-        <div className="mb-5 grid gap-4 sm:grid-cols-3">
-          <Field label="Focus area">
-            <select className={inputClass} value={task.trackId} onChange={(e) => setTask(id, { trackId: e.target.value })}>
-              <option value="">None</option>
-              {board.tracks.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
-            </select>
-          </Field>
-          <Field label="Due date"><input type="date" className={inputClass} value={task.due} onChange={(e) => setTask(id, { due: e.target.value })} /></Field>
-          <Field label="Repeat" group><Check checked={task.daily} onChange={(v) => setTask(id, { daily: v })} label="Every day"><span className="text-sm text-slate-200">Every day</span></Check></Field>
-        </div>
-
         <section className="mb-5">
           <div className="mb-2 flex items-center justify-between">
             <h4 className="text-[11px] font-black uppercase tracking-wider text-cyan-300">Steps to complete</h4>
@@ -418,14 +394,27 @@ function TaskDialog({ board, id, onClose, setTask, setStatus, remove }: {
             onAdd={(text) => setSteps([...steps, { id: newId(), text, done: false }])} />
         </section>
 
-        <section className="mb-5">
-          <h4 className="mb-2 text-[11px] font-black uppercase tracking-wider text-cyan-300">Notes</h4>
-          <textarea className={inputClass} rows={5} maxLength={6000} placeholder="What you learnt, what to revise, questions to ask…" value={task.notes} onChange={(e) => setTask(id, { notes: e.target.value })} />
-        </section>
-        <section className="mb-6">
-          <h4 className="mb-2 text-[11px] font-black uppercase tracking-wider text-cyan-300">Links</h4>
-          <LinksEditor links={task.links} max={30} labelHint="Article, video, problem…" onChange={(links) => setTask(id, { links })} />
-        </section>
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <Field label="Focus area">
+            <select className={inputClass} value={task.trackId} onChange={(e) => setTask(id, { trackId: e.target.value })}>
+              <option value="">None</option>
+              {board.tracks.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+            </select>
+          </Field>
+          <Field label="Due date"><input type="date" className={inputClass} value={task.due} onChange={(e) => setTask(id, { due: e.target.value })} /></Field>
+          <Field label="Repeat" group><Check checked={task.daily} onChange={(v) => setTask(id, { daily: v })} label="Every day"><span className="text-sm text-slate-200">Every day</span></Check></Field>
+        </div>
+
+        <details className="group mb-6 rounded-xl border border-white/10" open={Boolean(task.notes || task.links.length) || undefined}>
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-[11px] font-black uppercase tracking-wider text-cyan-300 [&::-webkit-details-marker]:hidden">
+            <span aria-hidden="true" className="text-slate-500 transition group-open:rotate-90">▸</span>
+            Notes &amp; links{(task.notes || task.links.length > 0) && <span className="font-normal normal-case tracking-normal text-slate-500">· {[task.notes && 'notes', task.links.length && `${task.links.length} link${task.links.length === 1 ? '' : 's'}`].filter(Boolean).join(', ')}</span>}
+          </summary>
+          <div className="space-y-4 border-t border-white/10 p-3">
+            <textarea className={inputClass} aria-label="Notes" rows={4} maxLength={6000} placeholder="What you learnt, what to revise, questions to ask…" value={task.notes} onChange={(e) => setTask(id, { notes: e.target.value })} />
+            <LinksEditor links={task.links} max={30} labelHint="Article, video, problem…" onChange={(links) => setTask(id, { links })} />
+          </div>
+        </details>
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-4">
           <span className="text-xs text-slate-500">{task.createdAt && `Added ${new Date(task.createdAt).toLocaleDateString()}`}{task.doneAt && ` · Done ${new Date(task.doneAt).toLocaleDateString()}`}</span>
           <div className="flex gap-2">
@@ -449,8 +438,8 @@ function FocusAreas({ board, update, openTask }: { board: Board; update: (fn: (b
   };
   const ideas = AREA_IDEAS.filter((idea) => !board.tracks.some((t) => t.title.toLowerCase() === idea.toLowerCase()));
   return (
-    <Card title="Focus areas">
-      <p className="mb-3 text-sm text-slate-400">What your goal needs: DSA, system design… Keep notes and links for each one, like the DSA sheet you follow.</p>
+    <Card collapsible={false}>
+      <p className="mb-3 text-sm text-slate-400">The big topics your goal needs. Open one to keep its notes and links, like the DSA sheet you follow.</p>
       <div className="mb-3 space-y-2">
         {board.tracks.map((track) => {
           const tasks = board.tasks.filter((t) => t.trackId === track.id && !t.daily);
@@ -518,11 +507,15 @@ function FocusAreas({ board, update, openTask }: { board: Board; update: (fn: (b
           ))}
         </div>
       )}
-      <div className="mt-6 border-t border-white/10 pt-4">
-        <h4 className="mb-1 text-[11px] font-black uppercase tracking-wider text-cyan-300">Coding profiles</h4>
-        <p className="mb-3 text-xs text-slate-500">Your LeetCode, GeeksforGeeks and other profiles, one tap away.</p>
-        <LinksEditor links={board.profiles} max={20} presets={PROFILE_PRESETS} labelHint="LeetCode" onChange={(profiles) => update((b) => ({ ...b, profiles }))} />
-      </div>
+    </Card>
+  );
+}
+
+function Profiles({ board, update }: { board: Board; update: (fn: (b: Board) => Board) => void }) {
+  return (
+    <Card title="Coding profiles" collapsible={false}>
+      <p className="-mt-2 mb-3 text-xs text-slate-500">Your LeetCode, GeeksforGeeks and other profiles, one tap away.</p>
+      <LinksEditor links={board.profiles} max={20} presets={PROFILE_PRESETS} labelHint="LeetCode" onChange={(profiles) => update((b) => ({ ...b, profiles }))} />
     </Card>
   );
 }
@@ -581,7 +574,7 @@ function VisionBoard({ board, update, notify }: { board: Board; update: (fn: (b:
   }
 
   return (
-    <Card title="Vision board">
+    <Card collapsible={false}>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <span className="text-sm text-slate-400">Year</span>
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Year">
@@ -652,7 +645,41 @@ function VisionBoard({ board, update, notify }: { board: Board; update: (fn: (b:
   );
 }
 
+// ---------- Up next (on Today) ----------
+function UpNext({ board, openTask, showBoard }: { board: Board; openTask: (id: string) => void; showBoard: () => void }) {
+  const tasks = board.tasks.filter((t) => !t.daily);
+  const doing = tasks.filter((t) => t.status === 'progress');
+  const list = (doing.length ? doing : tasks.filter((t) => t.status === 'open')).slice(0, 3);
+  const tracks = new Map(board.tracks.map((t) => [t.id, t]));
+  return (
+    <Card title={doing.length ? 'Working on' : 'Up next'} collapsible={false} actions={<Button onClick={showBoard}>Open board →</Button>}>
+      {list.length ? (
+        <ul className="space-y-1.5">
+          {list.map((task) => {
+            const done = task.steps.filter((s) => s.done).length;
+            const track = tracks.get(task.trackId);
+            return (
+              <li key={task.id}>
+                <button type="button" onClick={() => openTask(task.id)} className="flex min-h-12 w-full items-center gap-3 rounded-lg bg-black/25 px-3 text-left hover:bg-white/5">
+                  <i className="size-2 shrink-0 rounded-full" style={{ background: track?.color ?? '#94a3b8' }} />
+                  <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">{task.title}</span>
+                  {task.steps.length > 0 && <span className="shrink-0 text-xs text-slate-400">{done}/{task.steps.length} steps</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="text-sm text-slate-400">Nothing on your board yet. Add your first task on the Board, e.g. “Finish arrays from my DSA sheet”.</p>
+      )}
+    </Card>
+  );
+}
+
 // ---------- The tab ----------
+const VIEWS = [['today', 'Today', 'Today'], ['board', 'Board', 'Board'], ['areas', 'Focus areas', 'Areas'], ['vision', 'Vision board', 'Vision']] as const;
+type View = (typeof VIEWS)[number][0];
+const VIEW_KEY = 'progress.view';
 type SaveState = 'saved' | 'pending' | 'saving' | 'error';
 
 export function ProgressTab({ notify }: { notify: Notify }) {
@@ -719,6 +746,16 @@ export function ProgressTab({ notify }: { notify: Notify }) {
   const remove = useCallback((id: string) => update((b) => ({ ...b, tasks: b.tasks.filter((t) => t.id !== id) })), [update]);
   const close = useCallback(() => setOpenId(null), []);
 
+  const [view, setView] = useState<View>(() => {
+    try { const saved = localStorage.getItem(VIEW_KEY); return VIEWS.some(([id]) => id === saved) ? (saved as View) : 'today'; } catch { return 'today'; }
+  });
+  const pickView = (next: View) => {
+    setView(next);
+    try { localStorage.setItem(VIEW_KEY, next); } catch { /* private mode */ }
+    window.scrollTo({ top: 0 });
+  };
+  const today = localDay();
+  const dailyLeft = board ? board.tasks.filter((t) => t.daily && !(board.daily[today] ?? []).includes(t.id)).length : 0;
   const doneCount = useMemo(() => board?.tasks.filter((t) => t.status === 'done' && !t.daily).length ?? 0, [board]);
 
   if (loadError) return <p className="rounded-xl border border-red-400/30 bg-red-950/40 px-4 py-3 text-sm text-red-100">{loadError}</p>;
@@ -729,27 +766,51 @@ export function ProgressTab({ notify }: { notify: Notify }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-xl font-black tracking-tight">Progress tracker</h2>
-          <p className="text-sm text-slate-400">Your plan for the next switch. Only you can see it.</p>
+          <p className="text-sm text-slate-400">Only you can see this.</p>
         </div>
         <span role="status" className={`inline-flex min-h-9 items-center gap-2 rounded-full border px-3 text-xs font-bold ${save === 'error' ? 'border-red-400/40 text-red-200' : 'border-white/10 text-slate-400'}`}>
-          {save === 'saved' && <><i className="size-1.5 rounded-full bg-lime-300" />All changes saved</>}
-          {save === 'pending' && <><i className="size-1.5 rounded-full bg-amber-300" />Saving soon…</>}
+          {save === 'saved' && <><i className="size-1.5 rounded-full bg-lime-300" />Saved</>}
+          {save === 'pending' && <><i className="size-1.5 rounded-full bg-amber-300" />Saving…</>}
           {save === 'saving' && <><i className="size-1.5 animate-pulse rounded-full bg-cyan-300" />Saving…</>}
           {save === 'error' && <>Not saved · <button type="button" className="underline" onClick={() => void flush()}>Retry</button></>}
         </span>
       </div>
-      <GoalCard board={board} update={update} />
-      <TodayCard board={board} update={update} openTask={setOpenId} />
-      <BoardCard board={board} update={update} openTask={setOpenId} setStatus={setStatus} />
-      {doneCount > 0 && (
-        <div className="flex justify-end">
-          <ConfirmButton confirmLabel={`Click again to clear ${doneCount}`} onConfirm={() => update((b) => ({ ...b, tasks: b.tasks.filter((t) => t.daily || t.status !== 'done') }))}>
-            Clear done tasks ({doneCount})
-          </ConfirmButton>
-        </div>
+      <nav aria-label="Progress tracker views" className="grid grid-cols-4 gap-1 rounded-xl border border-white/10 bg-black/30 p-1">
+        {VIEWS.map(([id, label, short]) => (
+          <button key={id} type="button" aria-pressed={view === id} onClick={() => pickView(id)}
+            className={`relative min-h-11 rounded-lg px-1 text-xs font-black transition sm:min-h-10 sm:text-sm ${view === id ? 'bg-lime-300 text-black' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}>
+            <span className="sm:hidden">{short}</span><span className="hidden sm:inline">{label}</span>
+            {id === 'today' && dailyLeft > 0 && view !== 'today' && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-amber-300" aria-label={`${dailyLeft} daily tasks left`} />}
+          </button>
+        ))}
+      </nav>
+
+      {view === 'today' && (
+        <>
+          <GoalCard board={board} update={update} />
+          {board.goal && <TodayCard board={board} update={update} openTask={setOpenId} />}
+          {board.goal && <UpNext board={board} openTask={setOpenId} showBoard={() => pickView('board')} />}
+        </>
       )}
-      <FocusAreas board={board} update={update} openTask={setOpenId} />
-      <VisionBoard board={board} update={update} notify={notify} />
+      {view === 'board' && (
+        <>
+          <BoardCard board={board} update={update} openTask={setOpenId} setStatus={setStatus} />
+          {doneCount > 0 && (
+            <div className="flex justify-end">
+              <ConfirmButton confirmLabel={`Click again to clear ${doneCount}`} onConfirm={() => update((b) => ({ ...b, tasks: b.tasks.filter((t) => t.daily || t.status !== 'done') }))}>
+                Clear done tasks ({doneCount})
+              </ConfirmButton>
+            </div>
+          )}
+        </>
+      )}
+      {view === 'areas' && (
+        <>
+          <FocusAreas board={board} update={update} openTask={setOpenId} />
+          <Profiles board={board} update={update} />
+        </>
+      )}
+      {view === 'vision' && <VisionBoard board={board} update={update} notify={notify} />}
       {openId && <TaskDialog board={board} id={openId} onClose={close} setTask={setTask} setStatus={setStatus} remove={remove} />}
     </div>
   );
