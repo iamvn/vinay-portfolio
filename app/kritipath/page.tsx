@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { BrandMark, BrandName } from '@/components/brand-mark';
+import { ProductTour } from '@/components/kritipath/product-tour';
 import { RequestForm } from '@/components/kritipath/request-form';
 import { Icon } from '@/components/icons';
 import { BRAND, brandUrl } from '@/lib/brand';
@@ -46,6 +48,28 @@ const AUDIENCE = [
   { title: 'Teams & institutions', text: 'Bootcamps, colleges and career coaches can run many sites, each with its own people and permissions.' },
 ];
 
+const STATS: [string, string][] = [
+  ['8 tools', 'portfolio, resume, AI, jobs and more'],
+  ['1 login', 'for your whole career'],
+  ['Any AI', 'Claude, OpenAI, Gemini and others'],
+  ['Your domain', 'with a private database per site'],
+];
+
+const dots = (colors: string[]) => (
+  <span style={{ display: 'flex', gap: 4, marginBottom: 4 }}>{colors.map((c) => <i key={c} style={{ width: 7, height: 7, borderRadius: 99, background: c }} />)}</span>
+);
+const TEMPLATES: { name: string; bg: string; ink: string; ai?: boolean; serif?: boolean; top?: ReactNode }[] = [
+  { name: 'Glass Studio', bg: 'linear-gradient(135deg,#fde2ec,#e9e3ff 55%,#dbeafe)', ink: '#1d1d1f', top: dots(['#ff5f57', '#febc2e', '#28c840']) },
+  { name: 'Arcade', bg: 'linear-gradient(160deg,#04070b,#0b1a12)', ink: '#bef264' },
+  { name: 'Minimal', bg: '#f6f1e7', ink: '#3b3127', serif: true },
+  { name: 'Studio', bg: '#ffffff', ink: '#111827' },
+  { name: 'Cricket', bg: 'linear-gradient(160deg,#0f5132,#198754)', ink: '#ffffff', ai: true },
+  { name: 'Streaming', bg: 'linear-gradient(160deg,#111,#3a0b0f)', ink: '#ffffff', ai: true },
+  { name: 'Newspaper', bg: '#f4ecd8', ink: '#2b2b2b', ai: true, serif: true },
+  { name: 'Console', bg: 'linear-gradient(160deg,#050816,#0b2a6b)', ink: '#e0e7ff', ai: true },
+  { name: 'Classic', bg: 'linear-gradient(160deg,#030609,#0c1a24)', ink: '#67e8f9' },
+];
+
 const LINKEDIN = /^https:\/\/([a-z]{2,3}\.)?linkedin\.com\//i;
 
 /** The Kritipath company page: what the platform does, who made it, and how to get a site. Main site only. */
@@ -75,7 +99,7 @@ export default async function KritipathPage() {
           <div className="cl-nav-bar cl-glass">
             <a href="#top" className="cl-brand" aria-label={`${BRAND.name} home`}><BrandMark size={26} /><BrandName /></a>
             <nav className="cl-nav-links" aria-label="Page sections">
-              <a href="#features">Features</a><a href="#how">How it works</a><a href="#founder">Founder</a><a href="/login">Sign in</a>
+              <a href="#tour">Tour</a><a href="#features">Features</a><a href="#templates">Templates</a><a href="#founder">Founder</a><a href="/login">Sign in</a>
             </nav>
             <a href="#get-started" className="cl-btn cl-btn-dark">Get started</a>
           </div>
@@ -128,6 +152,17 @@ export default async function KritipathPage() {
               </div>
             </div>
           </div>
+          <div className="cl-stats">
+            {STATS.map(([value, label]) => <div key={label} className="cl-stat cl-glass"><b>{value}</b><span>{label}</span></div>)}
+          </div>
+        </section>
+
+        <section id="tour" className="cl-section cl-wrap cl-center">
+          <p className="cl-kicker">See it in action</p>
+          <h2 className="cl-h2">One login. Your whole career.</h2>
+          <p className="cl-lead">Take the tour: the designer, AI templates, the resume builder, your AI assistant, the job tracker and the control room.</p>
+          <ProductTour />
+          <p className="cl-tour-note">Screens are illustrations of the product.</p>
         </section>
 
         <section id="features" className="cl-section cl-wrap cl-center">
@@ -144,6 +179,30 @@ export default async function KritipathPage() {
                 <p>{f.text}</p>
               </article>
             ))}
+          </div>
+        </section>
+
+        <section id="templates" className="cl-section cl-center">
+          <div className="cl-wrap">
+            <p className="cl-kicker">Templates</p>
+            <h2 className="cl-h2">Start beautiful. Make it yours.</h2>
+            <p className="cl-lead">Ready-made looks from calm to bold, and new ones made by AI from a single sentence. Switch any time; your content comes with you.</p>
+          </div>
+          <div className="cl-marquee">
+            <div className="cl-marquee-track">
+              {[...TEMPLATES, ...TEMPLATES].map((t, i) => (
+                <article key={`${t.name}-${i}`} className="cl-tpl cl-glass" aria-hidden={i >= TEMPLATES.length || undefined}>
+                  <div className="cl-tpl-shot" style={{ background: t.bg, color: t.ink, fontFamily: t.serif ? 'Georgia, serif' : undefined }}>
+                    {t.top}
+                    <i className="cl-t-bar" style={{ width: '36%' }} />
+                    <i className="cl-t-bar cl-t-bar-dark" style={{ width: '82%', height: '.75rem' }} />
+                    <i className="cl-t-bar cl-t-bar-dark" style={{ width: '58%', height: '.75rem' }} />
+                    <span className="cl-tpl-cards"><i /><i /><i /></span>
+                  </div>
+                  <div className="cl-tpl-meta"><b>{t.name}</b><span className={t.ai ? 'ai' : ''}>{t.ai ? 'Made with AI' : 'Built-in'}</span></div>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 
