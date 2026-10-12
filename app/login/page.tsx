@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
+import { BRAND } from '@/lib/brand';
 import { redirect } from 'next/navigation';
 import { LoginForm } from '@/components/auth/login-form';
 import { currentUser } from '@/lib/auth/server';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Log in', robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: `Sign in | ${BRAND.name}`, robots: { index: false, follow: false } };
 
 /** Only lets a same-site path through, so ?next= can't redirect to another website. */
 const safeNext = (next: string | undefined) => (next && next.startsWith('/') && !next.startsWith('//') ? next : '/admin');

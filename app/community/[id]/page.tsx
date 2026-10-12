@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PlatformBadge } from '@/components/platform-badge';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BoardHeader, Byline, Facts, TagLinks } from '@/components/community/parts';
@@ -106,6 +107,7 @@ export default async function CommunityPostPage({ params }: Props) {
       <p className="border-t border-white/10 pt-6 text-xs leading-6 text-slate-500">
         A personal account shared by a member of this platform. <Link href="/community" className="font-bold text-lime-300 hover:underline">Read more experiences</Link>
       </p>
+      <PlatformBadge source="community" />
     </main>
   );
 }

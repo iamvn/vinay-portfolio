@@ -1,4 +1,13 @@
-# Vinay Bharti — Gaming-Inspired Engineering Portfolio
+# Careerloom — the complete career suite
+
+Careerloom (founded and created by Vinay Bharti) gives every professional a portfolio website they design themselves,
+ATS-ready resumes, an AI assistant that answers recruiters, a job application tracker and a community of real interview
+experiences, each site on its own address with its own database. The company page is at `/careerloom` on the main site
+(`app/careerloom/page.tsx`); its "Request access" form lands in the owner's Admin → Support inbox as a "New customer".
+Every public page of every site ends with a fixed "Built on Careerloom" credit (`components/platform-badge.tsx`) that
+links to the company page; no setting, design or template can remove it. Brand name, tagline and founder live in `lib/brand.ts`.
+
+## The main site: Vinay Bharti — Gaming-Inspired Engineering Portfolio
 
 A performance-first portfolio built with Next.js App Router, Server Components, Client Components and Tailwind CSS.
 

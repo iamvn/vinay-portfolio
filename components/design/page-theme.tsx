@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { PlatformBadge } from '../platform-badge';
 import { getPublished, type StoredDesign } from '@/lib/design/store';
 import { recolorsClassic, themeVars, type RootProps } from '@/lib/design/theme';
 
@@ -10,7 +11,7 @@ import { recolorsClassic, themeVars, type RootProps } from '@/lib/design/theme';
 export async function PageTheme({ children, design: given }: { children: ReactNode; design?: StoredDesign | null }) {
   // Pass the design in when the page already loads it (in parallel with its other data) to save a round trip.
   const design = given === undefined ? await getPublished() : given;
-  if (!design) return <>{children}</>;
+  if (!design) return <>{children}<PlatformBadge /></>;
   const props = ((design.data as { root?: { props?: Partial<RootProps> } }).root?.props ?? {}) as Partial<RootProps>;
   const classes = [
     'd-root d-page',
@@ -21,6 +22,7 @@ export async function PageTheme({ children, design: given }: { children: ReactNo
   return (
     <div className={classes} style={themeVars(props)} dir={props.direction === 'rtl' ? 'rtl' : 'ltr'}>
       <div className="d-classic">{children}</div>
+      <PlatformBadge />
     </div>
   );
 }

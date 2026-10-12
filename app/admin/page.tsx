@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { BRAND } from '@/lib/brand';
 import { redirect } from 'next/navigation';
 import { AdminApp } from '@/components/admin/admin-app';
 import { publicUser } from '@/lib/auth/session';
@@ -12,7 +13,7 @@ import { siteBySlug } from '@/lib/sites/registry';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Portfolio admin',
+  title: `${BRAND.name} admin`,
   robots: { index: false, follow: false },
 };
 

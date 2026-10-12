@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PlatformBadge } from '@/components/platform-badge';
 import Link from 'next/link';
 import { BoardHeader, PostCard } from '@/components/community/parts';
 import { listPublic } from '@/lib/community/store';
@@ -115,6 +116,7 @@ export default async function CommunityPage({ searchParams }: Props) {
       <p className="mt-12 border-t border-white/10 pt-6 text-xs leading-6 text-slate-500">
         Shared by members of this platform and read-only here. Members post from their own admin → Community. Experiences are personal accounts; companies change their process over time.
       </p>
+      <PlatformBadge source="community" />
     </main>
   );
 }

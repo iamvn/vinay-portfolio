@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { BrandMark } from '../brand-mark';
+import { BRAND } from '@/lib/brand';
 import { useState, type FormEvent } from 'react';
 
 export function LoginForm({ next }: { next: string }) {
@@ -38,7 +40,8 @@ export function LoginForm({ next }: { next: string }) {
     <main className="admin-shell game-grid flex min-h-dvh items-center justify-center bg-[#030609] px-4 py-8 text-slate-100">
       <form onSubmit={submit} className="w-full max-w-sm rounded-3xl border border-white/10 bg-slate-950/90 p-7 shadow-2xl">
         <p className="font-mono text-[10px] uppercase tracking-[.3em] text-lime-300">Control room</p>
-        <h1 className="mt-1 text-2xl font-black uppercase tracking-tight">Admin login</h1>
+        <h1 className="mt-1 flex items-center gap-2 text-2xl font-black tracking-tight"><BrandMark size={26} />{BRAND.name}</h1>
+        <p className="mt-1 text-sm text-slate-400">Sign in to your admin.</p>
         <label className="mt-6 block">
           <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-400">Email</span>
           <input className={input} type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" autoComplete="username" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />

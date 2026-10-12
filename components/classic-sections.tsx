@@ -3,6 +3,7 @@
  * design, and Admin → Design offers each one as a block, so the "Classic" template matches the live site.
  */
 import type React from 'react';
+import { PlatformBadge } from './platform-badge';
 import type { PortfolioData } from '@/lib/portfolio';
 import { InteractionLayer } from './interaction-layer';
 import { ProjectCard } from './project-card';
@@ -68,5 +69,10 @@ export function ClassicContact({ data, extra }: { data: Data; extra?: React.Reac
 }
 
 export function ClassicFooter({ data }: { data: Data }) {
-  return <footer className="border-t border-white/10 py-6 pb-20 text-center text-xs text-slate-600 lg:pb-6">{data.copy.footer}</footer>;
+  return (
+    <footer className="border-t border-white/10 pt-6 pb-20 text-center text-xs text-slate-600">
+      {data.copy.footer}
+      <PlatformBadge />
+    </footer>
+  );
 }

@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { BrandMark } from '../brand-mark';
+import { BRAND, brandUrl } from '@/lib/brand';
 import { BackupTab } from './backup-tab';
 import { CopyTab } from './copy-tab';
 import { EXPERIENCE, ListTab, PROJECTS, SKILLS } from './list-tab';
@@ -131,8 +133,8 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5 sm:py-4">
           <div className="min-w-0">
             <p className="hidden font-mono text-[10px] uppercase tracking-[.3em] text-lime-300 sm:block">Control room</p>
-            <h1 className="truncate text-lg font-black uppercase tracking-tight sm:text-xl">
-              <span className="sm:hidden">Admin</span><span className="hidden sm:inline">Portfolio admin</span>
+            <h1 className="flex items-center gap-2 truncate text-lg font-black tracking-tight sm:text-xl">
+              <BrandMark size={22} /><span className="truncate">{BRAND.name}</span>
             </h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -217,6 +219,9 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
             )}
           </div>
         )}
+        <p className="mt-10 border-t border-white/10 pt-4 text-center text-[11px] text-slate-500">
+          <a href={brandUrl('admin')} target="_blank" rel="noopener" className="font-bold text-slate-300 hover:text-white">{BRAND.name}</a> · the complete career suite · Founded and created by {BRAND.founder.name}
+        </p>
       </main>
 
       {/* Messages: top of the screen on phones (clear of the bottom save bars), bottom-right on desktop. Tap to dismiss. */}

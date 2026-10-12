@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { mainClient } from '@/lib/db-client';
 import type { Site } from '@/lib/sites/registry';
-import { SUPPORT_KINDS, SUPPORT_STATUSES, type RequestInput, type SupportKind, type SupportRequest, type SupportStatus } from './types';
+import { STORED_KINDS, SUPPORT_STATUSES, type LeadInput, type RequestInput, type SupportKind, type SupportRequest, type SupportStatus } from './types';
 
 /**
  * Support requests live in the MAIN site's database (table SupportRequest), so the platform owner sees every
@@ -26,7 +26,8 @@ export const MAX_OPEN_PER_SITE = 50;
 type Row = Omit<SupportRequest, 'kind' | 'status'> & { kind: string; status: string };
 const toRequest = (row: Row): SupportRequest => ({
   ...row,
-  kind: ((SUPPORT_KINDS as readonly string[]).includes(row.kind) ? row.kind : 'help') as SupportKind,
+  target: row.kind === 'lead' ? '' : row.target, // a lead's target is only its sender hash
+  kind: ((STORED_KINDS as readonly string[]).includes(row.kind) ? row.kind : 'help') as SupportKind,
   status: ((SUPPORT_STATUSES as readonly string[]).includes(row.status) ? row.status : 'open') as SupportStatus,
 });
 
@@ -51,6 +52,32 @@ export async function createRequest(site: Pick<Site, 'slug' | 'name' | 'isMain'>
     VALUES (${request.id}, ${request.site}, ${request.siteName}, ${request.fromName}, ${request.fromEmail}, ${request.kind}, ${request.target}, ${request.subject},
       ${request.message}, 'open', '', '', ${now}, ${now})`;
   return request;
+}
+
+/** The company page's site id in the inbox (no real site has this slug: slugs can't contain a dot). */
+export const LEAD_SITE = 'careerloom.com';
+/** Leads: per sender a day, and open at once, so a script can't flood the owner's inbox. */
+export const MAX_LEADS_PER_SENDER = 3;
+export const MAX_OPEN_LEADS = 300;
+
+/** A visitor asks for a site of their own (company page). `sender` is a hash of their network address. */
+export async function createLead(input: LeadInput, sender: string) {
+  await ensureTable();
+  const since = new Date(Date.now() - 86_400_000).toISOString();
+  const [mine, open] = await Promise.all([
+    mainClient.$queryRaw<{ n: number | bigint }[]>`SELECT COUNT(*) AS n FROM SupportRequest WHERE site = ${LEAD_SITE} AND (fromEmail = ${input.email} OR target = ${sender}) AND createdAt > ${since}`,
+    mainClient.$queryRaw<{ n: number | bigint }[]>`SELECT COUNT(*) AS n FROM SupportRequest WHERE site = ${LEAD_SITE} AND status IN ('open', 'in-progress')`,
+  ]);
+  if (Number(mine[0]?.n ?? 0) >= MAX_LEADS_PER_SENDER) throw new SupportLimitError('We already have your request. We’ll be in touch soon.');
+  if (Number(open[0]?.n ?? 0) >= MAX_OPEN_LEADS) throw new SupportLimitError('We’re getting a lot of requests right now. Please try again in a few days.');
+  const now = new Date().toISOString();
+  const subject = input.plan === 'team' ? 'Sites for a team or institution' : 'A Careerloom site for me';
+  const message = [input.role && `Role: ${input.role}`, input.message].filter(Boolean).join('\n\n');
+  const id = randomBytes(8).toString('hex');
+  // target keeps the sender hash (for the limit above); the inbox shows it as nothing for leads.
+  await mainClient.$executeRaw`INSERT INTO SupportRequest (id, site, siteName, fromName, fromEmail, kind, target, subject, message, status, reply, repliedAt, createdAt, updatedAt)
+    VALUES (${id}, ${LEAD_SITE}, 'Careerloom website', ${input.name}, ${input.email}, 'lead', ${sender}, ${subject}, ${message}, 'open', '', '', ${now}, ${now})`;
+  return { id };
 }
 
 /** What one person on a site has sent, newest first. */

@@ -4,9 +4,25 @@ import { FEATURE_INFO, SITE_FEATURES, type SiteFeature } from '@/lib/sites/featu
 
 /** Support & requests: what a site's people send to the platform owner. Safe in the browser. */
 
+/** What a site's people can send. */
 export const SUPPORT_KINDS = ['access', 'help', 'feedback'] as const;
-export type SupportKind = (typeof SUPPORT_KINDS)[number];
-export const KIND_LABELS: Record<SupportKind, string> = { access: 'Access request', help: 'Help with a problem', feedback: 'Feedback or idea' };
+/** Plus "lead": someone asking for a site of their own from the Careerloom company page (not signed in). */
+export const STORED_KINDS = [...SUPPORT_KINDS, 'lead'] as const;
+export type SupportKind = (typeof STORED_KINDS)[number];
+export const KIND_LABELS: Record<SupportKind, string> = { access: 'Access request', help: 'Help with a problem', feedback: 'Feedback or idea', lead: 'New customer' };
+
+/** What a visitor sends from the company page ("Request access"). */
+export const LEAD_PLANS = ['personal', 'team'] as const;
+export const leadSchema = z.object({
+  name: z.string().trim().min(2, 'Add your name.').max(80),
+  email: z.string().trim().toLowerCase().email('Add a valid email.').max(160),
+  plan: z.enum(LEAD_PLANS).default('personal'),
+  role: z.string().trim().max(120).default(''),
+  message: z.string().trim().max(1500).default(''),
+  /** Honeypot: people never see this field, bots fill it in. */
+  website: z.string().max(200).default(''),
+}).strict();
+export type LeadInput = z.output<typeof leadSchema>;
 
 export const SUPPORT_STATUSES = ['open', 'in-progress', 'done', 'declined'] as const;
 export type SupportStatus = (typeof SUPPORT_STATUSES)[number];

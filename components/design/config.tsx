@@ -3,6 +3,7 @@
  * Used by both the editor (client) and the live homepage (server), so render functions must stay hook-free.
  */
 import type { ComponentConfig, Config, Slot } from '@puckeditor/core';
+import { PlatformBadge } from '../platform-badge';
 import type { PortfolioData } from '@/lib/portfolio';
 import { DEFAULT_ROOT, FONTS, PALETTE_FIELDS, THEME_PRESETS, readableOn, recolorsClassic, safeHref, safeSrc, themeVars, type RootProps } from '@/lib/design/theme';
 import { AskAssistant } from '../ask-assistant';
@@ -174,6 +175,8 @@ export const designConfig: Config<Components, RootProps> = {
       return (
         <div className={classes} style={themeVars(props)} dir={props.direction === 'rtl' ? 'rtl' : 'ltr'}>
           {children}
+          {/* Fixed platform credit: always last on every designed page (no setting removes it). */}
+          <PlatformBadge />
           {props.showAskAi !== 'no' && assistant && !puck.isEditing && (
             <AskAssistant name={portfolio.profile.name} email={portfolio.profile.socialLinks.email} linkedin={portfolio.profile.socialLinks.linkedin}
               look={props.theme === 'classic' || props.theme === 'arcade' ? 'classic' : pageIsDark(props) ? 'dark' : 'light'} />

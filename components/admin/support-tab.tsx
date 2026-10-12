@@ -24,6 +24,7 @@ const KIND_HINT: Record<SupportKind, string> = {
   access: 'A tab or feature your site doesn’t have yet.',
   help: 'Something isn’t working, or you’re stuck.',
   feedback: 'An idea, a wish, or what you think.',
+  lead: 'Someone asking for a site from the Careerloom page.',
 };
 const Pill = ({ status }: { status: SupportStatus }) => <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${STATUS_TONE[status]}`}>{STATUS_LABELS[status]}</span>;
 
@@ -196,6 +197,7 @@ function InboxItem({ request: r, notify, onChanged }: { request: SupportRequest;
       setBusy(false);
     }
   }
+  const lead = r.kind === 'lead';
   const canGrant = r.kind === 'access' && r.target && r.site !== 'main' && r.status !== 'done';
   return (
     <li className="grid gap-2 py-4">
@@ -209,10 +211,12 @@ function InboxItem({ request: r, notify, onChanged }: { request: SupportRequest;
         {r.target && <> · wants <b className="text-amber-200">{targetLabel(r.target)}</b></>}
       </p>
       {r.message && <p className="whitespace-pre-line text-sm text-slate-300">{r.message}</p>}
-      <textarea className={inputClass} rows={2} maxLength={2000} value={reply} onChange={(e) => setReply(e.target.value)} aria-label={`Reply to ${r.subject}`} placeholder="Reply (they see it in their Support tab)" />
+      {/* New customers have no account yet: answer them by email, then create their site in the Sites tab. */}
+      {!lead && <textarea className={inputClass} rows={2} maxLength={2000} value={reply} onChange={(e) => setReply(e.target.value)} aria-label={`Reply to ${r.subject}`} placeholder="Reply (they see it in their Support tab)" />}
       <div className="flex flex-wrap items-center gap-2">
+        {lead && <a href={`mailto:${r.fromEmail}?subject=${encodeURIComponent('Your Careerloom site')}`} className="inline-flex min-h-11 items-center rounded-lg bg-lime-300 px-3.5 text-xs font-black uppercase tracking-wide text-black sm:min-h-0 sm:py-2">Email {r.fromName.split(' ')[0] || 'them'}</a>}
         {canGrant && <Button tone="primary" disabled={busy} onClick={() => patch({ grant: true, ...(reply.trim() !== r.reply ? { reply: reply.trim() } : {}) }, `Turned on ${targetLabel(r.target)} for ${r.siteName}.`)}>Turn it on for {r.siteName}</Button>}
-        <Button disabled={busy || reply.trim() === r.reply} onClick={() => patch({ reply: reply.trim(), ...(r.status === 'open' ? { status: 'in-progress' } : {}) }, 'Reply saved.')}>Send reply</Button>
+        {!lead && <Button disabled={busy || reply.trim() === r.reply} onClick={() => patch({ reply: reply.trim(), ...(r.status === 'open' ? { status: 'in-progress' } : {}) }, 'Reply saved.')}>Send reply</Button>}
         <select aria-label="Status" className={`${inputClass} w-auto! min-w-36`} value={r.status} disabled={busy} onChange={(e) => patch({ status: e.target.value }, `Marked ${STATUS_LABELS[e.target.value as SupportStatus].toLowerCase()}.`)}>
           {SUPPORT_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
         </select>
