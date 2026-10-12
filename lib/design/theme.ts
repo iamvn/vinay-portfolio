@@ -39,6 +39,9 @@ export const FONTS = {
   mono: { label: 'Monospace', stack: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace' },
   rounded: { label: 'Rounded', stack: 'ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif' },
   condensed: { label: 'Condensed', stack: '"Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif' },
+  // Handwriting (self-hosted in public/fonts, loaded only when a page uses them; see app/design.css).
+  marker: { label: 'Marker (handwritten, bold)', stack: '"Permanent Marker", "Marker Felt", "Comic Sans MS", cursive' },
+  hand: { label: 'Handwriting', stack: 'Caveat, "Bradley Hand", "Segoe Print", cursive' },
 } as const;
 export type FontKey = keyof typeof FONTS;
 

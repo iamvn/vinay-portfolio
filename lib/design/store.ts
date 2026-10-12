@@ -31,6 +31,7 @@ export const BLOCK_TYPES = [
   'NavBar', 'Hero', 'HiringSnapshot', 'Stats', 'Skills', 'Projects', 'Experience', 'Contact', 'SocialLinks', 'ResumeButton', 'Footer',
   'Section', 'Flex', 'Grid', 'Columns', 'Card', 'Spacer', 'Divider', 'Heading', 'Text', 'Button', 'Image', 'List', 'Tags', 'Badge', 'ContactButtons',
   'Box', 'Link', 'Icon', 'Video', 'Pdf', 'Quote', 'Faq', 'Form', 'InputField', 'TextAreaField', 'SelectField', 'ChoicesField',
+  'Terminal', 'StickyNotes', 'QuoteRotator',
   'QuickBanner', 'QuickTextImage', 'QuickFeatures', 'QuickStats', 'QuickContact', 'QuickFaq', 'QuickTestimonials',
   ...PROJECT_ONLY,
 ] as const;

@@ -90,6 +90,10 @@ export type BoxProps = {
     textTone: string; textColor: string; textAlign: 'inherit' | 'left' | 'center' | 'right';
     borderWidth: number; borderStyle: 'solid' | 'dashed' | 'dotted'; borderTone: 'line' | 'text' | 'accent' | 'custom'; borderColor: string;
     radius: number; shadow: 'none' | 'sm' | 'md' | 'lg'; opacity: number;
+    /** Real-world surfaces (app/design.css .d-tex-*), a torn-paper edge or a strip of tape, and a slight tilt. */
+    texture?: 'none' | 'paper' | 'whiteboard' | 'cork' | 'wood' | 'navy';
+    edge?: 'none' | 'torn-bottom' | 'torn-top' | 'tape';
+    tilt?: number;
   };
   item: { grow: boolean; shrink: boolean; basis: string; alignSelf: 'auto' | 'stretch' | 'flex-start' | 'center' | 'flex-end'; order: number };
   advanced: { tag: (typeof TAGS)[number]; anchor: string; visibility: 'all' | 'desktop' | 'mobile'; overflow: 'visible' | 'hidden' | 'auto'; sticky: boolean; fitSections: boolean };
@@ -102,7 +106,7 @@ const BOX_DEFAULTS: Omit<BoxProps, 'content'> = {
   look: {
     fill: 'none', fillColor: '', gradientVia: '', gradientTo: '', gradientAngle: 135, blur: 0, glass: 'none', image: '', imageFit: 'cover', overlay: 'none',
     textTone: 'inherit', textColor: '', textAlign: 'inherit', borderWidth: 0, borderStyle: 'solid', borderTone: 'line', borderColor: '',
-    radius: 0, shadow: 'none', opacity: 100,
+    radius: 0, shadow: 'none', opacity: 100, texture: 'none', edge: 'none', tilt: 0,
   },
   item: { grow: false, shrink: true, basis: '', alignSelf: 'auto', order: 0 },
   advanced: { tag: 'div', anchor: '', visibility: 'all', overflow: 'visible', sticky: false, fitSections: false },
@@ -169,6 +173,9 @@ const boxFields: Fields<Omit<BoxProps, 'content'> & { content: Slot }> = {
       radius: number('Corner radius (px)', 0, 200),
       shadow: radio('Shadow', opt(['none', 'None'], ['sm', 'S'], ['md', 'M'], ['lg', 'L'])),
       opacity: number('Opacity (%)', 0, 100),
+      texture: select('Surface', opt(['none', 'None'], ['paper', 'Paper'], ['whiteboard', 'Whiteboard'], ['cork', 'Cork board'], ['wood', 'Dark wood'], ['navy', 'Navy card'])),
+      edge: select('Edge', opt(['none', 'None'], ['torn-bottom', 'Torn paper (bottom)'], ['torn-top', 'Torn paper (top)'], ['tape', 'Tape on top'])),
+      tilt: number('Tilt (degrees, desktop; straightens on hover)', -10, 10),
     },
   },
   item: {
@@ -298,6 +305,10 @@ export function boxStyle(props: Partial<Omit<BoxProps, 'content'>>, editing: boo
   if (advanced.fitSections) classes.push('d-box-fit');
   // Liquid glass: a translucent, blurred, light-catching material (app/design.css .d-glass).
   if (look.glass && look.glass !== 'none') classes.push('d-glass', `d-glass-${look.glass}`);
+  if (look.texture && look.texture !== 'none' && ['paper', 'whiteboard', 'cork', 'wood', 'navy'].includes(look.texture)) classes.push(`d-tex-${look.texture}`);
+  if (look.edge && ['torn-bottom', 'torn-top', 'tape'].includes(look.edge)) classes.push(`d-edge-${look.edge}`);
+  const tilt = clamp(look.tilt, -10, 10);
+  if (tilt) { classes.push('d-tilt'); style['--tilt'] = `${tilt}deg`; }
   if (advanced.visibility === 'desktop') classes.push(editing ? 'opacity-50' : 'max-md:hidden!');
   if (advanced.visibility === 'mobile') classes.push(editing ? 'opacity-50' : 'md:hidden!');
   if (editing) classes.push('d-box-editing');
@@ -359,7 +370,7 @@ export const Box: ComponentConfig<BoxProps> = {
 type Align = 'left' | 'center' | 'right';
 const alignField = radio<Align>('Align', opt(['left', 'Left'], ['center', 'Center'], ['right', 'Right']));
 const justify = (align: Align) => ({ left: 'justify-start', center: 'justify-center', right: 'justify-end' })[align] ?? 'justify-start';
-const ICON_NAMES = ['arrow', 'arrowUpRight', 'external', 'mail', 'gmail', 'linkedin', 'github', 'instagram', 'download', 'code', 'terminal', 'game', 'briefcase', 'skill', 'user', 'home', 'pin', 'dot', 'sparkle', 'cube', 'chart', 'layers', 'palette', 'notes', 'folder', 'chat', 'globe', 'calendar', 'cloud', 'database', 'server', 'cpu', 'bolt', 'rocket', 'heart', 'star', 'camera', 'music', 'search', 'grid', 'more', 'trash', 'copy', 'menu', 'close'];
+const ICON_NAMES = ['arrow', 'arrowUpRight', 'external', 'mail', 'gmail', 'linkedin', 'github', 'instagram', 'download', 'code', 'terminal', 'game', 'briefcase', 'skill', 'user', 'home', 'pin', 'dot', 'sparkle', 'cube', 'chart', 'layers', 'palette', 'notes', 'folder', 'chat', 'globe', 'calendar', 'cloud', 'database', 'server', 'cpu', 'bolt', 'rocket', 'heart', 'star', 'camera', 'music', 'search', 'grid', 'more', 'trash', 'copy', 'menu', 'close', 'atom', 'coffee', 'users', 'bulb', 'building', 'check'];
 
 export type LinkProps = { label: string; href: string; newTab: boolean; style: 'accent' | 'underline' | 'plain' | 'muted'; size: 'sm' | 'md' | 'lg'; icon: 'none' | 'arrow' | 'external'; align: Align };
 export const LinkBlock: ComponentConfig<LinkProps> = {
@@ -386,7 +397,9 @@ export const LinkBlock: ComponentConfig<LinkProps> = {
   },
 };
 
-export type IconProps = { name: string; size: number; tone: 'accent' | 'accent2' | 'text' | 'muted' | 'custom'; color: string; background: 'none' | 'circle' | 'square' | 'tile' | 'glass'; align: Align };
+export type IconProps = { name: string; size: number; tone: 'accent' | 'accent2' | 'text' | 'muted' | 'custom'; color: string; background: 'none' | 'circle' | 'square' | 'tile' | 'glass'; align: Align;
+  /** A little life: spin slowly, spin on hover, pulse or wiggle (all off for people who prefer reduced motion). */
+  motion?: 'none' | 'spin' | 'spin-hover' | 'pulse' | 'wiggle' };
 export const IconBlock: ComponentConfig<IconProps> = {
   label: 'Icon',
   fields: {
@@ -395,10 +408,11 @@ export const IconBlock: ComponentConfig<IconProps> = {
     tone: select('Color', opt(['accent', 'Accent'], ['accent2', 'Second accent'], ['text', 'Text'], ['muted', 'Muted'], ['custom', 'Custom…'])),
     color: colorField('Custom color'),
     background: select('Background', opt(['none', 'None'], ['circle', 'Circle'], ['square', 'Square'], ['tile', 'App icon (glossy color tile)'], ['glass', 'Glass tile'])),
+    motion: select('Motion', opt(['none', 'None'], ['spin', 'Spin slowly'], ['spin-hover', 'Spin on hover'], ['pulse', 'Pulse'], ['wiggle', 'Wiggle on hover'])),
     align: alignField,
   },
-  defaultProps: { name: 'sparkle', size: 28, tone: 'accent', color: '', background: 'none', align: 'left' },
-  render: ({ name, size, tone, color, background, align }) => {
+  defaultProps: { name: 'sparkle', size: 28, tone: 'accent', color: '', background: 'none', align: 'left', motion: 'none' },
+  render: ({ name, size, tone, color, background, align, motion = 'none' }) => {
     const px = clamp(size, 12, 160, 28);
     const fg = tone === 'custom' ? (isSafeColor(color) ? color : 'var(--d-accent)') : { accent: 'var(--d-accent)', accent2: 'var(--d-accent-2)', text: 'var(--d-text)', muted: 'var(--d-muted)' }[tone];
     const tile = { width: px * 2, height: px * 2, display: 'grid', placeItems: 'center', borderRadius: Math.round(px * 0.5) } as const;
@@ -407,7 +421,7 @@ export const IconBlock: ComponentConfig<IconProps> = {
       : background === 'tile' ? { ...tile, color: '#fff', ['--tile' as string]: fg, background: `linear-gradient(180deg, color-mix(in srgb, ${fg} 65%, white), ${fg})`, boxShadow: `inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(0,0,0,.08), 0 6px 14px -6px color-mix(in srgb, ${fg} 70%, transparent)` }
       : background === 'glass' ? { ...tile, color: fg }
       : { ...tile, color: fg, background: 'color-mix(in srgb, currentColor 14%, transparent)', borderRadius: background === 'circle' ? 9999 : 'var(--d-radius)' };
-    return <div className={`d-prim d-icon flex ${justify(align)}`}><span style={box} className={background === 'glass' ? 'd-glass d-glass-light' : undefined} aria-hidden="true"><Icon name={ICON_NAMES.includes(name) ? name : 'sparkle'} size={background === 'tile' || background === 'glass' ? Math.round(px * 1.05) : px} /></span></div>;
+    return <div className={`d-prim d-icon flex ${justify(align)}${motion !== 'none' ? ` d-motion-${motion}` : ''}`}><span style={box} className={background === 'glass' ? 'd-glass d-glass-light' : undefined} aria-hidden="true"><Icon name={ICON_NAMES.includes(name) ? name : 'sparkle'} size={background === 'tile' || background === 'glass' ? Math.round(px * 1.05) : px} /></span></div>;
   },
 };
 

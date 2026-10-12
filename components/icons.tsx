@@ -169,6 +169,38 @@ export function Icon({
 
     check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
 
+    // A generic atom: three electron orbits around a nucleus.
+    atom: (
+      <>
+        <ellipse cx="12" cy="12" rx="9.5" ry="3.6" />
+        <ellipse cx="12" cy="12" rx="9.5" ry="3.6" transform="rotate(60 12 12)" />
+        <ellipse cx="12" cy="12" rx="9.5" ry="3.6" transform="rotate(120 12 12)" />
+        <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+      </>
+    ),
+    coffee: (
+      <>
+        <path d="M5 9.5h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5Z" />
+        <path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16M8 3.5c-.6.8-.6 1.7 0 2.5M11 3.5c-.6.8-.6 1.7 0 2.5M14 3.5c-.6.8-.6 1.7 0 2.5" />
+      </>
+    ),
+    users: (
+      <>
+        <circle cx="9" cy="8.5" r="3" />
+        <path d="M3.5 19a5.5 5.5 0 0 1 11 0M15.5 5.8a3 3 0 0 1 0 5.4M17 14.3a5.5 5.5 0 0 1 3.5 4.7" />
+      </>
+    ),
+    bulb: (
+      <>
+        <path d="M9 17.5h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V17h5.2v-1.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3Z" />
+      </>
+    ),
+    building: (
+      <>
+        <path d="M5 21V4.5h9V21M14 9h5v12M3 21h18M8 8h3M8 11.5h3M8 15h3M16.5 12.5h.01M16.5 16h.01" />
+      </>
+    ),
+
     sparkle: (
       <>
         <path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7L4.5 10.9 10.1 9Z" />

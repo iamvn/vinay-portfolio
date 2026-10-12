@@ -7,6 +7,7 @@ import { PlatformBadge } from '../platform-badge';
 import type { PortfolioData } from '@/lib/portfolio';
 import { DEFAULT_ROOT, FONTS, PALETTE_FIELDS, THEME_PRESETS, readableOn, recolorsClassic, safeHref, safeSrc, themeVars, type RootProps } from '@/lib/design/theme';
 import { AskAssistant } from '../ask-assistant';
+import { QuoteRotator, TypingTerminal } from './lab-blocks';
 import { Icon } from '../icons';
 import {
   Contact, Experience, Footer, Hero, Hiring, NavBar, PROJECTS_DEFAULTS, Projects, Skills, SocialIcons, Stats,
@@ -80,6 +81,10 @@ type Components = ProjectComponents & {
   Video: VideoProps;
   Pdf: PdfProps;
   Quote: QuoteProps;
+  // Playful & interactive
+  Terminal: { title: string; lines: { text: string; source: string }[]; speed: number; align: Align };
+  StickyNotes: { notes: { label: string; icon: string; href: string; color: string }[]; layout: 'column' | 'row'; size: 'sm' | 'md' };
+  QuoteRotator: { quotes: { quote: string; author: string }[]; interval: number; look: 'navy' | 'paper' | 'plain'; icon: string };
   Faq: FaqProps;
   Form: FormProps;
   InputField: InputProps;
@@ -102,7 +107,7 @@ const justifyClass = (align: Align) => ({ left: 'justify-start', center: 'justif
 const HEADING_SIZES = [{ label: 'XS', value: 'xs' }, { label: 'S', value: 'sm' }, { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }, { label: 'XL', value: 'xl' }, { label: '2XL', value: '2xl' }];
 const TEXT_SIZES = [{ label: 'XS', value: 'xs' }, { label: 'S', value: 'sm' }, { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }, { label: 'XL', value: 'xl' }];
 const WEIGHT_OPTIONS = [{ label: 'Default', value: 'default' }, { label: 'Light', value: 'light' }, { label: 'Regular', value: 'normal' }, { label: 'Medium', value: 'medium' }, { label: 'Bold', value: 'bold' }, { label: 'Black', value: 'black' }];
-const FONT_ROLE_OPTIONS = [{ label: 'Heading font', value: 'heading' }, { label: 'Body font', value: 'body' }, { label: 'Monospace', value: 'mono' }];
+const FONT_ROLE_OPTIONS = [{ label: 'Heading font', value: 'heading' }, { label: 'Body font', value: 'body' }, { label: 'Monospace', value: 'mono' }, { label: 'Marker (handwritten)', value: 'marker' }, { label: 'Handwriting', value: 'hand' }];
 const TRACKING_OPTIONS = [{ label: 'Default', value: 'default' }, { label: 'Tight', value: 'tight' }, { label: 'Normal', value: 'normal' }, { label: 'Wide', value: 'wide' }, { label: 'Extra wide', value: 'widest' }];
 const weightClass = (weight: string, fallback: string) =>
   ({ light: 'font-light', normal: 'font-normal', medium: 'font-medium', bold: 'font-bold', black: 'font-black' } as Record<string, string>)[weight] ?? fallback;
@@ -112,6 +117,8 @@ function typeStyle(sizePx: number, font: string, tracking: string) {
   if (font === 'heading') style.fontFamily = 'var(--d-heading-font)';
   if (font === 'body') style.fontFamily = 'var(--d-body-font)';
   if (font === 'mono') style.fontFamily = FONTS.mono.stack;
+  if (font === 'marker') style.fontFamily = FONTS.marker.stack;
+  if (font === 'hand') style.fontFamily = FONTS.hand.stack;
   const spacing = ({ tight: '-0.02em', normal: '0', wide: '0.08em', widest: '0.25em' } as Record<string, string>)[tracking];
   if (spacing) style.letterSpacing = spacing;
   return style;
@@ -132,6 +139,7 @@ export const designConfig: Config<Components, RootProps> = {
   categories: {
     quick: { title: 'Quick add: ready-made layouts', components: ['QuickBanner', 'QuickTextImage', 'QuickFeatures', 'QuickStats', 'QuickContact', 'QuickFaq', 'QuickTestimonials'], defaultExpanded: true },
     layout: { title: 'Layout: boxes & containers', components: ['Box', 'Section', 'Flex', 'Grid', 'Columns', 'Card', 'Spacer', 'Divider'], defaultExpanded: true },
+    playful: { title: 'Playful & interactive', components: ['Terminal', 'StickyNotes', 'QuoteRotator'], defaultExpanded: true },
     basic: { title: 'Basic elements', components: ['Heading', 'Text', 'Button', 'Link', 'Image', 'Icon', 'Video', 'Pdf', 'List', 'Quote', 'Faq', 'Tags', 'Badge'], defaultExpanded: true },
     forms: { title: 'Forms', components: ['Form', 'InputField', 'TextAreaField', 'SelectField', 'ChoicesField'], defaultExpanded: true },
     yourData: { title: 'Your details (live)', components: ['ContactButtons', 'SocialLinks', 'ResumeButton'], defaultExpanded: true },
@@ -328,7 +336,7 @@ export const designConfig: Config<Components, RootProps> = {
         sort: { type: 'radio', label: 'Projects order', options: [{ label: 'Featured first', value: 'featured' }, { label: 'As in Admin', value: 'order' }, { label: 'A → Z', value: 'title' }] },
         limit: { type: 'number', label: 'Max projects (0 = all)', min: 0, max: 50 },
         image: { type: 'select', label: 'Image', options: [{ label: 'Wide (16:9)', value: 'video' }, { label: 'Extra wide (21:9)', value: 'wide' }, { label: 'Square', value: 'square' }, { label: 'Portrait (4:5)', value: 'portrait' }, { label: 'No image', value: 'hide' }] },
-        cardStyle: { type: 'radio', label: 'Card', options: [{ label: 'Box', value: 'card' }, { label: 'Glass', value: 'glass' }, { label: 'No box', value: 'plain' }] },
+        cardStyle: { type: 'radio', label: 'Card', options: [{ label: 'Box', value: 'card' }, { label: 'Glass', value: 'glass' }, { label: 'Paper (pinned)', value: 'paper' }, { label: 'No box', value: 'plain' }] },
         cardAlign: { type: 'radio', label: 'Text in cards', options: [{ label: 'Left', value: 'left' }, { label: 'Center', value: 'center' }] },
         showDescription: yesNo('Short description'),
         showStack: yesNo('Tags'),
@@ -757,6 +765,90 @@ export const designConfig: Config<Components, RootProps> = {
     ...PROJECT_BLOCKS,
     Quote: QuoteBlock,
     Faq: FaqBlock,
+
+    /* ======================= Playful & interactive ======================= */
+    Terminal: {
+      label: 'Terminal (types itself out)',
+      fields: {
+        title: { type: 'text', label: 'Title line (e.g. “Currently:”)' },
+        lines: {
+          type: 'array', label: 'Lines',
+          arrayFields: {
+            source: { type: 'select', label: 'Content', options: TEXT_SOURCES.map(({ value, label }) => ({ value, label })) },
+            text: { type: 'text', label: 'Text (when content is “My own text”)' },
+          },
+          defaultItemProps: { source: 'custom', text: 'Building cool things' },
+          getItemSummary: (item) => (item.source && item.source !== 'custom' ? TEXT_SOURCES.find((t) => t.value === item.source)?.label ?? item.source : item.text) || 'Line',
+        },
+        speed: { type: 'number', label: 'Typing speed (ms per letter, lower = faster)', min: 8, max: 120 },
+        align: { type: 'radio', label: 'Align', options: [{ label: 'Left', value: 'left' }, { label: 'Center', value: 'center' }, { label: 'Right', value: 'right' }] },
+      },
+      defaultProps: { title: 'Currently:', lines: [{ source: 'currentJob', text: '' }, { source: 'custom', text: 'Building cool products' }, { source: 'custom', text: 'Exploring AI & automation' }], speed: 28, align: 'left' },
+      render: ({ title, lines, speed, align, puck }) => {
+        const portfolio = meta(puck).portfolio;
+        const texts = (lines ?? []).map((l) => String(boundText(l.source, l.text, portfolio) ?? '')).filter(Boolean);
+        return (
+          <div className={`d-prim flex ${{ left: 'justify-start', center: 'justify-center', right: 'justify-end' }[align] ?? 'justify-start'}`}>
+            <TypingTerminal title={title} lines={texts} speed={speed} editing={puck.isEditing} />
+          </div>
+        );
+      },
+    },
+    StickyNotes: {
+      label: 'Sticky notes (links)',
+      fields: {
+        notes: {
+          type: 'array', label: 'Notes',
+          arrayFields: {
+            label: { type: 'text', label: 'Label' },
+            icon: { type: 'select', label: 'Icon', options: [{ label: 'None', value: '' }, ...['code', 'coffee', 'users', 'bulb', 'rocket', 'atom', 'notes', 'briefcase', 'mail', 'star', 'heart', 'terminal', 'folder', 'chat'].map((v) => ({ label: v, value: v }))] },
+            href: { type: 'text', label: 'Link (#section, /path or https://…)' },
+            color: colorField('Note color (empty = yellow)'),
+          },
+          defaultItemProps: { label: 'Note', icon: 'star', href: '#projects', color: '' },
+          getItemSummary: (item) => item.label || 'Note',
+        },
+        layout: { type: 'radio', label: 'Layout', options: [{ label: 'Column', value: 'column' }, { label: 'Row', value: 'row' }] },
+        size: { type: 'radio', label: 'Size', options: [{ label: 'Small', value: 'sm' }, { label: 'Medium', value: 'md' }] },
+      },
+      defaultProps: { notes: [{ label: 'Code', icon: 'code', href: '#projects', color: '' }, { label: 'Ideas', icon: 'bulb', href: '#skills', color: '' }, { label: 'Build', icon: 'rocket', href: '#contact', color: '' }], layout: 'column', size: 'md' },
+      render: ({ notes, layout, size }) => (
+        <nav className="d-prim" aria-label="Notes">
+          <ul className={`d-notes d-notes-${layout === 'row' ? 'row' : 'column'} d-notes-${size === 'sm' ? 'sm' : 'md'}`}>
+            {(notes ?? []).map((n, i) => {
+              const href = safeHref(n.href) ?? '#';
+              const color = n.color && /^#[0-9a-f]{3,8}$|^rgba?\(/i.test(n.color) ? n.color : '';
+              return (
+                <li key={`${n.label}-${i}`} style={{ ['--note' as string]: color || undefined, ['--r' as string]: `${[-3, 2, -1.5, 3, -2.5, 1.5][i % 6]}deg` }}>
+                  <a href={href} className="d-note">{n.icon && <Icon name={n.icon} size={size === 'sm' ? 18 : 22} />}<span>{n.label}</span></a>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      ),
+    },
+    QuoteRotator: {
+      label: 'Rotating quotes',
+      fields: {
+        quotes: {
+          type: 'array', label: 'Quotes',
+          arrayFields: { quote: { type: 'textarea', label: 'Quote' }, author: { type: 'text', label: 'Who said it' } },
+          defaultItemProps: { quote: 'A new quote', author: '' },
+          getItemSummary: (item) => item.quote?.slice(0, 40) || 'Quote',
+        },
+        interval: { type: 'number', label: 'Seconds per quote', min: 4, max: 60 },
+        look: { type: 'radio', label: 'Look', options: [{ label: 'Navy card', value: 'navy' }, { label: 'Paper', value: 'paper' }, { label: 'Plain', value: 'plain' }] },
+        icon: { type: 'select', label: 'Icon below', options: [{ label: 'None', value: '' }, { label: 'Atom', value: 'atom' }, { label: 'Sparkle', value: 'sparkle' }, { label: 'Star', value: 'star' }, { label: 'Bulb', value: 'bulb' }] },
+      },
+      defaultProps: { quotes: [{ quote: 'Talk is cheap. Show me the code.', author: 'Linus Torvalds' }, { quote: 'Simplicity is prerequisite for reliability.', author: 'Edsger W. Dijkstra' }], interval: 8, look: 'navy', icon: 'atom' },
+      render: ({ quotes, interval, look, icon }) => (
+        <div className={`d-prim d-quote-card d-quote-${look}`}>
+          <QuoteRotator quotes={quotes ?? []} interval={interval} />
+          {icon && <span className="d-quote-icon d-motion-spin" aria-hidden="true"><Icon name={icon} size={30} /></span>}
+        </div>
+      ),
+    },
     Form: FormBlock,
     InputField: InputBlock,
     TextAreaField: TextAreaBlock,
