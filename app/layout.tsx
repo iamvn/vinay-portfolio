@@ -43,7 +43,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-game-mode="on" suppressHydrationWarning>
+    // data-scroll-behavior: the CSS uses smooth scrolling for in-page links; with this, Next.js turns it off while it
+    // moves to a new page, so a project opens at its top instead of gliding up from where the home page was scrolled
+    // (on phones that glide could stop part-way, leaving the page at the bottom).
+    <html lang="en" data-game-mode="on" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         {/* Apply a saved "game mode off" before first paint (portfolio pages only, not the admin panel). */}
         <script

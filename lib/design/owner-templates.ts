@@ -209,7 +209,8 @@ const glassStudio: DesignData = {
     ]),
 
     panel('projects-panel', [
-      header('projects', '@projectsEyebrow', '@projectsTitle', b('Link', 'projects-all', { label: 'View all', href: '/projects', style: 'accent', size: 'sm', icon: 'arrow', colors: { accentColor: BLUE } })),
+      // No "View all" link: there is no /projects page; the Featured / All projects switch shows every project.
+      header('projects', '@projectsEyebrow', '@projectsTitle'),
       b('Projects', 'projects-list', {
         layout: 'grid', columns: '3', columnsMobile: '1', filter: 'all', sort: 'featured', limit: 6, image: 'video', frame: 'window', linkStyle: 'arrow', tabs: true, tagStyle: 'chips',
         cardStyle: 'glass', cardAlign: 'left', showDescription: true, showStack: true, showLinks: true, showType: false, hover: 'lift', eyebrow: '-', title: '-',
@@ -266,7 +267,7 @@ const glassStudio: DesignData = {
 export const OWNER_TEMPLATES: { key: string; version: number; name: string; description: string; data: DesignData }[] = [
   {
     key: 'glass-studio',
-    version: 5,
+    version: 6,
     name: 'Glass Studio',
     description: 'Apple-style Liquid Glass: a floating glass navigation bar, a sunrise-wallpaper hero with a frosted profile window and an app dock, glass panels on a soft grey page, projects in app windows with a Featured / All switch, tabbed skill chips and a side-by-side journey.',
     data: glassStudio,
