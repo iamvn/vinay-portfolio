@@ -7,7 +7,7 @@ import { z } from 'zod';
  */
 
 export const GUIDE_TABS = [
-  'profile', 'experience', 'skills', 'projects', 'copy', 'design', 'resume', 'builder', 'applications', 'community',
+  'profile', 'experience', 'skills', 'projects', 'copy', 'design', 'resume', 'builder', 'applications', 'progress', 'community',
   'insights', 'ai', 'backup', 'users', 'support', 'sites', 'activity',
 ] as const;
 export type GuideTab = (typeof GUIDE_TABS)[number];
@@ -52,6 +52,10 @@ export const DEFAULT_GUIDE: Guide = {
     applications: {
       summary: 'Your job search in one place: every application from saved to offer.',
       features: ['Paste a job link or text to see what it asks for and what you can prove', 'Board: Saved → Applied → Interviewing → Offer', 'Saves the exact resume version you sent', 'Cover letter, recruiter message and LinkedIn note', 'Interview prep questions', 'Prep notes and a Question bank for your own questions and links'],
+    },
+    progress: {
+      summary: 'Your personal plan for your next job switch: a goal with a timeline, a task board, daily habits and a yearly vision board. Only you can see it.',
+      features: ['Set a goal (e.g. “Switch to Atlassian”) and how many months to prepare', 'Board with Open, In progress, Tested and Done; each task has steps, notes and links', 'Focus areas like DSA or System design, with notes and links to the sheets you follow', 'Daily tasks with a streak, and your LeetCode / GeeksforGeeks profiles', 'Vision board per year: pictures and a to-do list', 'The bell at the top reminds you what to focus on'],
     },
     community: {
       summary: 'Share interview experiences on the public community board, and read everyone else’s.',

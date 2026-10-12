@@ -20,6 +20,8 @@ import { UsersTab, type AdminUser } from './users-tab';
 import { ReadOnlyFieldset, ReadOnlyProvider, RequestProgress, type Notify } from './ui';
 import { AnnouncementBar, GuideBot, type AccessAsk, type GuideData } from './guide';
 import { SupportTab } from './support-tab';
+import { ProgressTab } from './progress-tab';
+import { ProgressBell } from './progress-bell';
 import { SectionScope, setAllSections } from './sections';
 import { api } from './api';
 
@@ -33,6 +35,7 @@ const TABS = [
   ['resume', 'Resume'],
   ['builder', 'Resume builder'],
   ['applications', 'Applications'],
+  ['progress', 'Progress tracker'],
   ['community', 'Community'],
   ['insights', 'Insights'],
   ['ai', 'AI assistant'],
@@ -138,6 +141,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
             </h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {can('progress') && <ProgressBell onOpen={() => select('progress')} />}
             <span className="hidden text-xs text-slate-500 md:inline">Signed in as <b className="text-slate-300">{user.email}</b> · {user.owner ? 'Owner' : user.role === 'admin' ? 'Admin' : viewOnly ? 'Editor (read-only)' : 'Editor'}</span>
             <a href="/" target="_blank" rel="noreferrer" className={`${headerButton} hover:border-lime-300/60`}>
               <span className="sm:hidden">Site ↗</span><span className="hidden sm:inline">View site ↗</span>
@@ -179,7 +183,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
           </div>
         )}
         <SectionScope.Provider value={tab}>
-        {viewOnly && tab !== 'users' && tab !== 'support' && (
+        {viewOnly && tab !== 'users' && tab !== 'support' && tab !== 'progress' && (
           <p className="mb-4 rounded-xl border border-yellow-300/30 bg-yellow-300/[.06] px-4 py-3 text-sm text-yellow-100">
             <b>Read-only access.</b> You can look through everything here, but you can&apos;t save changes. Ask an admin if you need to edit something.
           </p>
@@ -200,6 +204,8 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
           {tab === 'backup' && <BackupTab notify={notify} onReplaced={() => setReloadKey((key) => key + 1)} />}
         </ReadOnlyProvider>
         {/* "My account" (password change) always works, even for read-only users. */}
+        {/* Personal (not site content), so read-only access doesn't apply. */}
+        {tab === 'progress' && can('progress') && <ReadOnlyProvider value={false}><ProgressTab notify={notify} /></ReadOnlyProvider>}
         {tab === 'support' && <ReadOnlyProvider value={false}><SupportTab key={askKey} notify={notify} owner={platformMain} prefill={ask} onPrefillUsed={() => setAsk(null)} /></ReadOnlyProvider>}
         {tab === 'sites' && platform && <SitesTab notify={notify} />}
         {tab === 'activity' && platformMain && <ActivityTab notify={notify} />}

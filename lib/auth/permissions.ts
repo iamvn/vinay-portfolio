@@ -9,16 +9,16 @@
  * "Users & security" is special: everyone sees it as "My account" (to change their own password), but
  * managing users and API tokens stays admin-only.
  */
-export const TAB_IDS = ['profile', 'experience', 'skills', 'projects', 'copy', 'design', 'resume', 'builder', 'applications', 'community', 'insights', 'ai', 'backup'] as const;
+export const TAB_IDS = ['profile', 'experience', 'skills', 'projects', 'copy', 'design', 'resume', 'builder', 'applications', 'progress', 'community', 'insights', 'ai', 'backup'] as const;
 export type TabId = (typeof TAB_IDS)[number];
 
 export const TAB_LABELS: Record<TabId, string> = {
   profile: 'Profile', experience: 'Experience', skills: 'Skills', projects: 'Projects', copy: 'Site text',
-  design: 'Design', resume: 'Resume', builder: 'Resume builder', applications: 'Applications', community: 'Community', insights: 'Insights', ai: 'AI assistant', backup: 'Backup',
+  design: 'Design', resume: 'Resume', builder: 'Resume builder', applications: 'Applications', progress: 'Progress tracker', community: 'Community', insights: 'Insights', ai: 'AI assistant', backup: 'Backup',
 };
 
 /** What an editor gets when no admin has chosen tabs for them (the access editors always had). */
-export const EDITOR_DEFAULT_TABS: TabId[] = ['profile', 'experience', 'skills', 'projects', 'copy', 'resume', 'backup'];
+export const EDITOR_DEFAULT_TABS: TabId[] = ['profile', 'experience', 'skills', 'projects', 'copy', 'resume', 'progress', 'backup'];
 
 type Who = { role: string; permissions?: string | null; readOnly?: boolean | null; siteTabs?: string | null };
 
@@ -54,8 +54,8 @@ export const canUseTab = (user: Who, tab: TabId) => allowedTabs(user).includes(t
  */
 export const isReadOnly = (user: Who) => user.role !== 'admin' && Boolean(user.readOnly);
 // Signing out, your own password, the resume builder's live preview (it only reads), and asking the platform
-// owner for help or access (Support tab).
-const READ_ONLY_ALLOWED = /^\/api\/(auth\/(logout|password)|resume-builder\/compile|support)$/;
+// owner for help or access (Support tab), and their own Progress tracker (personal, not site content).
+const READ_ONLY_ALLOWED = /^\/api\/(auth\/(logout|password)|resume-builder\/compile|support|progress(\/.*)?)$/;
 export const blockedForReadOnly = (method: string, path: string) =>
   !['GET', 'HEAD', 'OPTIONS'].includes(method) && !READ_ONLY_ALLOWED.test(path);
 
@@ -76,6 +76,7 @@ const ALWAYS_GATED: [RegExp, TabId][] = [
   [/^\/api\/resume-builder(\/.*)?$/, 'builder'],
   [/^\/api\/applications(\/.*)?$/, 'applications'],
   [/^\/api\/community(\/.*)?$/, 'community'],
+  [/^\/api\/progress(\/.*)?$/, 'progress'],
 ];
 
 /**
