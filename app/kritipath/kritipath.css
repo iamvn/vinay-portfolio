@@ -8,8 +8,10 @@ body:has(.cl-page).scanlines::after { display: none; }
   font: 17px/1.5 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', system-ui, sans-serif; letter-spacing: -.012em;
   -webkit-font-smoothing: antialiased;
 }
-.cl-page::before {
-  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+/* The soft color light: a real fixed layer (not a z-index -1 ::before, which iPhone Safari can paint over content). */
+.cl-page > main, .cl-page > footer { position: relative; z-index: 1; }
+.cl-aurora {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; transform: translateZ(0);
   background:
     radial-gradient(40% 38% at 8% 6%, rgba(255, 179, 199, .55), transparent 70%),
     radial-gradient(40% 40% at 94% 4%, rgba(150, 190, 255, .6), transparent 70%),

@@ -174,9 +174,23 @@ export const designConfig: Config<Components, RootProps> = {
       ].filter(Boolean).join(' ');
       return (
         <div className={classes} style={themeVars(props)} dir={props.direction === 'rtl' ? 'rtl' : 'ltr'}>
-          {children}
-          {/* Fixed platform credit: always last on every designed page (no setting removes it). */}
-          <PlatformBadge />
+          {props.effects === 'aurora' ? (
+            <>
+              {/* The soft color wallpaper, as a real layer under the page (see .d-aurora in design.css). */}
+              <div className="d-aurora" aria-hidden="true" />
+              <div className="d-aurora-content">
+                {children}
+                {/* Fixed platform credit: always last on every designed page (no setting removes it). */}
+                <PlatformBadge />
+              </div>
+            </>
+          ) : (
+            <>
+              {children}
+              {/* Fixed platform credit: always last on every designed page (no setting removes it). */}
+              <PlatformBadge />
+            </>
+          )}
           {props.showAskAi !== 'no' && assistant && !puck.isEditing && (
             <AskAssistant name={portfolio.profile.name} email={portfolio.profile.socialLinks.email} linkedin={portfolio.profile.socialLinks.linkedin}
               look={props.theme === 'classic' || props.theme === 'arcade' ? 'classic' : pageIsDark(props) ? 'dark' : 'light'} />

@@ -24,9 +24,13 @@
     background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.7) 4px);
   }
   /* Soft color wallpaper: pastel light behind the page, so Liquid Glass panels and cards have something to frost. */
+  /* A real element (<AuroraLayer>, first in the page) under a positioned content layer. Not a ::before with
+     z-index -1: Safari on iPhone could paint that fixed layer over un-composited content (a project page showed
+     only the wallpaper until you scrolled). */
   .d-root.d-effect-aurora { isolation: isolate; }
-  .d-root.d-effect-aurora::before {
-    content: ''; pointer-events: none; position: fixed; inset: 0; z-index: -1;
+  .d-aurora-content { position: relative; z-index: 1; }
+  .d-aurora {
+    pointer-events: none; position: fixed; inset: 0; z-index: 0; transform: translateZ(0);
     background:
       radial-gradient(42% 38% at 6% 10%, rgba(255, 179, 199, .55), transparent 70%),
       radial-gradient(40% 42% at 94% 6%, rgba(160, 196, 255, .6), transparent 70%),

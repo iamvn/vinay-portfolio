@@ -21,8 +21,14 @@ export async function PageTheme({ children, design: given }: { children: ReactNo
   ].filter(Boolean).join(' ');
   return (
     <div className={classes} style={themeVars(props)} dir={props.direction === 'rtl' ? 'rtl' : 'ltr'}>
-      <div className="d-classic">{children}</div>
-      <PlatformBadge />
+      {props.effects === 'aurora' ? (
+        <>
+          <div className="d-aurora" aria-hidden="true" />
+          <div className="d-aurora-content"><div className="d-classic">{children}</div><PlatformBadge /></div>
+        </>
+      ) : (
+        <><div className="d-classic">{children}</div><PlatformBadge /></>
+      )}
     </div>
   );
 }

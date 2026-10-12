@@ -93,6 +93,7 @@ export default async function KritipathPage() {
 
   return (
     <div className="cl-page">
+      <div className="cl-aurora" aria-hidden="true" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       <header className="cl-nav">
         <div className="cl-wrap">
