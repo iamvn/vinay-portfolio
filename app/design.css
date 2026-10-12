@@ -113,6 +113,8 @@
 
   /* Classic sections inside a design keep the original typography (Tailwind classes still win). */
   .d-root .d-classic { line-height: 1.5; }
+  /* A long word in a big heading wraps instead of overflowing its card on phones. */
+  .d-root :is(h1, h2, h3, h4):not(.d-classic *) { overflow-wrap: break-word; }
   :where(.d-root .d-classic) :is(h1, h2, h3, h4) { line-height: inherit; color: inherit; font-family: inherit; }
 }
 
@@ -472,6 +474,16 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
   .d-notes-sm .d-note { min-width: 0; padding: .6rem .9rem; font-size: 1.05rem; }
   @media (max-width: 767px) { .d-notes-column { flex-direction: row; flex-wrap: wrap; justify-content: center; } .d-note { min-width: 0; padding: .7rem 1rem; font-size: 1.1rem; } }
 
+  /* Index cards: the refined look for StickyNotes (no tilt, no marker font). */
+  .d-notes-card .d-note { min-width: 10.5rem; padding: .85rem 1.05rem; gap: .65rem; border-radius: 6px; transform: none;
+    font: 600 .95rem/1.2 var(--d-body-font, system-ui), system-ui, sans-serif; letter-spacing: -.01em; color: #2b2118;
+    background: linear-gradient(180deg, #fbf7ee, #f1e8d6); border-left: 3px solid var(--note-c);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .6) inset, 0 10px 22px -14px rgba(0, 0, 0, .7); }
+  .d-notes-card .d-note::after { display: none; }
+  .d-notes-card .d-note svg { color: #8a5a2b; }
+  .d-notes-card .d-note:hover, .d-notes-card .d-note:focus-visible { transform: translateX(-4px); box-shadow: 0 1px 0 rgba(255, 255, 255, .6) inset, 0 16px 28px -14px rgba(0, 0, 0, .75); }
+  @media (max-width: 767px) { .d-notes-card .d-note { min-width: 0; padding: .65rem .9rem; font-size: .9rem; } }
+
   /* Rotating quotes */
   .d-quote-card { position: relative; display: grid; gap: 1rem; justify-items: center; text-align: center; padding: 1.6rem 1.3rem; }
   .d-quote-navy { background: url('/design/textures/paper-grain.svg'), radial-gradient(80% 60% at 30% 20%, #284a78, #1a2f4f); color: #f4ead7; border-radius: 6px; box-shadow: 0 20px 34px -20px rgba(0, 0, 0, .8); }
@@ -480,6 +492,8 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
   .d-quote-card { min-height: 15rem; align-content: center; }
   .d-quotes-text { margin: 0; font: 400 1.7rem/1.25 Caveat, 'Bradley Hand', cursive; animation: d-quote-in .5s ease-out; }
   .d-quotes-by { font: 400 1.1rem/1 Caveat, cursive; opacity: .85; }
+  .d-quote-serif .d-quotes-text { font: italic 400 1.35rem/1.45 Georgia, 'Iowan Old Style', 'Times New Roman', serif; }
+  .d-quote-serif .d-quotes-by { font: 500 .8rem/1.2 var(--d-body-font, system-ui), sans-serif; letter-spacing: .08em; text-transform: uppercase; }
   @keyframes d-quote-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   .d-quotes-nav { display: flex; align-items: center; justify-content: center; gap: .8rem; margin-top: .3rem; }
   .d-quotes-dots { display: flex; gap: 5px; } .d-quotes-dots i { width: 6px; height: 6px; border-radius: 99px; background: currentColor; opacity: .3; } .d-quotes-dots i.on { opacity: .9; }
@@ -487,17 +501,11 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
   .d-quotes-nav button:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
   .d-quote-icon { display: grid; place-items: center; opacity: .9; }
 
-  /* Paper project cards: pinned with tape, slightly tilted; straighten and lift on hover. */
+  /* Paper project cards: warm paper stock with a soft shadow; lift on hover. */
   .d-card-paper { position: relative; padding: .75rem .75rem 1rem; border-radius: 3px; background: url('/design/textures/paper-grain.svg'), #f8f1e3; color: #2b2118;
     --d-text: #2b2118; --d-muted: #6b5a48; --d-line: rgba(60, 40, 20, .15);
     box-shadow: 0 1px 1px rgba(0, 0, 0, .1), 0 18px 26px -18px rgba(40, 20, 5, .65); transition: transform .35s cubic-bezier(.2, .8, .2, 1), box-shadow .35s; }
-  .d-card-paper::before { content: ''; position: absolute; top: -10px; left: 50%; width: 70px; height: 22px; transform: translateX(-50%) rotate(2deg); z-index: 2;
-    background: linear-gradient(180deg, rgba(240, 225, 170, .85), rgba(222, 202, 140, .8)); box-shadow: 0 1px 2px rgba(0, 0, 0, .15); }
-  @media (min-width: 768px) {
-    .d-card-paper { transform: rotate(-.6deg); }
-    .d-card-paper:nth-child(even) { transform: rotate(.7deg); }
-    .d-card-paper:hover { transform: rotate(0deg) translateY(-5px); box-shadow: 0 2px 2px rgba(0, 0, 0, .1), 0 28px 36px -20px rgba(40, 20, 5, .7); }
-  }
+  .d-card-paper:hover { transform: translateY(-4px); box-shadow: 0 2px 2px rgba(0, 0, 0, .08), 0 26px 34px -22px rgba(40, 20, 5, .6); }
   .d-card-paper > :not(:first-child) { padding-inline: .35rem; }
   .d-card-paper .d-window { border-radius: 4px; }
   .d-card-paper h3 { font-weight: 700; }

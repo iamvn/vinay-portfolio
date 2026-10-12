@@ -267,12 +267,15 @@ const PAPER = '#f8f1e3';
 const ORANGE = '#c8501e';
 const NAVY = '#2f5d8a';
 
-/** A heading in bold handwriting (Caveat; it runs small, so sizes are generous). */
+/** A section title in the page's serif. */
 const marker = (id: string, text: string, sizePx: number, level = 'h2', extra: Record<string, unknown> = {}) =>
-  b('Heading', id, { source: 'custom', text, level, sizePx: Math.round(sizePx * 1.25), weight: 'bold', font: 'hand', ...extra });
-/** A line of handwriting. */
-const hand = (id: string, text: string, sizePx = 22, extra: Record<string, unknown> = {}) =>
-  b('Text', id, { source: 'custom', text, sizePx, font: 'hand', tone: 'muted', maxWidth: 'none', ...extra });
+  b('Heading', id, { source: 'custom', text, level, sizePx, weight: 'normal', font: 'heading', tracking: 'tight', ...extra });
+/** A short supporting line in the body font. */
+const hand = (id: string, text: string, sizePx = 16, extra: Record<string, unknown> = {}) =>
+  b('Text', id, { source: 'custom', text, sizePx, font: 'body', tone: 'muted', maxWidth: 'none', ...extra });
+/** A small uppercase label, like a lab notebook heading. */
+const label = (id: string, text: string, extra: Record<string, unknown> = {}) =>
+  b('Text', id, { source: 'custom', text, size: 'xs', font: 'mono', tracking: 'widest', uppercase: true, tone: 'muted', maxWidth: 'none', ...extra });
 
 /** One item of the stats strip: an icon and two short lines (live or fixed). */
 const labStat = (id: string, icon: string, first: Record<string, unknown>, second: Record<string, unknown>, motion = 'spin-hover') => b('Flex', id, {
@@ -294,15 +297,32 @@ const sheet = (id: string, anchor: string, content: Block[]) => b('Box', id, {
   size: { width: '96%', maxWidth: '1560px', center: true },
   layout: { display: 'flex', direction: 'column', gap: 26 },
   spacing: { padding: pad(44, 44, 40), paddingMobile: pad(30, 18, 26), margin: { top: '44' } },
-  look: { texture: 'paper', edge: 'tape', radius: 4, shadow: 'md' },
+  look: { texture: 'paper', radius: 6, shadow: 'md' },
   advanced: { tag: 'section', anchor },
   content,
 });
 
 /** A handwritten section header: marker title and a note beside it. */
-const labHeader = (id: string, title: string, note: string) => b('Flex', `${id}-head`, {
+const labHeader = (id: string, eyebrow: string, title: string, note: string) => b('Flex', `${id}-head`, {
   gap: 18, align: 'end', justify: 'between', stackOnMobile: true,
-  items: [marker(`${id}-title`, title, 40), hand(`${id}-note`, note, 24)],
+  items: [
+    b('Box', `${id}-titles`, { layout: { display: 'flex', direction: 'column', gap: 6 }, spacing: none, content: [label(`${id}-label`, eyebrow), marker(`${id}-title`, title, 40)] }),
+    hand(`${id}-note`, note),
+  ],
+});
+
+/** Your profile photo stuck on the whiteboard as a sticky note, with tape and a handwritten caption. */
+const photoNote = (id: string, visibility: 'desktop' | 'mobile', width: number, tilt: number) => b('Box', id, {
+  layout: { display: 'flex', direction: 'column', gap: 6, align: 'center' },
+  size: { width: `${width}px`, minWidth: `${width}px` },
+  spacing: { padding: pad(10, 10, 8) },
+  look: { fill: 'custom', fillColor: '#fdfbf6', tilt, shadow: 'md', radius: 2, borderWidth: 1, borderTone: 'custom', borderColor: 'rgba(0,0,0,0.06)' },
+  item: { shrink: false, alignSelf: 'flex-start' },
+  advanced: { tag: 'div', visibility },
+  content: [
+    b('Image', `${id}-photo`, { source: 'profilePhoto', alt: 'Profile photo', aspect: 'square', rounded: false, radiusPx: 2, maxWidth: 'full', align: 'center', filter: 'none' }),
+    b('Text', `${id}-caption`, { source: 'location', size: 'xs', font: 'mono', tracking: 'wide', tone: 'muted', align: 'center', maxWidth: 'none' }),
+  ],
 });
 
 const geekLab: DesignData = {
@@ -310,7 +330,7 @@ const geekLab: DesignData = {
     props: {
       theme: 'clean',
       colors: { bg: '#efe3cb', surface: PAPER, surface2: '#efe3cb', text: '#2b2118', muted: '#6b5a48', line: 'rgba(60,40,20,0.16)', accent: ORANGE, accent2: NAVY, accent3: '#e4b93a' },
-      headingFont: 'system', bodyFont: 'system', textSize: 'medium', headingWeight: 'bold', headingCase: 'normal',
+      headingFont: 'serif', bodyFont: 'system', textSize: 'medium', headingWeight: 'normal', headingCase: 'normal',
       radius: 'small', buttonShape: 'pill', buttonStyle: 'solid', width: 'full', direction: 'ltr', effects: 'none', showAskAi: 'yes',
     },
   },
@@ -340,28 +360,32 @@ const geekLab: DesignData = {
             // Whiteboard
             b('Box', 'lab-board', {
               layout: { display: 'flex', direction: 'row', gap: 18, align: 'flex-start', wrap: 'nowrap' },
-              size: { maxWidth: '640px' },
+              size: { maxWidth: '780px' },
               spacing: { padding: pad(26, 26, 28), paddingMobile: pad(18, 16, 20) },
-              look: { texture: 'whiteboard', tilt: -1 },
-              item: { grow: true, basis: '44%' },
+              look: { texture: 'whiteboard' },
+              item: { grow: true, basis: '50%' },
               content: [
                 b('Image', 'lab-doodles', { source: 'custom', src: '/design/wallpapers/whiteboard-doodles.svg', alt: '', aspect: 'auto', rounded: false, maxWidth: 'full', align: 'left', size: { width: '118px', minWidth: '118px' }, more: { visibility: 'desktop' } }),
                 b('Box', 'lab-board-text', {
                   layout: { display: 'flex', direction: 'column', gap: 10 }, spacing: none, item: { grow: true },
                   content: [
-                    b('Text', 'lab-hi', { source: 'custom', text: 'Hi, I’m', sizePx: 44, weight: 'bold', font: 'hand', tone: 'normal', maxWidth: 'none' }),
-                    b('Heading', 'lab-name', { source: 'name', level: 'h1', sizePx: 70, weight: 'bold', font: 'hand' }),
-                    b('Text', 'lab-role', { source: 'role', font: 'mono', sizePx: 17, tone: 'normal', maxWidth: 'none' }),
-                    b('Text', 'lab-summary', { source: 'summary', font: 'mono', sizePx: 14, tone: 'muted', maxWidth: 'prose' }),
+                    // Phones: the photo note sits above the greeting.
+                    photoNote('lab-photo-m', 'mobile', 132, 3),
+                    label('lab-hi', 'Hello, I’m'),
+                    b('Heading', 'lab-name', { source: 'name', level: 'h1', sizePx: 58, weight: 'normal', font: 'heading', tracking: 'tight' }),
+                    b('Text', 'lab-role', { source: 'role', font: 'body', sizePx: 18, weight: 'medium', tone: 'normal', maxWidth: 'none' }),
+                    b('Text', 'lab-summary', { source: 'summary', font: 'body', sizePx: 15, tone: 'muted', maxWidth: 'prose' }),
                     b('Flex', 'lab-hero-actions', {
-                      gap: 10, align: 'center', stackOnMobile: false, wrap: true,
+                      gap: 10, align: 'center', stackOnMobile: true, wrap: true,
                       items: [
-                        b('Button', 'lab-work', { action: 'projects', labelSource: 'own', label: 'See my experiments', style: 'primary', size: 'md', icon: 'arrow' }),
-                        b('Button', 'lab-resume', { action: 'resume', labelSource: 'own', label: 'Resume', style: 'secondary', size: 'md', icon: 'download' }),
+                        b('Button', 'lab-work', { action: 'projects', labelSource: 'own', label: 'See my experiments', style: 'primary', size: 'md', icon: 'arrow', fullWidthMobile: true }),
+                        b('Button', 'lab-resume', { action: 'resume', labelSource: 'own', label: 'Resume', style: 'secondary', size: 'md', icon: 'download', fullWidthMobile: true }),
                       ],
                     }),
                   ],
                 }),
+                // Desktop: the photo note pinned at the top right of the board.
+                photoNote('lab-photo', 'desktop', 150, 4),
               ],
             }),
             // Terminal
@@ -381,13 +405,13 @@ const geekLab: DesignData = {
             }),
             // Sticky notes
             b('StickyNotes', 'lab-notes', {
-              layout: 'column', size: 'md',
+              layout: 'column', size: 'md', look: 'card',
               notes: [
-                { label: 'Code', icon: 'code', href: '#projects', color: '#f7df5e' },
-                { label: 'Coffee', icon: 'coffee', href: '#contact', color: '#f9d65c' },
-                { label: 'Friends', icon: 'users', href: '#experience', color: '#f5e27a' },
-                { label: 'Ideas', icon: 'bulb', href: '#skills', color: '#f7d84a' },
-                { label: 'Build', icon: 'rocket', href: '#contact', color: '#f6e06a' },
+                { label: 'Projects', icon: 'code', href: '#projects', color: '#a4532c' },
+                { label: 'Toolbox', icon: 'bulb', href: '#skills', color: '#b08d57' },
+                { label: 'Journey', icon: 'users', href: '#experience', color: '#5b7a5a' },
+                { label: 'Resume', icon: 'notes', href: '/api/resume', color: '#2f5d8a' },
+                { label: 'Coffee chat', icon: 'coffee', href: '#contact', color: '#7a4b28' },
               ],
             }),
           ],
@@ -416,15 +440,15 @@ const geekLab: DesignData = {
       advanced: { tag: 'section' }, // #projects comes from the Projects block itself
       content: [
         b('Box', 'lab-proj-note', {
-          layout: { display: 'flex', direction: 'column', gap: 10 },
-          spacing: { padding: pad(28, 24, 26) },
-          size: { maxWidth: '260px' },
-          look: { texture: 'paper', edge: 'tape', tilt: -3, shadow: 'md', radius: 2 },
+          layout: { display: 'flex', direction: 'column', gap: 12 },
+          spacing: { padding: pad(6, 0, 0) },
           item: { basis: '220px', shrink: false },
           content: [
-            marker('lab-proj-title', 'Featured Projects', 38),
-            hand('lab-proj-sub', 'Some of the things I’ve built recently.', 24, { tone: 'normal' }),
-            b('Icon', 'lab-proj-icon', { name: 'atom', size: 30, tone: 'text', motion: 'spin-hover' }),
+            label('lab-proj-label', 'Selected work'),
+            marker('lab-proj-title', 'Featured projects', 40),
+            hand('lab-proj-sub', 'Some of the things I’ve built recently.'),
+            b('Divider', 'lab-proj-rule', {}),
+            b('Icon', 'lab-proj-icon', { name: 'atom', size: 26, tone: 'muted', motion: 'spin-hover' }),
           ],
         }),
         b('Projects', 'projects-list', {
@@ -433,7 +457,7 @@ const geekLab: DesignData = {
           item: { grow: true, basis: '520px' },
         }),
         b('QuoteRotator', 'lab-quotes', {
-          look: 'navy', icon: 'atom', interval: 9,
+          look: 'navy', icon: 'atom', interval: 9, font: 'serif',
           quotes: [
             { quote: 'Talk is cheap. Show me the code.', author: 'Linus Torvalds' },
             { quote: 'Imagination is more important than knowledge.', author: 'Albert Einstein' },
@@ -448,12 +472,12 @@ const geekLab: DesignData = {
     }),
 
     sheet('skills-sheet', '', [
-      labHeader('skills', 'My Toolbox', 'Tools I reach for, sorted by shelf.'),
+      labHeader('skills', 'Skills', 'The toolbox', 'Tools I reach for, sorted by shelf.'),
       b('Skills', 'skills-list', { layout: 'tabs', align: 'left', eyebrow: '-', title: '-', description: '-' }),
     ]),
 
     sheet('experience-sheet', '', [
-      labHeader('experience', 'The Journey So Far', 'Every stop taught me something new.'),
+      labHeader('experience', 'Experience', 'The journey so far', 'Every stop taught me something new.'),
       b('Experience', 'experience-list', { layout: 'journey', maxBullets: 1, eyebrow: '-', title: '-', description: '-' }),
     ]),
 
@@ -468,14 +492,15 @@ const geekLab: DesignData = {
         b('Box', 'contact-copy', {
           layout: { display: 'flex', direction: 'column', gap: 10 }, spacing: none, item: { grow: true },
           content: [
-            marker('contact-title', 'Let’s build something awesome.', 44, 'h2', { colors: { textColor: '#f2c430' } }),
-            hand('contact-text', 'Got an idea, a role or a wild experiment? My door’s always open.', 26),
+            label('contact-label', 'Contact', { colors: { textColor: '#c8b49a' } }),
+            marker('contact-title', 'Let’s build something worth shipping.', 44, 'h2', { colors: { textColor: '#e6c88a' } }),
+            hand('contact-text', 'An idea, a role or an ambitious experiment: I’m always happy to talk.', 17),
           ],
         }),
         b('Flex', 'contact-actions', {
-          direction: 'column', gap: 14, align: 'center',
+          direction: 'column', gap: 14, align: 'stretch', item: { alignSelf: 'stretch' }, // phones: full-width button
           items: [
-            b('Button', 'contact-email', { action: 'email', labelSource: 'own', label: 'Say hello', style: 'primary', size: 'lg', icon: 'mail' }),
+            b('Button', 'contact-email', { action: 'email', labelSource: 'own', label: 'Say hello', style: 'primary', size: 'lg', icon: 'mail', fullWidthMobile: true }),
             b('SocialLinks', 'contact-social', { align: 'center', labels: false }),
           ],
         }),
@@ -500,9 +525,9 @@ export const OWNER_TEMPLATES: { key: string; version: number; name: string; desc
   },
   {
     key: 'geek-lab',
-    version: 1,
+    version: 4,
     name: 'Geek Lab',
-    description: 'A cozy scientist-developer’s study: an illustrated room with a handwritten whiteboard intro, a terminal that types itself out, sticky-note shortcuts, a torn-paper stats strip, pinned paper project cards, rotating science quotes and paper sheets for skills and experience.',
+    description: 'A refined scientist-developer’s study: a soft-focus room behind a whiteboard intro with your photo, a terminal that types itself out, index-card shortcuts, a torn-paper stats strip, paper project cards, rotating quotes in serif and calm paper sheets for skills and experience.',
     data: geekLab,
   },
 ];

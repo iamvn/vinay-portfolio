@@ -83,8 +83,8 @@ type Components = ProjectComponents & {
   Quote: QuoteProps;
   // Playful & interactive
   Terminal: { title: string; lines: { text: string; source: string }[]; speed: number; align: Align };
-  StickyNotes: { notes: { label: string; icon: string; href: string; color: string }[]; layout: 'column' | 'row'; size: 'sm' | 'md' };
-  QuoteRotator: { quotes: { quote: string; author: string }[]; interval: number; look: 'navy' | 'paper' | 'plain'; icon: string };
+  StickyNotes: { notes: { label: string; icon: string; href: string; color: string }[]; layout: 'column' | 'row'; size: 'sm' | 'md'; look?: 'sticky' | 'card' };
+  QuoteRotator: { quotes: { quote: string; author: string }[]; interval: number; look: 'navy' | 'paper' | 'plain'; icon: string; font?: 'hand' | 'serif' };
   Faq: FaqProps;
   Form: FormProps;
   InputField: InputProps;
@@ -113,7 +113,12 @@ const weightClass = (weight: string, fallback: string) =>
   ({ light: 'font-light', normal: 'font-normal', medium: 'font-medium', bold: 'font-bold', black: 'font-black' } as Record<string, string>)[weight] ?? fallback;
 function typeStyle(sizePx: number, font: string, tracking: string) {
   const style: Record<string, string> = {};
-  if (Number(sizePx) > 0) { style.fontSize = `${Math.min(200, Number(sizePx))}px`; style.lineHeight = '1.2'; }
+  if (Number(sizePx) > 0) {
+    const px = Math.min(200, Number(sizePx));
+    // Big exact sizes scale down on narrow phones so long words can't run off the screen.
+    style.fontSize = px >= 28 ? `min(${px}px, ${(px / 4.1).toFixed(2)}vw)` : `${px}px`;
+    style.lineHeight = '1.2';
+  }
   if (font === 'heading') style.fontFamily = 'var(--d-heading-font)';
   if (font === 'body') style.fontFamily = 'var(--d-body-font)';
   if (font === 'mono') style.fontFamily = FONTS.mono.stack;
@@ -336,7 +341,7 @@ export const designConfig: Config<Components, RootProps> = {
         sort: { type: 'radio', label: 'Projects order', options: [{ label: 'Featured first', value: 'featured' }, { label: 'As in Admin', value: 'order' }, { label: 'A → Z', value: 'title' }] },
         limit: { type: 'number', label: 'Max projects (0 = all)', min: 0, max: 50 },
         image: { type: 'select', label: 'Image', options: [{ label: 'Wide (16:9)', value: 'video' }, { label: 'Extra wide (21:9)', value: 'wide' }, { label: 'Square', value: 'square' }, { label: 'Portrait (4:5)', value: 'portrait' }, { label: 'No image', value: 'hide' }] },
-        cardStyle: { type: 'radio', label: 'Card', options: [{ label: 'Box', value: 'card' }, { label: 'Glass', value: 'glass' }, { label: 'Paper (pinned)', value: 'paper' }, { label: 'No box', value: 'plain' }] },
+        cardStyle: { type: 'radio', label: 'Card', options: [{ label: 'Box', value: 'card' }, { label: 'Glass', value: 'glass' }, { label: 'Paper', value: 'paper' }, { label: 'No box', value: 'plain' }] },
         cardAlign: { type: 'radio', label: 'Text in cards', options: [{ label: 'Left', value: 'left' }, { label: 'Center', value: 'center' }] },
         showDescription: yesNo('Short description'),
         showStack: yesNo('Tags'),
@@ -810,11 +815,12 @@ export const designConfig: Config<Components, RootProps> = {
         },
         layout: { type: 'radio', label: 'Layout', options: [{ label: 'Column', value: 'column' }, { label: 'Row', value: 'row' }] },
         size: { type: 'radio', label: 'Size', options: [{ label: 'Small', value: 'sm' }, { label: 'Medium', value: 'md' }] },
+        look: { type: 'radio', label: 'Look', options: [{ label: 'Sticky notes (playful)', value: 'sticky' }, { label: 'Index cards (refined)', value: 'card' }] },
       },
-      defaultProps: { notes: [{ label: 'Code', icon: 'code', href: '#projects', color: '' }, { label: 'Ideas', icon: 'bulb', href: '#skills', color: '' }, { label: 'Build', icon: 'rocket', href: '#contact', color: '' }], layout: 'column', size: 'md' },
-      render: ({ notes, layout, size }) => (
+      defaultProps: { look: 'sticky', notes: [{ label: 'Code', icon: 'code', href: '#projects', color: '' }, { label: 'Ideas', icon: 'bulb', href: '#skills', color: '' }, { label: 'Build', icon: 'rocket', href: '#contact', color: '' }], layout: 'column', size: 'md' },
+      render: ({ notes, layout, size, look = 'sticky' }) => (
         <nav className="d-prim" aria-label="Notes">
-          <ul className={`d-notes d-notes-${layout === 'row' ? 'row' : 'column'} d-notes-${size === 'sm' ? 'sm' : 'md'}`}>
+          <ul className={`d-notes d-notes-${layout === 'row' ? 'row' : 'column'} d-notes-${size === 'sm' ? 'sm' : 'md'}${look === 'card' ? ' d-notes-card' : ''}`}>
             {(notes ?? []).map((n, i) => {
               const href = safeHref(n.href) ?? '#';
               const color = n.color && /^#[0-9a-f]{3,8}$|^rgba?\(/i.test(n.color) ? n.color : '';
@@ -840,10 +846,11 @@ export const designConfig: Config<Components, RootProps> = {
         interval: { type: 'number', label: 'Seconds per quote', min: 4, max: 60 },
         look: { type: 'radio', label: 'Look', options: [{ label: 'Navy card', value: 'navy' }, { label: 'Paper', value: 'paper' }, { label: 'Plain', value: 'plain' }] },
         icon: { type: 'select', label: 'Icon below', options: [{ label: 'None', value: '' }, { label: 'Atom', value: 'atom' }, { label: 'Sparkle', value: 'sparkle' }, { label: 'Star', value: 'star' }, { label: 'Bulb', value: 'bulb' }] },
+        font: { type: 'radio', label: 'Quote font', options: [{ label: 'Handwriting', value: 'hand' }, { label: 'Serif (refined)', value: 'serif' }] },
       },
       defaultProps: { quotes: [{ quote: 'Talk is cheap. Show me the code.', author: 'Linus Torvalds' }, { quote: 'Simplicity is prerequisite for reliability.', author: 'Edsger W. Dijkstra' }], interval: 8, look: 'navy', icon: 'atom' },
-      render: ({ quotes, interval, look, icon }) => (
-        <div className={`d-prim d-quote-card d-quote-${look}`}>
+      render: ({ quotes, interval, look, icon, font = 'hand' }) => (
+        <div className={`d-prim d-quote-card d-quote-${look}${font === 'serif' ? ' d-quote-serif' : ''}`}>
           <QuoteRotator quotes={quotes ?? []} interval={interval} />
           {icon && <span className="d-quote-icon d-motion-spin" aria-hidden="true"><Icon name={icon} size={30} /></span>}
         </div>
