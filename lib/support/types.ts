@@ -6,7 +6,7 @@ import { FEATURE_INFO, SITE_FEATURES, type SiteFeature } from '@/lib/sites/featu
 
 /** What a site's people can send. */
 export const SUPPORT_KINDS = ['access', 'help', 'feedback'] as const;
-/** Plus "lead": someone asking for a site of their own from the Careerloom company page (not signed in). */
+/** Plus "lead": someone asking for a site of their own from the Kritipath company page (not signed in). */
 export const STORED_KINDS = [...SUPPORT_KINDS, 'lead'] as const;
 export type SupportKind = (typeof STORED_KINDS)[number];
 export const KIND_LABELS: Record<SupportKind, string> = { access: 'Access request', help: 'Help with a problem', feedback: 'Feedback or idea', lead: 'New customer' };

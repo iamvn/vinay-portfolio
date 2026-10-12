@@ -15,7 +15,7 @@ import { TAB_LABELS, blockedForReadOnly, canUseTab, isReadOnly, tabForRequest } 
  *   - POST /api/track                         (anonymous contact-click counts)
  *   - POST /api/collect                       (anonymous page views for Admin → Insights)
  *   - GET/POST /api/ask                       (the "Ask my resume" assistant)
- *   - POST /api/careerloom/request            ("Request access" on the company page)
+ *   - POST /api/kritipath/request            ("Request access" on the company page)
  *   - GET  /api/resume, /api/profile-image,
  *          /api/projects/<slug>/image,
  *          /api/files/<id>/<name>             (files shown on the public site)
@@ -29,7 +29,7 @@ const PUBLIC_API: { method: string; pattern: RegExp }[] = [
   { method: 'POST', pattern: /^\/api\/track$/ },
   { method: 'POST', pattern: /^\/api\/collect$/ }, // page views (Admin → Insights)
   { method: 'POST', pattern: /^\/api\/ask$/ },
-  { method: 'POST', pattern: /^\/api\/careerloom\/request$/ }, // "Request access" on the Careerloom company page
+  { method: 'POST', pattern: /^\/api\/kritipath\/request$/ }, // "Request access" on the Kritipath company page
   { method: 'GET', pattern: /^\/api\/ask$/ },
   { method: 'GET', pattern: /^\/api\/resume$/ },
   { method: 'GET', pattern: /^\/api\/profile-image$/ },

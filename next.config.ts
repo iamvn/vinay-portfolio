@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
   },
   // Local development of the multi-site platform: sites open at <address>.localhost:3000.
   allowedDevOrigins: ['*.localhost'],
+  // The platform's first name: keep old links working.
+  async redirects() {
+    return [{ source: '/careerloom', destination: '/kritipath', permanent: true }];
+  },
   experimental: {
     optimizePackageImports: []
   }

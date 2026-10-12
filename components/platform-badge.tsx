@@ -2,7 +2,7 @@ import { BRAND, brandUrl } from '@/lib/brand';
 import { BrandMark } from './brand-mark';
 
 /**
- * "Built on Careerloom": shown at the bottom of every public page of every site on the platform.
+ * "Built on Kritipath": shown at the bottom of every public page of every site on the platform.
  * Fixed in code on purpose: there is no setting, design block or template option that hides it.
  * It takes the page's muted text color (designed pages) or a soft grey (the classic site).
  */

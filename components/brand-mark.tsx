@@ -1,20 +1,23 @@
 import { useId } from 'react';
 
-/** Careerloom's mark: two threads woven across each other on a rounded tile (an original glyph). */
+/**
+ * Kritipath's mark (an original glyph): a winding path rising across a warm saffron-to-violet tile toward a small
+ * four-point star, the work (कृति) that lights the way along the path (पथ).
+ */
 export function BrandMark({ size = 20, className = '' }: { size?: number; className?: string }) {
   const id = useId().replace(/:/g, '');
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className} style={{ flexShrink: 0 }}>
       <defs>
-        <linearGradient id={`cl-${id}`} x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#5b7cfa" />
-          <stop offset=".55" stopColor="#9b6cf6" />
-          <stop offset="1" stopColor="#f472b6" />
+        <linearGradient id={`kp-${id}`} x1="2" y1="22" x2="22" y2="2" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#ff8a3d" />
+          <stop offset=".5" stopColor="#e8457c" />
+          <stop offset="1" stopColor="#6d5cf6" />
         </linearGradient>
       </defs>
-      <rect x="1" y="1" width="22" height="22" rx="6.5" fill={`url(#cl-${id})`} />
-      <path d="M5.5 8.5c3.2 0 3.3 7 6.5 7s3.3-7 6.5-7" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-      <path d="M5.5 15.5c3.2 0 3.3-7 6.5-7s3.3 7 6.5 7" fill="none" stroke="#fff" strokeOpacity=".6" strokeWidth="2" strokeLinecap="round" />
+      <rect x="1" y="1" width="22" height="22" rx="6.5" fill={`url(#kp-${id})`} />
+      <path d="M5.5 18.5c4.5 0 2-5.5 6.5-5.5s2.5-4 5-5" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+      <path d="M17.6 3.6l.62 1.58 1.58.62-1.58.62-.62 1.58-.62-1.58-1.58-.62 1.58-.62z" fill="#fff" />
     </svg>
   );
 }
