@@ -31,8 +31,10 @@ const FEATURES: { icon: string; color: string; title: string; text: string }[] =
   { icon: 'notes', color: '#ff9f0a', title: 'Resumes that pass ATS', text: 'Build clean, ATS-friendly resumes straight from your profile and check your score before you apply.' },
   { icon: 'chat', color: '#30d158', title: 'An AI that answers recruiters', text: '“Ask my resume” replies to questions about your experience, using only what’s on your site.' },
   { icon: 'briefcase', color: '#ff375f', title: 'Every application, tracked', text: 'Paste a job link, see how your profile matches what it asks for, and follow each application to the offer.' },
-  { icon: 'user', color: '#5e5ce6', title: 'Real interview stories', text: 'A community of real interview experiences: the rounds, the questions, and how people prepared.' },
+  { icon: 'target', color: '#00c7be', title: 'A plan for your next switch', text: 'Set a goal and a 2–3 month timeline, break it into DSA, system design and daily tasks, and get nudged to stay on it.' },
+  { icon: 'users', color: '#5e5ce6', title: 'Real interview stories', text: 'A community of real interview experiences: the rounds, the questions, and how people prepared.' },
   { icon: 'chart', color: '#64d2ff', title: 'Know who’s looking', text: 'Private insights on visits, where they came from, and who clicked to contact you.' },
+  { icon: 'pulse', color: '#ac8e68', title: 'Activity you can see', text: 'One log of sign-ins, new users, access changes and community posts across every site you run.' },
   { icon: 'globe', color: '#ffd60a', title: 'Your address, your data', text: 'Your own subdomain or custom domain, a private database for every site, backups and team roles.' },
 ];
 
@@ -49,7 +51,7 @@ const AUDIENCE = [
 ];
 
 const STATS: [string, string][] = [
-  ['8 tools', 'portfolio, resume, AI, jobs and more'],
+  ['10 tools', 'portfolio, resume, AI, jobs, prep and more'],
   ['1 login', 'for your whole career'],
   ['Any AI', 'Claude, OpenAI, Gemini and others'],
   ['Your domain', 'with a private database per site'],

@@ -158,6 +158,83 @@ const SLIDES: Slide[] = [
     ),
   },
   {
+    id: 'progress', tab: 'Progress tracker', icon: 'target', color: '#00c7be',
+    title: 'A plan for your next switch.',
+    text: 'Set a goal, pick 2 or 3 months to prepare, and break it into focus areas like DSA and system design. Daily tasks, steps and a bell keep you on it.',
+    points: ['Goal timeline with days left', 'Board from Open to Done, with steps for every task', 'Daily streaks, notes, DSA sheets and a yearly vision board'],
+    screen: (
+      <Window title="Progress tracker" dark>
+        <div className="cl-t-goal">
+          <div className="cl-t-goal-head">
+            <span><small>Your goal</small><b>Land a senior frontend role</b></span>
+            <i className="cl-t-bell" aria-hidden="true"><Icon name="bell" size={14} /><em>2</em></i>
+          </div>
+          <div className="cl-t-goal-stats">
+            {[['62', 'days left'], ['48%', 'tasks done'], ['9', 'day streak']].map(([v, l]) => <span key={l}><b>{v}</b><small>{l}</small></span>)}
+          </div>
+          <span className="cl-t-goal-time"><i style={{ width: '31%' }} /></span>
+          <div className="cl-t-goal-body">
+            <div className="cl-t-kanban">
+              {[
+                ['Open', '#94a3b8', [['DSA', 'Graphs: BFS & DFS', 0]]],
+                ['In progress', '#22d3ee', [['DSA', 'Sliding window', 60], ['System design', 'Design a URL shortener', 30]]],
+                ['Tested', '#c084fc', [['Projects', 'Portfolio case study', 100]]],
+                ['Done', '#a3e635', [['DSA', 'Arrays & hashing', 100]]],
+              ].map(([col, dot, cards]) => (
+                <div key={col as string} className="cl-t-kcol">
+                  <b><i style={{ background: dot as string }} />{col as string}</b>
+                  {(cards as [string, string, number][]).map(([area, title, p]) => (
+                    <span key={title} className="cl-t-kcard">
+                      <small style={{ color: area === 'DSA' ? '#a3e635' : area === 'Projects' ? '#fb923c' : '#22d3ee' }}>{area}</small>
+                      <span>{title}</span>
+                      {p > 0 && p < 100 && <i><em style={{ width: `${p}%` }} /></i>}
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="cl-t-today">
+              <b>Today</b>
+              {[['Solve 2 LeetCode problems', true], ['Read 1 design article', true], ['Revise DP notes', false]].map(([t, done]) => (
+                <span key={t as string} className={done ? 'done' : ''}><i />{t as string}</span>
+              ))}
+              <b className="cl-t-vision-h">Vision 2026</b>
+              <span className="cl-t-vision"><i /><i /><i /></span>
+            </div>
+          </div>
+        </div>
+      </Window>
+    ),
+  },
+  {
+    id: 'community', tab: 'Community', icon: 'users', color: '#5e5ce6',
+    title: 'Real interview stories, shared.',
+    text: 'Read how others cleared their interviews: every round, the questions asked and how they prepared. Share your own, even anonymously.',
+    points: ['Rounds, questions and prep, by company and role', 'Search and filter in seconds', 'Post anonymously or keep drafts'],
+    screen: (
+      <Window title="Community · Interview stories">
+        <div className="cl-t-comm">
+          <span className="cl-t-search"><Icon name="search" size={13} /> Search company, role or topic</span>
+          <span className="cl-t-chips">{['All', 'Frontend', 'Backend', 'Selected', 'Fresher'].map((c, i) => <i key={c} className={i === 0 ? 'on' : ''}>{c}</i>)}</span>
+          {[
+            { who: 'A', name: 'Anonymous', role: 'Frontend Engineer · Nimbus Labs', result: 'Selected', rounds: ['DSA', 'Machine coding', 'System design', 'HR'], color: '#5e5ce6' },
+            { who: 'R', name: 'Rohan K.', role: 'SDE II · Orbit Pay', result: 'Offer', rounds: ['Online test', 'DSA', 'Hiring manager'], color: '#ff9f0a' },
+          ].map((p) => (
+            <article key={p.name} className="cl-t-post">
+              <header>
+                <i style={{ background: p.color }}>{p.who}</i>
+                <span><b>{p.name}</b><small>{p.role}</small></span>
+                <em>{p.result}</em>
+              </header>
+              <span className="cl-t-rounds">{p.rounds.map((r, k) => <i key={r}>{k + 1}. {r}</i>)}</span>
+              <Bar w="92%" /><Bar w="70%" />
+            </article>
+          ))}
+        </div>
+      </Window>
+    ),
+  },
+  {
     id: 'admin', tab: 'Control room', icon: 'chart', color: '#64d2ff',
     title: 'Run everything from one control room.',
     text: 'A complete CMS for your career: edit your profile, projects and site text, see who visits, and invite your team with the right access.',
@@ -177,6 +254,34 @@ const SLIDES: Slide[] = [
               <span key={s as string}><small>{s}</small><i><em style={{ width: `${p}%` }} /></i><b>{p}%</b></span>
             ))}
           </div>
+        </div>
+      </Window>
+    ),
+  },
+  {
+    id: 'activity', tab: 'Activity log', icon: 'pulse', color: '#ac8e68',
+    title: 'See what happens, on every site.',
+    text: 'For teams and institutions running many sites: one log of sign-ins, new users, access changes and community posts, so nothing happens unseen.',
+    points: ['Sign-ins, users and access changes', 'Community posts and moderation', 'Filter by site or by type of activity'],
+    screen: (
+      <Window title="Kritipath · Activity logs" dark>
+        <div className="cl-t-log">
+          <span className="cl-t-filters"><i>All sites ▾</i><i>All activity ▾</i><small>1,248 events</small></span>
+          {[
+            ['09:41', 'Signed in', '#94a3b8', 'Priya S.', 'priya-sharma'],
+            ['09:32', 'Added user', '#a3e635', 'Aman (admin)', 'design-lab'],
+            ['09:10', 'Posted to community', '#a78bfa', 'Anonymous', 'kritipath'],
+            ['08:55', 'Changed user', '#22d3ee', 'Neha R.', 'cs-batch-26'],
+            ['08:20', 'Sent a request', '#fbbf24', 'Kabir M.', 'kabir-dev'],
+            ['Yesterday', 'Created site', '#4ade80', 'Owner', 'cs-batch-26'],
+          ].map(([time, kind, color, who, site]) => (
+            <span key={time + kind} className="cl-t-event">
+              <small>{time}</small>
+              <em style={{ color, borderColor: `${color}55`, background: `${color}18` }}>{kind}</em>
+              <b>{who}</b>
+              <i>{site}</i>
+            </span>
+          ))}
         </div>
       </Window>
     ),

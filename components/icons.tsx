@@ -184,6 +184,9 @@ export function Icon({
         <path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16M8 3.5c-.6.8-.6 1.7 0 2.5M11 3.5c-.6.8-.6 1.7 0 2.5M14 3.5c-.6.8-.6 1.7 0 2.5" />
       </>
     ),
+    target: (<><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" fill="currentColor" /><path d="m15 9 5.5-5.5" /><path d="M17.5 3.5h3v3" /></>),
+    bell: (<><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></>),
+    pulse: (<><path d="M3 12h4l2.5-6 4 12 2.5-6H21" /></>),
     users: (
       <>
         <circle cx="9" cy="8.5" r="3" />
