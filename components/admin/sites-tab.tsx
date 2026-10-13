@@ -287,6 +287,36 @@ function SiteItem({ site, isMain, onChanged, notify }: { site: SiteRow; isMain: 
 }
 
 /** Platform: create and manage other people's portfolio sites (main site admins, or site admins allowed to). */
+type Found = { slug: string; dbName: string; name: string; ownerEmail: string };
+
+/** Platform owner: site databases in Turso that aren't in the list (e.g. after the main database was replaced). */
+function Reconnect({ notify, onDone }: { notify: Notify; onDone: () => void }) {
+  const [found, setFound] = useState<{ found: Found[]; failed: { dbName: string; reason: string }[] } | null>(null);
+  const look = () => api<{ found: Found[]; failed: { dbName: string; reason: string }[] }>('GET', '/api/platform/sites/reconnect', undefined, { fresh: true })
+    .then(setFound).catch((error) => notify(describeError(error), 'error'));
+  const reconnect = () => api<{ reconnected: string[]; failed: { dbName: string; reason: string }[] }>('POST', '/api/platform/sites/reconnect')
+    .then((r) => {
+      notify(r.reconnected.length ? `Reconnected ${r.reconnected.length} site${r.reconnected.length === 1 ? '' : 's'}.` : 'Nothing to reconnect.');
+      if (r.failed.length) notify(`Couldn't reconnect: ${r.failed.map((f) => `${f.dbName} (${f.reason})`).join('; ')}`, 'error');
+      setFound(null); onDone();
+    }).catch((error) => notify(describeError(error), 'error'));
+  return (
+    <div className="space-y-3 text-sm text-slate-300">
+      <p>Finds site databases (<code>site-…</code>) in your Turso organization that aren&apos;t in the list above, for example after the main database was replaced, and adds them back with their content and users as they are. Custom domains and security settings need setting again.</p>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={look}>Look for site databases</Button>
+        {found && found.found.length > 0 && <Button tone="primary" onClick={reconnect}>Reconnect {found.found.length} site{found.found.length === 1 ? '' : 's'}</Button>}
+      </div>
+      {found && (found.found.length ? (
+        <ul className="divide-y divide-white/5 rounded-xl border border-white/10">
+          {found.found.map((f) => <li key={f.slug} className="px-3 py-2"><b className="text-white">{f.name}</b> <span className="text-slate-500">· {f.slug}{f.ownerEmail ? ` · ${f.ownerEmail}` : ''}</span></li>)}
+        </ul>
+      ) : <p className="text-slate-400">Every site database is already listed.</p>)}
+      {found && found.failed.length > 0 && <p className="text-xs text-amber-200">Couldn&apos;t read: {found.failed.map((f) => f.dbName).join(', ')}</p>}
+    </div>
+  );
+}
+
 export function SitesTab({ notify }: { notify: Notify }) {
   const [state, setState] = useState<{ sites: SiteRow[]; platform: Platform } | null>(null);
   const [created, setCreated] = useState<{ site: SiteRow; password: string } | null>(null);
@@ -329,6 +359,7 @@ export function SitesTab({ notify }: { notify: Notify }) {
         <CreateSite platform={state.platform} notify={notify} onCreated={(site, password) => { setCreated({ site, password }); load(); notify(`Created ${site.name}'s site.`); }} />
       </Card>
 
+      {isMain && <Card title="Reconnect existing sites" defaultOpen={false}><Reconnect notify={notify} onDone={load} /></Card>}
       {isMain && <AnnouncementsEditor notify={notify} />}
       {isMain && <GuideEditor notify={notify} />}
     </div>

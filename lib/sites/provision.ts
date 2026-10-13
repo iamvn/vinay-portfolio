@@ -108,3 +108,48 @@ export async function prepareSiteDatabase(
     source.close();
   }
 }
+
+// ---------- reconnecting site databases the registry no longer lists ----------
+
+export type FoundSite = { slug: string; dbName: string; dbUrl: string; name: string; ownerEmail: string; createdAt: string };
+
+/**
+ * Site databases (site-<slug>) that exist in the Turso organization but aren't in the main site's list of sites,
+ * e.g. after the main database was lost or replaced. Reads each one's name and first admin, so it can be
+ * reconnected with its content and users untouched.
+ */
+export async function findUnlistedSiteDatabases(listed: Set<string>): Promise<{ found: FoundSite[]; failed: { dbName: string; reason: string }[] }> {
+  if (!tursoConfigured()) throw new Error('Reconnecting sites needs TURSO_API_TOKEN and TURSO_ORG in the environment variables.');
+  const body = await turso('/databases');
+  const all: { Name?: string; Hostname?: string }[] = body?.databases ?? [];
+  const found: FoundSite[] = [];
+  const failed: { dbName: string; reason: string }[] = [];
+  for (const db of all) {
+    const dbName = db.Name ?? '';
+    const slug = dbName.startsWith('site-') ? dbName.slice(5) : '';
+    if (!slug || !db.Hostname || listed.has(slug) || !/^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/.test(slug)) continue;
+    const dbUrl = `libsql://${db.Hostname}`;
+    try {
+      const token = await turso(`/databases/${encodeURIComponent(dbName)}/auth/tokens?authorization=read-only&expiration=1d`, { method: 'POST' });
+      const client = createClient({ url: dbUrl, authToken: token?.jwt });
+      try {
+        const profile = await client.execute('SELECT name FROM Profile LIMIT 1').catch(() => null);
+        const owner = await client.execute("SELECT email, createdAt FROM User WHERE role = 'admin' ORDER BY id LIMIT 1").catch(() => null);
+        const name = String(profile?.rows[0]?.name ?? '').trim() || slug;
+        found.push({ slug, dbName, dbUrl, name, ownerEmail: String(owner?.rows[0]?.email ?? ''), createdAt: String(owner?.rows[0]?.createdAt ?? '') || new Date().toISOString() });
+      } finally {
+        client.close();
+      }
+    } catch (error) {
+      failed.push({ dbName, reason: error instanceof Error ? error.message : 'could not read it' });
+    }
+  }
+  return { found, failed };
+}
+
+/** A fresh full-access token for an existing site database (stored encrypted in the registry, like new sites). */
+export async function siteDatabaseToken(dbName: string) {
+  const token = await turso(`/databases/${encodeURIComponent(dbName)}/auth/tokens?authorization=full-access`, { method: 'POST' });
+  if (!token?.jwt) throw new Error('Turso did not return a token.');
+  return token.jwt as string;
+}
