@@ -9,6 +9,7 @@ import { publicUser } from '@/lib/auth/session';
 import { findSessionUser } from '@/lib/auth/permissions-store';
 import { createToken, sessionCookie } from '@/lib/auth/token';
 import { actorLabel, logActivity } from '@/lib/sites/activity';
+import { LAST_LOGIN_KEY } from '@/lib/sites/usage';
 
 const loginSchema = z.object({ email: z.string().trim().toLowerCase().min(1), password: z.string().min(1) }).strict();
 
@@ -39,6 +40,9 @@ export async function POST(request: Request) {
     const { token, expiresAt } = await createToken(user.id, user.tokenVersion, site.slug);
     // Sign-ins on other sites appear in the main admin's Activity logs.
     await logActivity(site, actorLabel(user), 'user.login', { email: user.email, role: user.role });
+    // Also kept in the site's own database (Sites → Usage), so it survives even if the main database is replaced.
+    const lastLogin = JSON.stringify({ at: new Date().toISOString(), email: user.email });
+    await prisma.setting.upsert({ where: { key: LAST_LOGIN_KEY }, create: { key: LAST_LOGIN_KEY, value: lastLogin }, update: { value: lastLogin } }).catch(() => null);
     // Only admins get the token in the body (for curl/scripts); editors use the session cookie only.
     const apiToken = user.role === 'admin' ? { token, expiresAt: expiresAt.toISOString() } : {};
     const response = NextResponse.json({ user: publicUser({ ...((await findSessionUser(user.id)) ?? user), siteTabs: (await currentSite()).tabs }), ...apiToken });

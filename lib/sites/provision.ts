@@ -153,3 +153,12 @@ export async function siteDatabaseToken(dbName: string) {
   if (!token?.jwt) throw new Error('Turso did not return a token.');
   return token.jwt as string;
 }
+
+/** This month's storage and reads/writes for one database (Turso Platform API), or null without the API. */
+export async function databaseUsage(dbName: string): Promise<{ storageBytes: number; rowsRead: number; rowsWritten: number } | null> {
+  if (!tursoConfigured() || !dbName) return null;
+  const body = await turso(`/databases/${encodeURIComponent(dbName)}/usage`);
+  const total = body?.database?.total;
+  if (!total) return null;
+  return { storageBytes: Number(total.storage_bytes ?? 0), rowsRead: Number(total.rows_read ?? 0), rowsWritten: Number(total.rows_written ?? 0) };
+}

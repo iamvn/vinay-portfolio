@@ -5,6 +5,7 @@ import { api, describeError } from './api';
 import { TAB_IDS, TAB_LABELS, type TabId } from '@/lib/auth/permissions';
 import { FEATURE_INFO, SITE_FEATURES, type SiteFeature } from '@/lib/sites/features';
 import { AnnouncementsEditor, GuideEditor } from './platform-guide';
+import { SiteUsage } from './site-usage';
 import { Button, Card, Field, Loading, PasswordInput, TextInput, buttonBase, inputClass, type Notify } from './ui';
 
 type SiteRow = {
@@ -373,6 +374,8 @@ export function SitesTab({ notify }: { notify: Notify }) {
           </div>
         </Card>
       )}
+
+      {isMain && <Card title="Usage & inactive sites"><SiteUsage notify={notify} onChanged={load} /></Card>}
 
       <Card title={`All sites (${state.sites.length})`}>
         {state.sites.length === 0 ? <p className="text-sm text-slate-400">No sites yet. Create the first one below.</p> : (
