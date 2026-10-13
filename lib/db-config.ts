@@ -22,9 +22,11 @@ export function databaseConfig() {
     ? process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN
     : process.env.DATABASE_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN;
   const resolved = url || LOCAL_DATABASE_URL;
-  // Vercel's Turso integration can create a database branch for every deployment ("dpl-…"). Each new
-  // deployment then starts from a fresh copy of the (empty) main database, so edits vanish on every deploy.
-  const deploymentBranch = onVercel && useTurso && /^libsql:\/\/dpl-/i.test(resolved);
+  // Vercel's Turso integration can create a database branch for every deployment ("dpl-…"). Each one starts
+  // from a fresh copy of the (empty) main database, and the integration deletes it when that deployment is
+  // removed, taking every edit with it. That happened in October 2026 with DATABASE_URL pointing at one,
+  // so this checks the address whichever variable it came from.
+  const deploymentBranch = onVercel && /^libsql:\/\/dpl-[a-z0-9]+-/i.test(resolved);
   return {
     url: resolved,
     authToken: authToken || undefined,

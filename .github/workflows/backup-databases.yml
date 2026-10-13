@@ -1,0 +1,59 @@
+# Nightly backup of every Turso database (main site + every user site), encrypted, kept for 90 days.
+# This repository is public, so the backup is encrypted with BACKUP_PASSPHRASE before it is uploaded;
+# without the passphrase the file can't be read.
+#
+# Set up once in GitHub → Settings → Secrets and variables → Actions:
+#   Secrets:   TURSO_API_TOKEN (turso auth api-tokens mint github-backups), BACKUP_PASSPHRASE (a long random phrase)
+#   Variables: TURSO_ORG = enigmatic-virgo-tm4xst
+#
+# Restore: download the artifact from the run, then
+#   openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in backup.tar.gz.enc -out backup.tar.gz   (asks for the passphrase)
+#   tar xzf backup.tar.gz && turso db create <new-name> --from-dump backup/<database>.sql
+name: Back up databases
+
+on:
+  schedule:
+    - cron: '30 21 * * *' # 03:00 IST every night
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-databases
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/backup
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Dump every database
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_ORG: ${{ vars.TURSO_ORG }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/dump" && cp scripts/backup/dump-databases.mjs "$RUNNER_TEMP/dump/"
+          cd "$RUNNER_TEMP/dump" && npm init -y >/dev/null && npm install --silent @libsql/client@0.18
+          node dump-databases.mjs backup
+      - name: Encrypt
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          test -n "$BACKUP_PASSPHRASE" || { echo "BACKUP_PASSPHRASE is not set"; exit 1; }
+          cd "$RUNNER_TEMP/dump"
+          tar czf backup.tar.gz backup
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in backup.tar.gz -out backup.tar.gz.enc -pass env:BACKUP_PASSPHRASE
+          rm -rf backup backup.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: databases-${{ github.run_id }}
+          path: ${{ runner.temp }}/dump/backup.tar.gz.enc
+          retention-days: 90
+          if-no-files-found: error
