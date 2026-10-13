@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { jsonError, parseBody } from '@/lib/api-utils';
 import { insertSite, listSites, updateSite } from '@/lib/sites/registry';
 import { findUnlistedSiteDatabases, siteDatabaseToken } from '@/lib/sites/provision';
-import { requirePlatformAdmin } from '@/lib/sites/platform';
+import { requirePlatformOwner } from '@/lib/sites/platform';
 import { actorLabel, logActivity } from '@/lib/sites/activity';
 import { listProjectDomains, vercelApiConfigured } from '@/lib/sites/vercel';
 import { SITE_URL } from '@/lib/seo';
@@ -18,12 +18,7 @@ export const maxDuration = 60;
  * reconnects them with the addresses chosen. Content, users and passwords live in each site's own database,
  * so they come back exactly as they were.
  */
-async function ownerOnly(request: Request) {
-  const check = await requirePlatformAdmin(request);
-  if (check.error) return check;
-  if (!check.site.isMain) return { error: jsonError('Only the platform owner can do this.', 403) };
-  return check;
-}
+const ownerOnly = requirePlatformOwner;
 
 const label = (domain: string) => domain.split('.')[0];
 /** The project domain that most likely belongs to a site: <slug>.vercel.app, or <slug> plus digits ("mayur-mate56"). */

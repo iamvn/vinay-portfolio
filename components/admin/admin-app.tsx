@@ -207,7 +207,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
         {/* Personal (not site content), so read-only access doesn't apply. */}
         {tab === 'progress' && can('progress') && <ReadOnlyProvider value={false}><ProgressTab notify={notify} /></ReadOnlyProvider>}
         {tab === 'support' && <ReadOnlyProvider value={false}><SupportTab key={askKey} notify={notify} owner={platformMain} prefill={ask} onPrefillUsed={() => setAsk(null)} /></ReadOnlyProvider>}
-        {tab === 'sites' && platform && <SitesTab notify={notify} />}
+        {tab === 'sites' && platform && <SitesTab notify={notify} owner={platformMain && Boolean(user.owner)} />}
         {tab === 'activity' && platformMain && <ActivityTab notify={notify} />}
         {tab === 'users' && <ReadOnlyProvider value={false}><UsersTab me={user} notify={notify} canAddUsers={canAddUsers} /></ReadOnlyProvider>}
         </SectionScope.Provider>

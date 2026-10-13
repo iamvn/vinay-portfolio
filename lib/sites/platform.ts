@@ -1,7 +1,7 @@
 import { siteFeatures } from './features';
 import { TAB_IDS, parseSiteTabs } from '@/lib/auth/permissions';
 import { jsonError } from '@/lib/api-utils';
-import { requireAdmin } from '@/lib/auth/roles';
+import { ownerId, requireAdmin } from '@/lib/auth/roles';
 import type { SessionUser } from '@/lib/auth/session';
 import { currentSite } from './context';
 import { MAIN_SLUG, rootDomain, siteAddress } from './hosts';
@@ -24,6 +24,17 @@ export async function requirePlatformAdmin(request: Request): Promise<PlatformCh
   const { user, error } = await requireAdmin(request);
   if (error) return { error };
   return { user, site };
+}
+
+/**
+ * Only the platform owner (the main site's first admin): usage of every site, and reconnecting sites.
+ * Other admins of the main site and admins of other sites get "Not found", so these tools stay invisible.
+ */
+export async function requirePlatformOwner(request: Request): Promise<PlatformCheck> {
+  const check = await requirePlatformAdmin(request);
+  if (check.error) return check;
+  if (!check.site.isMain || check.user.id !== (await ownerId())) return { error: jsonError('Not found.', 404) };
+  return check;
 }
 
 /** On sites other than the main one, adding users needs the main admin's permission (Admin → Sites → Security). */

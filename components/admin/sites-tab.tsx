@@ -343,7 +343,8 @@ function Reconnect({ notify, onDone }: { notify: Notify; onDone: () => void }) {
   );
 }
 
-export function SitesTab({ notify }: { notify: Notify }) {
+/** `owner`: the platform owner (main site's first admin) also gets Usage and Reconnect. */
+export function SitesTab({ notify, owner = false }: { notify: Notify; owner?: boolean }) {
   const [state, setState] = useState<{ sites: SiteRow[]; platform: Platform } | null>(null);
   const [created, setCreated] = useState<{ site: SiteRow; password: string } | null>(null);
   const load = useCallback(() => {
@@ -375,7 +376,7 @@ export function SitesTab({ notify }: { notify: Notify }) {
         </Card>
       )}
 
-      {isMain && <Card title="Usage & inactive sites"><SiteUsage notify={notify} onChanged={load} /></Card>}
+      {isMain && owner && <Card title="Usage & inactive sites"><SiteUsage notify={notify} onChanged={load} /></Card>}
 
       <Card title={`All sites (${state.sites.length})`}>
         {state.sites.length === 0 ? <p className="text-sm text-slate-400">No sites yet. Create the first one below.</p> : (
@@ -387,7 +388,7 @@ export function SitesTab({ notify }: { notify: Notify }) {
         <CreateSite platform={state.platform} notify={notify} onCreated={(site, password) => { setCreated({ site, password }); load(); notify(`Created ${site.name}'s site.`); }} />
       </Card>
 
-      {isMain && <Card title="Reconnect existing sites" defaultOpen={false}><Reconnect notify={notify} onDone={load} /></Card>}
+      {isMain && owner && <Card title="Reconnect existing sites" defaultOpen={false}><Reconnect notify={notify} onDone={load} /></Card>}
       {isMain && <AnnouncementsEditor notify={notify} />}
       {isMain && <GuideEditor notify={notify} />}
     </div>
