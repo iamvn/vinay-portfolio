@@ -68,6 +68,17 @@
     padding: .3rem .65rem; font-size: .75rem; color: var(--d-text); background: var(--d-surface-2);
   }
   .d-tag-accent { border-color: color-mix(in srgb, var(--d-accent) 35%, transparent); background: color-mix(in srgb, var(--d-accent) 8%, transparent); }
+  /* Labels laid over a project image ("Featured", "Case study"): nearly solid in the page's own background and
+     text colors, so they read on white, black or busy images alike, in every template. */
+  .d-tag-onmedia {
+    border-color: color-mix(in srgb, var(--d-text) 14%, transparent);
+    background: color-mix(in srgb, var(--d-bg) 90%, transparent); color: var(--d-text);
+    -webkit-backdrop-filter: blur(10px) saturate(1.5); backdrop-filter: blur(10px) saturate(1.5);
+    box-shadow: 0 1px 2px rgb(0 0 0 / .18), 0 4px 14px -4px rgb(0 0 0 / .35);
+    letter-spacing: .04em; line-height: 1.2;
+  }
+  .d-tag-onmedia.d-tag-accent { border-color: color-mix(in srgb, var(--d-accent) 55%, transparent); }
+  .d-tag-onmedia .d-tag-star { color: var(--d-accent); }
 
   .d-btn {
     display: inline-flex; min-height: 3rem; align-items: center; justify-content: center; gap: .5rem;

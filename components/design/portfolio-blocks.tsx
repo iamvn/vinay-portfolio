@@ -337,14 +337,20 @@ const projectHref = (project: Project) => (project.type === 'link' ? safeHref(pr
 const TYPE_NAMES: Record<string, string> = { 'case-study': 'Case study', article: 'Article', pdf: 'PDF', link: 'Link' };
 const ASPECTS: Record<string, string> = { video: 'aspect-video', wide: 'aspect-[21/9]', square: 'aspect-square', portrait: 'aspect-[4/5]' };
 
+/** "★ Featured" with the star in the accent color (the label comes from Site Text, star optional). */
+const starred = (label: string) => {
+  const m = label.match(/^\s*★\s*(.*)$/);
+  return m ? <><span className="d-tag-star" aria-hidden="true">★</span>&nbsp;{m[1]}</> : label;
+};
+
 function ProjectCover({ project, label, className, zoom = false, typeBadge = false }: { project: Project; label: string; className: string; zoom?: boolean; typeBadge?: boolean }) {
   const src = safeSrc(project.image);
   return (
     <div className={`d-card-soft relative flex items-center justify-center overflow-hidden text-4xl font-black ${className}`} style={{ color: 'color-mix(in srgb, var(--d-accent) 35%, transparent)' }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {src ? <img src={src} alt={`${project.title} preview`} loading="lazy" className={`h-full w-full object-cover ${zoom ? 'transition duration-500 group-hover:scale-105' : ''}`} /> : <span aria-hidden="true">{initialsOf(project.title)}</span>}
-      {project.featured && <span className="d-tag d-tag-accent absolute left-2 top-2 text-[10px] font-bold">{label}</span>}
-      {typeBadge && <span className="d-tag absolute right-2 top-2 text-[10px] font-bold">{TYPE_NAMES[project.type] ?? ''}</span>}
+      {project.featured && <span className="d-tag d-tag-accent d-tag-onmedia absolute left-2 top-2 text-[10px] font-bold">{starred(label)}</span>}
+      {typeBadge && <span className="d-tag d-tag-onmedia absolute right-2 top-2 text-[10px] font-bold">{TYPE_NAMES[project.type] ?? ''}</span>}
     </div>
   );
 }
