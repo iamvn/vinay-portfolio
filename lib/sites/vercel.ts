@@ -21,6 +21,10 @@ export async function addProjectDomain(domain: string): Promise<{ ok: boolean; m
   const body = await response.json().catch(() => ({}));
   const message: string = body?.error?.message ?? `Vercel answered ${response.status}`;
   if (response.status === 400 && /already/i.test(message)) return { ok: true }; // already on this project
+  // Vercel can also answer 409 "already in use" for a domain that is on THIS project (e.g. a site's address
+  // being set again after the list of sites was rebuilt). Only a domain on another project is a real conflict.
+  const own = await fetch(url(`/v9/projects/${project()}/domains/${encodeURIComponent(domain)}`), { headers: headers() }).catch(() => null);
+  if (own?.ok) return { ok: true };
   if (response.status === 409) return { ok: false, message: `${domain} is already used by another Vercel project or account. Try another address.` };
   return { ok: false, message: `Vercel: ${message}` };
 }
