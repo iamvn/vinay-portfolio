@@ -9,7 +9,7 @@ export const vercelApiConfigured = () => Boolean(process.env.VERCEL_API_TOKEN?.t
 
 function url(path: string) {
   const team = process.env.VERCEL_TEAM_ID?.trim();
-  return `${API}${path}${team ? `?teamId=${encodeURIComponent(team)}` : ''}`;
+  return `${API}${path}${team ? `${path.includes('?') ? '&' : '?'}teamId=${encodeURIComponent(team)}` : ''}`;
 }
 const headers = () => ({ Authorization: `Bearer ${process.env.VERCEL_API_TOKEN!.trim()}`, 'Content-Type': 'application/json' });
 const project = () => encodeURIComponent(process.env.VERCEL_PROJECT!.trim());
@@ -27,4 +27,19 @@ export async function addProjectDomain(domain: string): Promise<{ ok: boolean; m
 
 export async function removeProjectDomain(domain: string) {
   await fetch(url(`/v9/projects/${project()}/domains/${encodeURIComponent(domain)}`), { method: 'DELETE', headers: headers() }).catch(() => null);
+}
+
+/** Every domain on the project (names only), e.g. ["vinay-bharti.vercel.app", "harish-c.vercel.app"]. */
+export async function listProjectDomains(): Promise<string[]> {
+  const names: string[] = [];
+  let until: number | undefined;
+  for (let page = 0; page < 10; page++) {
+    const response = await fetch(url(`/v9/projects/${project()}/domains?limit=100${until ? `&until=${until}` : ''}`), { headers: headers() });
+    if (!response.ok) throw new Error(`Vercel: could not list the project's domains (${response.status}).`);
+    const body = await response.json().catch(() => ({}));
+    for (const d of body?.domains ?? []) if (typeof d?.name === 'string') names.push(d.name.toLowerCase());
+    until = body?.pagination?.next ?? undefined;
+    if (!until) break;
+  }
+  return [...new Set(names)];
 }

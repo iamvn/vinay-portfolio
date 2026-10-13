@@ -287,32 +287,57 @@ function SiteItem({ site, isMain, onChanged, notify }: { site: SiteRow; isMain: 
 }
 
 /** Platform: create and manage other people's portfolio sites (main site admins, or site admins allowed to). */
-type Found = { slug: string; dbName: string; name: string; ownerEmail: string };
+type Candidate = { slug: string; name: string; ownerEmail: string; suggestedDomain: string };
+type ReconnectState = { found: Candidate[]; withoutAddress: Candidate[]; domains: string[]; canListDomains: boolean; failed: { dbName: string; reason: string }[] };
 
-/** Platform owner: site databases in Turso that aren't in the list (e.g. after the main database was replaced). */
+/**
+ * Platform owner: brings sites back after the main database was replaced. Their own databases (site-…) and
+ * addresses still exist; this adds them back to the list and matches each one to its address.
+ */
 function Reconnect({ notify, onDone }: { notify: Notify; onDone: () => void }) {
-  const [found, setFound] = useState<{ found: Found[]; failed: { dbName: string; reason: string }[] } | null>(null);
-  const look = () => api<{ found: Found[]; failed: { dbName: string; reason: string }[] }>('GET', '/api/platform/sites/reconnect', undefined, { fresh: true })
-    .then(setFound).catch((error) => notify(describeError(error), 'error'));
-  const reconnect = () => api<{ reconnected: string[]; failed: { dbName: string; reason: string }[] }>('POST', '/api/platform/sites/reconnect')
+  const [state, setState] = useState<ReconnectState | null>(null);
+  const [chosen, setChosen] = useState<Record<string, string>>({});
+  const look = () => api<ReconnectState>('GET', '/api/platform/sites/reconnect', undefined, { fresh: true })
+    .then((s) => { setState(s); setChosen(Object.fromEntries([...s.found, ...s.withoutAddress].map((c) => [c.slug, c.suggestedDomain]))); })
+    .catch((error) => notify(describeError(error), 'error'));
+  const picked = Object.values(chosen).filter(Boolean);
+  const clash = picked.length !== new Set(picked).size;
+  const todo = state ? state.found.length + state.withoutAddress.filter((c) => chosen[c.slug]).length : 0;
+  const reconnect = () => api<{ reconnected: string[]; addressed: string[]; failed: { dbName: string; reason: string }[] }>('POST', '/api/platform/sites/reconnect', { domains: chosen })
     .then((r) => {
-      notify(r.reconnected.length ? `Reconnected ${r.reconnected.length} site${r.reconnected.length === 1 ? '' : 's'}.` : 'Nothing to reconnect.');
-      if (r.failed.length) notify(`Couldn't reconnect: ${r.failed.map((f) => `${f.dbName} (${f.reason})`).join('; ')}`, 'error');
-      setFound(null); onDone();
+      notify(`Reconnected ${r.reconnected.length} site${r.reconnected.length === 1 ? '' : 's'}${r.addressed.length ? `, set ${r.addressed.length} address${r.addressed.length === 1 ? '' : 'es'}` : ''}.`);
+      if (r.failed.length) notify(`Couldn't finish: ${r.failed.map((f) => `${f.dbName} (${f.reason})`).join('; ')}`, 'error');
+      setState(null); onDone();
     }).catch((error) => notify(describeError(error), 'error'));
+  const row = (c: Candidate, isNew: boolean) => (
+    <li key={c.slug} className="grid gap-2 px-3 py-2.5 sm:grid-cols-[1fr_16rem] sm:items-center">
+      <span className="min-w-0">
+        <b className="text-white">{c.name}</b> <span className="text-slate-500">· {c.slug}{c.ownerEmail ? ` · ${c.ownerEmail}` : ''}</span>
+        {isNew ? <span className="ml-2 rounded bg-lime-300/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-lime-200">not listed</span> : <span className="ml-2 rounded bg-amber-300/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-200">no address</span>}
+      </span>
+      {state!.canListDomains ? (
+        <select aria-label={`Address for ${c.name}`} className={inputClass} value={chosen[c.slug] ?? ''} onChange={(e) => setChosen({ ...chosen, [c.slug]: e.target.value })}>
+          <option value="">No address</option>
+          {state!.domains.map((d) => <option key={d} value={d} disabled={Boolean(chosen[c.slug] !== d && picked.includes(d))}>{d}</option>)}
+        </select>
+      ) : <span className="text-xs text-slate-500">Set its address under All sites afterwards.</span>}
+    </li>
+  );
   return (
     <div className="space-y-3 text-sm text-slate-300">
-      <p>Finds site databases (<code>site-…</code>) in your Turso organization that aren&apos;t in the list above, for example after the main database was replaced, and adds them back with their content and users as they are. Custom domains and security settings need setting again.</p>
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={look}>Look for site databases</Button>
-        {found && found.found.length > 0 && <Button tone="primary" onClick={reconnect}>Reconnect {found.found.length} site{found.found.length === 1 ? '' : 's'}</Button>}
-      </div>
-      {found && (found.found.length ? (
-        <ul className="divide-y divide-white/5 rounded-xl border border-white/10">
-          {found.found.map((f) => <li key={f.slug} className="px-3 py-2"><b className="text-white">{f.name}</b> <span className="text-slate-500">· {f.slug}{f.ownerEmail ? ` · ${f.ownerEmail}` : ''}</span></li>)}
-        </ul>
-      ) : <p className="text-slate-400">Every site database is already listed.</p>)}
-      {found && found.failed.length > 0 && <p className="text-xs text-amber-200">Couldn&apos;t read: {found.failed.map((f) => f.dbName).join(', ')}</p>}
+      <p>If the main database was replaced, its list of sites is empty, but every site&apos;s own database (<code>site-…</code>) and its address still exist. This adds them back and matches each one to its address. Their content, users and passwords come back exactly as they were. Security settings (tabs, features) need setting again.</p>
+      <Button onClick={look}>Look for sites to reconnect</Button>
+      {state && (state.found.length + state.withoutAddress.length ? (
+        <>
+          <ul className="divide-y divide-white/5 rounded-xl border border-white/10">
+            {state.found.map((c) => row(c, true))}
+            {state.withoutAddress.map((c) => row(c, false))}
+          </ul>
+          {clash && <p className="text-xs text-red-300">Each address can belong to only one site.</p>}
+          <Button tone="primary" disabled={clash || todo === 0} onClick={reconnect}>Reconnect{state.found.length ? ` ${state.found.length} site${state.found.length === 1 ? '' : 's'}` : ''} and save addresses</Button>
+        </>
+      ) : <p className="text-slate-400">Every site is listed and has an address.</p>)}
+      {state && state.failed.length > 0 && <p className="text-xs text-amber-200">Couldn&apos;t read: {state.failed.map((f) => f.dbName).join(', ')}</p>}
     </div>
   );
 }
