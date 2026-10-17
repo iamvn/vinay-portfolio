@@ -56,27 +56,48 @@ function Meter({ label, used, limit, format, unknown = false }: { label: string;
   );
 }
 
-function SiteTables({ slug, notify }: { slug: string; notify: Notify }) {
-  const [tables, setTables] = useState<Table[] | null>(null);
-  useEffect(() => {
-    api<{ tables: Table[] }>('GET', `/api/platform/database/tables?site=${encodeURIComponent(slug)}`, undefined, { fresh: true })
-      .then((r) => setTables(r.tables)).catch((error) => { notify(describeError(error), 'error'); setTables([]); });
-  }, [slug, notify]);
-  if (!tables) return <p className="py-3 text-xs text-slate-500">Reading tables…</p>;
-  if (!tables.length) return <p className="py-3 text-xs text-slate-500">No tables found.</p>;
-  const max = Math.max(1, ...tables.map((t) => t.bytes));
+type TabTotal = { tab: string; rows: number; bytes: number };
+
+function SizeRows({ rows, tone }: { rows: { key: string; label: string; sub?: string; rows: number; bytes: number }[]; tone: string }) {
+  const max = Math.max(1, ...rows.map((r) => r.bytes));
   return (
-    <ul className="space-y-1.5 py-3">
-      {tables.map((t) => (
-        <li key={t.name} className="grid grid-cols-[minmax(0,1fr)_5rem] items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_5rem_5rem]">
-          <span className="min-w-0 truncate text-sm text-slate-200">{t.label} <span className="font-mono text-[11px] text-slate-500">{t.name !== t.label ? t.name : ''}</span></span>
-          <span className="order-last col-span-2 h-1.5 overflow-hidden rounded-full bg-white/10 sm:order-none sm:col-span-1"><span className="block h-full rounded-full bg-cyan-300/70" style={{ width: `${(t.bytes / max) * 100}%` }} /></span>
-          <span className="hidden text-right text-xs tabular-nums text-slate-400 sm:block">{count(t.rows)} rows</span>
-          <span className="text-right text-xs font-bold tabular-nums text-slate-200">{bytes(t.bytes)}</span>
+    <ul className="space-y-1.5">
+      {rows.map((r) => (
+        <li key={r.key} className="grid grid-cols-[minmax(0,1fr)_5rem] items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_5rem_5rem]">
+          <span className="min-w-0 truncate text-sm text-slate-200">{r.label}{r.sub && <span className="ml-1 font-mono text-[11px] text-slate-500">{r.sub}</span>}</span>
+          <span className="order-last col-span-2 h-1.5 overflow-hidden rounded-full bg-white/10 sm:order-none sm:col-span-1"><span className={`block h-full rounded-full ${tone}`} style={{ width: `${(r.bytes / max) * 100}%` }} /></span>
+          <span className="hidden text-right text-xs tabular-nums text-slate-400 sm:block">{count(r.rows)} {r.rows === 1 ? 'row' : 'rows'}</span>
+          <span className="text-right text-xs font-bold tabular-nums text-slate-200">{bytes(r.bytes)}</span>
         </li>
       ))}
-      <li className="pt-1 text-[11px] text-slate-500">Sizes count the data itself; Turso&apos;s storage figure above also includes indexes and free pages.</li>
     </ul>
+  );
+}
+
+/** One site's data: total per admin tab first, then (folded) every table. */
+function SiteTables({ slug, notify }: { slug: string; notify: Notify }) {
+  const [data, setData] = useState<{ tables: Table[]; tabs: TabTotal[] } | null>(null);
+  const [showTables, setShowTables] = useState(false);
+  useEffect(() => {
+    api<{ tables: Table[]; tabs: TabTotal[] }>('GET', `/api/platform/database/tables?site=${encodeURIComponent(slug)}`, undefined, { fresh: true })
+      .then(setData).catch((error) => { notify(describeError(error), 'error'); setData({ tables: [], tabs: [] }); });
+  }, [slug, notify]);
+  if (!data) return <p className="py-3 text-xs text-slate-500">Reading tables…</p>;
+  if (!data.tables.length) return <p className="py-3 text-xs text-slate-500">No tables found.</p>;
+  const total = data.tabs.reduce((n, t) => n + t.bytes, 0);
+  return (
+    <div className="space-y-3 py-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <h4 className="text-[11px] font-black uppercase tracking-wider text-cyan-300">By tab</h4>
+        <span className="text-xs tabular-nums text-slate-400">Total <b className="text-slate-100">{bytes(total)}</b></span>
+      </div>
+      <SizeRows tone="bg-lime-300/80" rows={data.tabs.map((t) => ({ key: t.tab, label: t.tab, rows: t.rows, bytes: t.bytes }))} />
+      <button type="button" aria-expanded={showTables} onClick={() => setShowTables((v) => !v)} className="inline-flex min-h-9 items-center gap-2 text-xs font-bold text-slate-400 hover:text-white">
+        <span aria-hidden="true" className={`transition ${showTables ? 'rotate-90' : ''}`}>▸</span>{showTables ? 'Hide' : 'Show'} all {data.tables.length} tables
+      </button>
+      {showTables && <SizeRows tone="bg-cyan-300/70" rows={data.tables.map((t) => ({ key: t.name, label: t.label, sub: t.name !== t.label ? t.name : undefined, rows: t.rows, bytes: t.bytes }))} />}
+      <p className="text-[11px] text-slate-500">Sizes count the data itself; Turso&apos;s storage figure above also includes indexes and free pages.</p>
+    </div>
   );
 }
 

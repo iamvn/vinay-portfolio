@@ -13,9 +13,9 @@ export async function GET(request: Request) {
   const slug = new URL(request.url).searchParams.get('site') ?? '';
   if (!/^[a-z0-9-]{1,64}$/.test(slug)) return jsonError('Pick a site.', 400);
   try {
-    const tables = await siteTables(slug);
-    if (!tables) return jsonError('Site not found.', 404);
-    return NextResponse.json({ tables }, { headers: { 'Cache-Control': 'private, no-store' } });
+    const result = await siteTables(slug);
+    if (!result) return jsonError('Site not found.', 404);
+    return NextResponse.json(result, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (err) {
     return jsonError(err instanceof Error ? err.message : 'Could not read that database.', 502);
   }

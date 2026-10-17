@@ -32,9 +32,21 @@ const TABLE_NAMES: Record<string, string> = {
   PageView: 'Visitor stats (page views)', TrafficGoal: 'Visitor stats (goal clicks)', Event: 'Contact & Ask events', SiteActivity: 'Activity log',
   Profile: 'Profile', SiteCopy: 'Site text', SkillGroup: 'Skills', Experience: 'Experience', Project: 'Projects', ProjectImage: 'Project images',
   Resume: 'Resume files', ProfileImage: 'Profile photos', User: 'Users', AiProvider: 'AI providers', Setting: 'Settings, designs & personal data',
-  ResumeDocument: 'Resume builder documents', JobApplication: 'Job applications', AssetBlock: 'Uploaded files', Site: 'List of sites',
+  ResumeDocument: 'Resume builder documents', JobApplication: 'Job applications', Asset: 'Uploaded files (list)', AssetBlock: 'Uploaded files (data)', Site: 'List of sites',
+  FormSubmission: 'Contact form messages', SharedTemplate: 'Published templates',
   CommunityPost: 'Community posts', SupportRequest: 'Support requests',
 };
+
+/** The admin tab each table's data belongs to, for the "by tab" totals. Settings are split by key below. */
+const TABLE_TAB: Record<string, string> = {
+  Profile: 'Profile', ProfileImage: 'Profile', SiteCopy: 'Site text', SkillGroup: 'Skills', Experience: 'Experience',
+  Project: 'Projects', ProjectImage: 'Projects', Resume: 'Resume', ResumeDocument: 'Resume builder', JobApplication: 'Applications',
+  PageView: 'Insights', TrafficGoal: 'Insights', Event: 'Insights', FormSubmission: 'Insights', AiProvider: 'AI assistant',
+  User: 'Users & security', Asset: 'Uploaded files', AssetBlock: 'Uploaded files', SharedTemplate: 'Design', CommunityPost: 'Community',
+  SupportRequest: 'Support', SiteActivity: 'Activity logs', Site: 'Sites',
+};
+/** Setting rows by the first part of their key: design.* → Design, progress.* → Progress tracker… */
+const SETTING_TAB: Record<string, string> = { design: 'Design', progress: 'Progress tracker', career: 'Applications', platform: 'Support', support: 'Support', system: 'Settings' };
 
 const open = (site: Site): Client => createClient({ url: site.dbUrl, authToken: site.dbToken });
 const withTimeout = <T,>(promise: Promise<T>, ms: number) =>
@@ -89,7 +101,21 @@ export async function siteTables(slug: string) {
         const stats = await db.execute(`SELECT COUNT(*) AS n, COALESCE(SUM(${size}), 0) AS bytes FROM ${quote(name)}`);
         tables.push({ name, label: TABLE_NAMES[name] ?? name, rows: Number(stats.rows[0]?.n ?? 0), bytes: Number(stats.rows[0]?.bytes ?? 0) });
       }
-      return tables.sort((a, b) => b.bytes - a.bytes);
+      // Totals per admin tab: tables by TABLE_TAB, Setting rows by the first part of their key.
+      const byTab = new Map<string, { tab: string; rows: number; bytes: number }>();
+      const add = (tab: string, rows: number, b: number) => {
+        const entry = byTab.get(tab) ?? { tab, rows: 0, bytes: 0 };
+        entry.rows += rows; entry.bytes += b; byTab.set(tab, entry);
+      };
+      for (const t of tables) if (t.name !== 'Setting') add(TABLE_TAB[t.name] ?? 'Other', t.rows, t.bytes);
+      if (tables.some((t) => t.name === 'Setting')) {
+        const groups = await db.execute("SELECT substr(key, 1, instr(key || '.', '.') - 1) AS p, COUNT(*) AS n, COALESCE(SUM(length(CAST(key AS BLOB)) + length(CAST(value AS BLOB))), 0) AS bytes FROM Setting GROUP BY p");
+        for (const g of groups.rows) add(SETTING_TAB[String(g.p)] ?? 'Settings', Number(g.n), Number(g.bytes));
+      }
+      return {
+        tables: tables.sort((a, b) => b.bytes - a.bytes),
+        tabs: [...byTab.values()].filter((t) => t.rows > 0 || t.bytes > 0).sort((a, b) => b.bytes - a.bytes),
+      };
     })(), 20_000);
   } finally {
     db.close();

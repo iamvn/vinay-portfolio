@@ -182,6 +182,98 @@ function Inbox({ notify }: { notify: Notify }) {
   );
 }
 
+/** The password new customers' sites start with (the owner can change it before creating the site). */
+const DEFAULT_SITE_PASSWORD = 'test@12345';
+const SITE_SLUG = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
+const slugFrom = (name: string) => name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+
+type CreatedSite = { name: string; url: string; email: string; password: string };
+
+/** The message sent to a new customer: their address, how to sign in, and the temporary password. */
+function welcomeText(c: CreatedSite) {
+  const first = c.name.split(' ')[0] || c.name;
+  const admin = c.url ? `${c.url.replace(/\/+$/, '')}/admin` : '';
+  return [
+    `Hi ${first},`,
+    '',
+    'Your Kritipath site is ready.',
+    '',
+    ...(c.url ? [`Your site: ${c.url}`, `Sign in: ${admin}`] : []),
+    `Email: ${c.email}`,
+    `Temporary password: ${c.password}`,
+    '',
+    'Please sign in and change your password under My account first.',
+    '',
+    'Welcome aboard,',
+    'Vinay · Kritipath',
+  ].join('\n');
+}
+
+/** New customer (Kritipath "Request access"): create their site in one click, then share the sign-in details. */
+function CreateSiteFromLead({ request: r, notify, onCreated }: { request: SupportRequest; notify: Notify; onCreated: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(r.fromName);
+  const [slug, setSlug] = useState(slugFrom(r.fromName) || slugFrom(r.fromEmail.split('@')[0]));
+  const [email, setEmail] = useState(r.fromEmail);
+  const [password, setPassword] = useState(DEFAULT_SITE_PASSWORD);
+  const [busy, setBusy] = useState(false);
+  const [created, setCreated] = useState<CreatedSite | null>(null);
+  const valid = SITE_SLUG.test(slug) && name.trim().length > 0 && /.+@.+\..+/.test(email) && password.length >= 10;
+
+  async function create() {
+    setBusy(true);
+    try {
+      const site = await api<{ name: string; url?: string; ownerEmail: string }>('POST', '/api/platform/sites', { slug, name: name.trim(), ownerEmail: email.trim(), ownerPassword: password });
+      setCreated({ name: site.name, url: site.url ?? '', email: site.ownerEmail, password });
+      await api('PATCH', `/api/platform/support/${r.id}`, { status: 'done' }).catch(() => null);
+      notify(`Created ${site.name}'s site.`);
+    } catch (error) {
+      notify(describeError(error), 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (created) {
+    const text = welcomeText(created);
+    const copy = () => navigator.clipboard.writeText(text).then(() => notify('Sign-in details copied.')).catch(() => notify('Couldn’t copy. Select the text and copy it instead.', 'error'));
+    return (
+      <div className="grid gap-3 rounded-xl border border-lime-300/30 bg-lime-300/[.05] p-3">
+        <p className="text-sm font-bold text-lime-100">{created.name}&apos;s site is ready. Send them their sign-in details:</p>
+        <textarea readOnly className={`${inputClass} font-mono sm:text-xs`} rows={14} value={text} onFocus={(e) => e.currentTarget.select()} aria-label="Sign-in details" />
+        <div className="flex flex-wrap gap-2">
+          <Button tone="primary" onClick={copy} view>Copy details</Button>
+          <a href={`mailto:${created.email}?subject=${encodeURIComponent('Your Kritipath site is ready')}&body=${encodeURIComponent(text)}`}
+            className="inline-flex min-h-11 items-center rounded-lg border border-white/15 px-3.5 text-xs font-black uppercase tracking-wide text-slate-200 hover:border-cyan-300/60 sm:min-h-0 sm:py-2">Email {created.name.split(' ')[0] || 'them'}</a>
+          <Button onClick={() => { setCreated(null); setOpen(false); onCreated(); }} view>Done</Button>
+        </div>
+        <p className="text-[11px] text-slate-500">&ldquo;Email&rdquo; opens your email app with this message filled in. Everyone gets the same starting password, so ask them to change it straight away.</p>
+      </div>
+    );
+  }
+  const plainEmail = (
+    <a href={`mailto:${r.fromEmail}?subject=${encodeURIComponent('Your Kritipath site')}`}
+      className="inline-flex min-h-11 items-center rounded-lg border border-white/15 px-3.5 text-xs font-black uppercase tracking-wide text-slate-200 hover:border-cyan-300/60 sm:min-h-0 sm:py-2">Email {r.fromName.split(' ')[0] || 'them'}</a>
+  );
+  if (!open) return <><Button tone="primary" onClick={() => setOpen(true)}>Create site</Button>{plainEmail}</>;
+  return (
+    <div className="grid w-full gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Name"><input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} /></Field>
+        <Field label="Address" hint={SITE_SLUG.test(slug) ? undefined : '3–40 lowercase letters, numbers or hyphens'}>
+          <input className={inputClass} value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} autoCapitalize="none" spellCheck={false} />
+        </Field>
+        <Field label="Their email (sign-in)"><input className={inputClass} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoCapitalize="none" spellCheck={false} /></Field>
+        <Field label="Starting password" hint="They change it after signing in."><input className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="off" spellCheck={false} /></Field>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button tone="primary" disabled={busy || !valid} onClick={create}>{busy ? 'Creating site…' : 'Create site'}</Button>
+        <Button onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
+      </div>
+    </div>
+  );
+}
+
 function InboxItem({ request: r, notify, onChanged }: { request: SupportRequest; notify: Notify; onChanged: () => void }) {
   const [reply, setReply] = useState(r.reply);
   const [busy, setBusy] = useState(false);
@@ -211,10 +303,11 @@ function InboxItem({ request: r, notify, onChanged }: { request: SupportRequest;
         {r.target && <> · wants <b className="text-amber-200">{targetLabel(r.target)}</b></>}
       </p>
       {r.message && <p className="whitespace-pre-line text-sm text-slate-300">{r.message}</p>}
-      {/* New customers have no account yet: answer them by email, then create their site in the Sites tab. */}
+      {/* New customers have no account yet: create their site here (Create site), or answer them by email. */}
       {!lead && <textarea className={inputClass} rows={2} maxLength={2000} value={reply} onChange={(e) => setReply(e.target.value)} aria-label={`Reply to ${r.subject}`} placeholder="Reply (they see it in their Support tab)" />}
       <div className="flex flex-wrap items-center gap-2">
-        {lead && <a href={`mailto:${r.fromEmail}?subject=${encodeURIComponent('Your Kritipath site')}`} className="inline-flex min-h-11 items-center rounded-lg bg-lime-300 px-3.5 text-xs font-black uppercase tracking-wide text-black sm:min-h-0 sm:py-2">Email {r.fromName.split(' ')[0] || 'them'}</a>}
+        {lead && r.status !== 'done' && <CreateSiteFromLead request={r} notify={notify} onCreated={onChanged} />}
+        {lead && r.status === 'done' && <a href={`mailto:${r.fromEmail}?subject=${encodeURIComponent('Your Kritipath site')}`} className="inline-flex min-h-11 items-center rounded-lg border border-white/15 px-3.5 text-xs font-black uppercase tracking-wide text-slate-200 hover:border-cyan-300/60 sm:min-h-0 sm:py-2">Email {r.fromName.split(' ')[0] || 'them'}</a>}
         {canGrant && <Button tone="primary" disabled={busy} onClick={() => patch({ grant: true, ...(reply.trim() !== r.reply ? { reply: reply.trim() } : {}) }, `Turned on ${targetLabel(r.target)} for ${r.siteName}.`)}>Turn it on for {r.siteName}</Button>}
         {!lead && <Button disabled={busy || reply.trim() === r.reply} onClick={() => patch({ reply: reply.trim(), ...(r.status === 'open' ? { status: 'in-progress' } : {}) }, 'Reply saved.')}>Send reply</Button>}
         <select aria-label="Status" className={`${inputClass} w-auto! min-w-36`} value={r.status} disabled={busy} onChange={(e) => patch({ status: e.target.value }, `Marked ${STATUS_LABELS[e.target.value as SupportStatus].toLowerCase()}.`)}>
