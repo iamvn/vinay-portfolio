@@ -1,0 +1,132 @@
+import { createClient, type Client } from '@libsql/client';
+import { databaseConfig } from '@/lib/db-config';
+import { listSites, mainSite, siteBySlug, type Site } from './registry';
+import { databaseUsage } from './provision';
+
+/**
+ * Platform owner → Database tab: how much of the Turso plan Kritipath uses, which sites and tables take the
+ * space, and deleting old logs (visitor stats, events, activity) after a preview. Content (profiles, projects,
+ * resumes, designs, users) is never part of a cleanup.
+ */
+
+/** Turso Free ("starter") plan limits, as `turso plan show` lists them. Change these on a paid plan. */
+export const PLAN = {
+  name: 'Turso Free',
+  storageBytes: 5 * 1024 ** 3,
+  rowsRead: 500_000_000,
+  rowsWritten: 10_000_000,
+  databases: 100,
+};
+
+/** What can be cleaned: only logs that grow forever. Each entry lists [table, timestamp column]. */
+export const CLEANUP_KINDS = {
+  visits: { label: 'Visitor stats', hint: 'Page views and goal clicks behind Insights. Older ones only change the long-range charts.', tables: [['PageView', 'createdAt'], ['TrafficGoal', 'createdAt']], mainOnly: false },
+  events: { label: 'Contact & “Ask my resume” events', hint: 'Counts of resume downloads, contact clicks and questions asked.', tables: [['Event', 'createdAt']], mainOnly: false },
+  activity: { label: 'Activity log', hint: 'Sign-ins and changes across every site (Activity logs tab). Kept in your main database only.', tables: [['SiteActivity', 'at']], mainOnly: true },
+} as const;
+export type CleanupKind = keyof typeof CLEANUP_KINDS;
+export const CLEANUP_DAYS = [30, 90, 180, 365] as const;
+
+/** Plain names for the tables people will see in the size list. */
+const TABLE_NAMES: Record<string, string> = {
+  PageView: 'Visitor stats (page views)', TrafficGoal: 'Visitor stats (goal clicks)', Event: 'Contact & Ask events', SiteActivity: 'Activity log',
+  Profile: 'Profile', SiteCopy: 'Site text', SkillGroup: 'Skills', Experience: 'Experience', Project: 'Projects', ProjectImage: 'Project images',
+  Resume: 'Resume files', ProfileImage: 'Profile photos', User: 'Users', AiProvider: 'AI providers', Setting: 'Settings, designs & personal data',
+  ResumeDocument: 'Resume builder documents', JobApplication: 'Job applications', AssetBlock: 'Uploaded files', Site: 'List of sites',
+  CommunityPost: 'Community posts', SupportRequest: 'Support requests',
+};
+
+const open = (site: Site): Client => createClient({ url: site.dbUrl, authToken: site.dbToken });
+const withTimeout = <T,>(promise: Promise<T>, ms: number) =>
+  Promise.race([promise, new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timed out')), ms))]);
+const quote = (name: string) => `"${name.replace(/"/g, '""')}"`;
+
+/** The main database's name in Turso: the host's first label without "-<org>". */
+function mainDbName() {
+  try {
+    const label = new URL(databaseConfig().url).host.split('.')[0];
+    const org = process.env.TURSO_ORG?.trim();
+    return org && label.endsWith(`-${org}`) ? label.slice(0, -(org.length + 1)) : '';
+  } catch {
+    return '';
+  }
+}
+
+/** Every site (main first) with this month's Turso storage and reads/writes. */
+export async function databaseOverview() {
+  const sites = [mainSite(), ...(await listSites())];
+  const rows = await Promise.all(sites.map(async (site) => {
+    let usage: Awaited<ReturnType<typeof databaseUsage>> = null;
+    let error: string | undefined;
+    try { usage = await withTimeout(databaseUsage(site.isMain ? mainDbName() : site.dbName), 10_000); } catch (err) { error = err instanceof Error ? err.message : 'unavailable'; }
+    return { slug: site.slug, name: site.isMain ? 'Main site' : site.name, isMain: Boolean(site.isMain), status: site.status, storageBytes: usage?.storageBytes ?? null, rowsRead: usage?.rowsRead ?? null, rowsWritten: usage?.rowsWritten ?? null, error };
+  }));
+  const sum = (key: 'storageBytes' | 'rowsRead' | 'rowsWritten') => rows.reduce((n, r) => n + (r[key] ?? 0), 0);
+  return {
+    plan: PLAN,
+    usageAvailable: rows.some((r) => r.storageBytes !== null),
+    totals: { storageBytes: sum('storageBytes'), rowsRead: sum('rowsRead'), rowsWritten: sum('rowsWritten'), databases: rows.length },
+    sites: rows.sort((a, b) => Number(b.isMain) - Number(a.isMain) || (b.storageBytes ?? 0) - (a.storageBytes ?? 0)),
+    cleanup: Object.entries(CLEANUP_KINDS).map(([id, k]) => ({ id, label: k.label, hint: k.hint, mainOnly: k.mainOnly })),
+    days: CLEANUP_DAYS,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+/** One site's tables: rows and approximate size (the bytes of every value), largest first. */
+export async function siteTables(slug: string) {
+  const site = slug === 'main' ? mainSite() : await siteBySlug(slug, true);
+  if (!site) return null;
+  const db = open(site);
+  try {
+    return await withTimeout((async () => {
+      const list = await db.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'libsql_%' AND name NOT LIKE '_litestream%' AND name NOT LIKE '_prisma%'");
+      const tables = [];
+      for (const row of list.rows) {
+        const name = String(row.name);
+        const cols = (await db.execute(`PRAGMA table_info(${quote(name)})`)).rows.map((c) => String(c.name));
+        const size = cols.length ? cols.map((c) => `COALESCE(length(CAST(${quote(c)} AS BLOB)), 0)`).join(' + ') : '0';
+        const stats = await db.execute(`SELECT COUNT(*) AS n, COALESCE(SUM(${size}), 0) AS bytes FROM ${quote(name)}`);
+        tables.push({ name, label: TABLE_NAMES[name] ?? name, rows: Number(stats.rows[0]?.n ?? 0), bytes: Number(stats.rows[0]?.bytes ?? 0) });
+      }
+      return tables.sort((a, b) => b.bytes - a.bytes);
+    })(), 20_000);
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Counts (dryRun) or deletes rows of one kind older than `days`, on one site or all of them.
+ * At least 30 days are always kept, whatever is asked.
+ */
+export async function cleanup(kind: CleanupKind, days: number, scope: string, dryRun: boolean) {
+  const info = CLEANUP_KINDS[kind];
+  const cutoff = new Date(Date.now() - Math.max(30, days) * 86_400_000).toISOString();
+  const all = [mainSite(), ...(await listSites())];
+  const sites = info.mainOnly ? [mainSite()] : scope === 'all' ? all : all.filter((s) => (s.isMain ? 'main' : s.slug) === scope);
+  const results: { slug: string; name: string; rows: number; error?: string }[] = [];
+  for (const site of sites) {
+    const db = open(site);
+    let rows = 0;
+    try {
+      for (const [table, column] of info.tables) {
+        const exists = await db.execute({ sql: "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", args: [table] });
+        if (!exists.rows.length) continue;
+        if (dryRun) {
+          const r = await db.execute({ sql: `SELECT COUNT(*) AS n FROM ${quote(table)} WHERE ${quote(column)} < ?`, args: [cutoff] });
+          rows += Number(r.rows[0]?.n ?? 0);
+        } else {
+          const r = await db.execute({ sql: `DELETE FROM ${quote(table)} WHERE ${quote(column)} < ?`, args: [cutoff] });
+          rows += r.rowsAffected;
+        }
+      }
+      results.push({ slug: site.isMain ? 'main' : site.slug, name: site.isMain ? 'Main site' : site.name, rows });
+    } catch (err) {
+      results.push({ slug: site.isMain ? 'main' : site.slug, name: site.isMain ? 'Main site' : site.name, rows, error: err instanceof Error ? err.message : 'failed' });
+    } finally {
+      db.close();
+    }
+  }
+  return { kind, days: Math.max(30, days), cutoff, total: results.reduce((n, r) => n + r.rows, 0), sites: results.filter((r) => r.rows > 0 || r.error) };
+}

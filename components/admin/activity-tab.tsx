@@ -6,7 +6,7 @@ import { Button, Card, ConfirmButton, Loading, inputClass, type Notify } from '.
 import type { Post } from '@/lib/community/types';
 
 type Kind = 'user.login' | 'user.added' | 'user.updated' | 'user.removed' | 'site.created' | 'site.updated' | 'site.deleted'
-  | 'community.posted' | 'community.updated' | 'community.deleted' | 'community.hidden' | 'community.shown' | 'community.removed' | 'support.requested' | 'support.answered' | 'design.shared' | 'design.unshared' | 'log.cleared';
+  | 'community.posted' | 'community.updated' | 'community.deleted' | 'community.hidden' | 'community.shown' | 'community.removed' | 'support.requested' | 'support.answered' | 'design.shared' | 'design.unshared' | 'data.cleaned' | 'log.cleared';
 type Activity = { id: number; at: string; site: string; siteName: string; actor: string; kind: Kind; details: Record<string, string> };
 type Stats = { count: number; oldest: string | null };
 type Page = { items: Activity[]; total: number; sites: { site: string; siteName: string }[]; stats?: Stats };
@@ -31,6 +31,7 @@ const KIND_LABELS: Record<Kind, string> = {
   'support.answered': 'Answered a request',
   'design.shared': 'Published a template',
   'design.unshared': 'Unpublished a template',
+  'data.cleaned': 'Deleted old data',
   'log.cleared': 'Cleared the log',
 };
 const KIND_TONES: Record<Kind, string> = {
@@ -51,6 +52,7 @@ const KIND_TONES: Record<Kind, string> = {
   'support.answered': 'border-lime-300/30 bg-lime-300/10 text-lime-200',
   'design.shared': 'border-purple-300/30 bg-purple-300/10 text-purple-200',
   'design.unshared': 'border-slate-400/30 bg-slate-400/10 text-slate-200',
+  'data.cleaned': 'border-amber-300/30 bg-amber-300/10 text-amber-200',
   'log.cleared': 'border-slate-400/30 bg-slate-400/10 text-slate-200',
 };
 
@@ -75,6 +77,7 @@ const FILTERS: { value: string; label: string }[] = [
   { value: 'support.requested', label: '· Requests sent' },
   { value: 'support.answered', label: '· Requests answered' },
   { value: 'design.', label: 'Shared templates' },
+  { value: 'data.cleaned', label: 'Old data deleted' },
   { value: 'log.cleared', label: 'Log cleared' },
 ];
 
@@ -107,6 +110,7 @@ function details(item: Activity): ReactNode {
     case 'design.shared':
     case 'design.unshared':
       return <><b className="text-slate-100">“{d.name}”</b>{d.kind && <span className="text-slate-400"> ({d.kind})</span>}{d.from && <span className="text-slate-400"> from {d.from}</span>}</>;
+    case 'data.cleaned': return <span className="text-slate-400">{d.what}, older than {d.olderThan}: {d.deleted} deleted ({d.sites})</span>;
     case 'log.cleared': return <span className="text-slate-400">{d.scope}: {d.deleted} deleted</span>;
     case 'site.updated': {
       const changes = [

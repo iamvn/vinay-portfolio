@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 export const GUIDE_TABS = [
   'profile', 'experience', 'skills', 'projects', 'copy', 'design', 'resume', 'builder', 'applications', 'progress', 'community',
-  'insights', 'ai', 'backup', 'users', 'support', 'sites', 'activity',
+  'insights', 'ai', 'backup', 'users', 'support', 'sites', 'activity', 'database',
 ] as const;
 export type GuideTab = (typeof GUIDE_TABS)[number];
 export type GuideEntry = { summary: string; features: string[] };
@@ -84,6 +84,10 @@ export const DEFAULT_GUIDE: Guide = {
     sites: {
       summary: 'Create and manage the portfolio sites hosted on this platform.',
       features: ['Create a site for someone (a copy of yours)', 'Custom domains, pause or delete', 'Security: who can add users or sites', 'Choose which admin tabs each site has', 'Edit this Guide and send announcements (platform owner)'],
+    },
+    database: {
+      summary: 'Platform owner only: how much of the Turso plan every site uses, what takes the space, and deleting old logs.',
+      features: ['Storage and monthly reads/writes against the plan limits', 'Each site’s last sign-in, visitors and load; pause or delete inactive sites', 'Every site’s tables by size', 'Delete visitor stats, events or activity older than 30–365 days, after a preview and typing DELETE'],
     },
     activity: {
       summary: 'What happens across your sites, for the platform owner.',

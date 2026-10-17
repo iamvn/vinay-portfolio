@@ -13,6 +13,7 @@ import { AiTab } from './ai-tab';
 import { DesignTab } from './design-tab';
 import { ResumeBuilderTab } from './resume-builder-tab';
 import { SitesTab } from './sites-tab';
+import { DatabaseTab } from './database-tab';
 import { ActivityTab } from './activity-tab';
 import { ApplicationsTab } from './applications-tab';
 import { CommunityTab } from './community-tab';
@@ -44,12 +45,13 @@ const TABS = [
   ['support', 'Support'],
   ['sites', 'Sites'],
   ['activity', 'Activity logs'],
+  ['database', 'Database'],
 ] as const;
 
 type Tab = (typeof TABS)[number][0];
 /** Tabs this user can open: the tabs they may use on this site (admins: every tab the site has), plus "My account" and Support. */
 const visibleTabs = (user: AdminUser, platform: boolean, platformMain: boolean) =>
-  TABS.filter(([id]) => (id === 'sites' ? platform : id === 'activity' ? platformMain : id === 'users' || id === 'support' || (user.tabs ?? []).includes(id as never)));
+  TABS.filter(([id]) => (id === 'sites' ? platform : id === 'activity' ? platformMain : id === 'database' ? platformMain && Boolean(user.owner) : id === 'users' || id === 'support' || (user.tabs ?? []).includes(id as never)));
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
 
 function subscribeToHash(callback: () => void) {
@@ -209,6 +211,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
         {tab === 'support' && <ReadOnlyProvider value={false}><SupportTab key={askKey} notify={notify} owner={platformMain} prefill={ask} onPrefillUsed={() => setAsk(null)} /></ReadOnlyProvider>}
         {tab === 'sites' && platform && <SitesTab notify={notify} owner={platformMain && Boolean(user.owner)} />}
         {tab === 'activity' && platformMain && <ActivityTab notify={notify} />}
+        {tab === 'database' && platformMain && user.owner && <ReadOnlyProvider value={false}><DatabaseTab notify={notify} /></ReadOnlyProvider>}
         {tab === 'users' && <ReadOnlyProvider value={false}><UsersTab me={user} notify={notify} canAddUsers={canAddUsers} /></ReadOnlyProvider>}
         </SectionScope.Provider>
         {database && database.persistent && database.kind !== 'file' && (

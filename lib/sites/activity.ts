@@ -14,6 +14,8 @@ export const ACTIVITY_KINDS = [
   'support.requested', 'support.answered',
   // Templates published for every site (Design → Your templates → Publish), and removed again.
   'design.shared', 'design.unshared',
+  // Database tab: old logs deleted by the platform owner (what, how old, how many).
+  'data.cleaned',
   'log.cleared',
 ] as const;
 /** Filters that match a whole group of kinds. */

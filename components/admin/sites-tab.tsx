@@ -5,7 +5,6 @@ import { api, describeError } from './api';
 import { TAB_IDS, TAB_LABELS, type TabId } from '@/lib/auth/permissions';
 import { FEATURE_INFO, SITE_FEATURES, type SiteFeature } from '@/lib/sites/features';
 import { AnnouncementsEditor, GuideEditor } from './platform-guide';
-import { SiteUsage } from './site-usage';
 import { Button, Card, Field, Loading, PasswordInput, TextInput, buttonBase, inputClass, type Notify } from './ui';
 
 type SiteRow = {
@@ -376,7 +375,7 @@ export function SitesTab({ notify, owner = false }: { notify: Notify; owner?: bo
         </Card>
       )}
 
-      {isMain && owner && <Card title="Usage & inactive sites"><SiteUsage notify={notify} onChanged={load} /></Card>}
+      {isMain && owner && <p className="rounded-xl border border-white/10 bg-white/[.03] px-4 py-3 text-sm text-slate-300">Usage, inactive sites and storage clean-up are in the <a href="#database" className="font-bold text-cyan-300 underline">Database</a> tab.</p>}
 
       <Card title={`All sites (${state.sites.length})`}>
         {state.sites.length === 0 ? <p className="text-sm text-slate-400">No sites yet. Create the first one below.</p> : (
