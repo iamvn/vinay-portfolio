@@ -7,6 +7,7 @@ import { BackupTab } from './backup-tab';
 import { CopyTab } from './copy-tab';
 import { EXPERIENCE, ListTab, PROJECTS, SKILLS } from './list-tab';
 import { ProfileTab } from './profile-tab';
+import { LinkCardTab } from './link-card-tab';
 import { ResumeTab } from './resume-tab';
 import { InsightsTab } from './insights-tab';
 import { AiTab } from './ai-tab';
@@ -28,6 +29,7 @@ import { api } from './api';
 
 const TABS = [
   ['profile', 'Profile'],
+  ['links', 'Link card'],
   ['experience', 'Experience'],
   ['skills', 'Skills'],
   ['projects', 'Projects'],
@@ -53,6 +55,14 @@ type Tab = (typeof TABS)[number][0];
 const visibleTabs = (user: AdminUser, platform: boolean, platformMain: boolean) =>
   TABS.filter(([id]) => (id === 'sites' ? platform : id === 'activity' ? platformMain : id === 'database' ? platformMain && Boolean(user.owner) : id === 'users' || id === 'support' || (user.tabs ?? []).includes(id as never)));
 type Toast = { id: number; message: string; tone: 'success' | 'error' };
+
+// "New" on the Link card tab until it has been opened once in this browser.
+const SEEN_LINKS = 'admin.linkcard.seen';
+function subscribeToSeen(callback: () => void) {
+  window.addEventListener('linkcard-seen', callback);
+  return () => window.removeEventListener('linkcard-seen', callback);
+}
+const linksSeen = () => { try { return localStorage.getItem(SEEN_LINKS) === '1'; } catch { return true; } };
 
 function subscribeToHash(callback: () => void) {
   window.addEventListener('hashchange', callback);
@@ -95,6 +105,12 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
   const tabs = visibleTabs(user, platform, platformMain);
   const can = (id: Tab) => tabs.some(([tab]) => tab === id);
   const tab: Tab = tabs.some(([id]) => id === hash) ? (hash as Tab) : tabs[0][0];
+  const seenLinks = useSyncExternalStore(subscribeToSeen, linksSeen, () => true);
+  useEffect(() => {
+    if (tab !== 'links' || linksSeen()) return;
+    try { localStorage.setItem(SEEN_LINKS, '1'); } catch { /* private mode */ }
+    window.dispatchEvent(new Event('linkcard-seen'));
+  }, [tab]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
   const [guide, setGuide] = useState<GuideData | null>(null);
@@ -173,6 +189,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
               className={`min-h-11 shrink-0 snap-start whitespace-nowrap rounded-lg px-4 text-xs font-black uppercase tracking-wide transition sm:min-h-0 sm:px-3.5 sm:py-2 ${tab === id ? 'bg-lime-300 text-black' : 'bg-white/[.04] text-slate-300 hover:bg-white/5 hover:text-white sm:bg-transparent sm:text-slate-400'}`}
             >
               {id === 'users' && user.role !== 'admin' ? 'My account' : id === 'support' && platformMain ? 'Support inbox' : label}
+              {id === 'links' && !seenLinks && tab !== 'links' && <span className="ml-1.5 rounded-full bg-lime-300 px-1.5 py-px text-[9px] text-black">New</span>}
               {id === 'support' && platformMain && Boolean(guide?.supportOpen) && (
                 <span className="ml-1.5 rounded-full bg-amber-300 px-1.5 py-px text-[10px] text-black" aria-label={`${guide?.supportOpen} open`}>{guide?.supportOpen}</span>
               )}
@@ -204,7 +221,8 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
           </p>
         )}
         <ReadOnlyProvider value={viewOnly && tab !== 'users'}>
-          {tab === 'profile' && <ReadOnlyFieldset><ProfileTab notify={notify} /></ReadOnlyFieldset>}
+          {tab === 'profile' && <ReadOnlyFieldset><ProfileTab notify={notify} onOpenLinkCard={can('links') ? () => select('links') : undefined} /></ReadOnlyFieldset>}
+          {tab === 'links' && can('links') && <LinkCardTab notify={notify} onOpenProfile={() => select('profile')} />}
           {tab === 'experience' && <ListTab config={EXPERIENCE} notify={notify} />}
           {tab === 'skills' && <ListTab config={SKILLS} notify={notify} />}
           {tab === 'projects' && <ListTab config={PROJECTS} notify={notify} />}

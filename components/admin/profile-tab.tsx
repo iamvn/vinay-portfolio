@@ -139,7 +139,7 @@ function PictureCard({ name, value, onChange, notify }: { name: string; value: s
   );
 }
 
-export function ProfileTab({ notify }: { notify: Notify }) {
+export function ProfileTab({ notify, onOpenLinkCard }: { notify: Notify; onOpenLinkCard?: () => void }) {
   const [saved, setSaved] = useState<Profile | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [saving, setSaving] = useState(false);
@@ -182,6 +182,17 @@ export function ProfileTab({ notify }: { notify: Notify }) {
 
   return (
     <div className="space-y-4 sm:space-y-5">
+      {onOpenLinkCard && (
+        <button type="button" onClick={onOpenLinkCard}
+          className="flex w-full items-center gap-3 rounded-2xl border border-lime-300/30 bg-gradient-to-r from-lime-300/[.12] to-cyan-300/[.06] p-3.5 text-left hover:border-lime-300/60 sm:p-4">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-lime-300 text-lg font-black text-black" aria-hidden="true">↗</span>
+          <span className="min-w-0 flex-1">
+            <b className="block text-sm text-white">Your link card is ready to share</b>
+            <span className="block text-xs text-slate-300">One link with your photo, bio and links, for Instagram, LinkedIn and X bios. It uses this profile.</span>
+          </span>
+          <span className="shrink-0 text-xs font-black uppercase tracking-wide text-lime-300">Open</span>
+        </button>
+      )}
       <PictureCard
         name={profile.name}
         value={profile.profileImage}

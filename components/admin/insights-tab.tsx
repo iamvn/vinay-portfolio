@@ -57,6 +57,8 @@ const METRICS: { key: string; label: string; hint: string }[] = [
   { key: 'contact_copy', label: 'Email copied', hint: 'Uses of the “Copy email” button.' },
   { key: 'contact_linkedin', label: 'LinkedIn clicks', hint: 'Clicks on any LinkedIn link.' },
   { key: 'ask', label: 'Assistant questions', hint: 'Questions asked to “Ask my resume”.' },
+  { key: 'linkcard_view', label: 'Link card views', hint: 'Visits to your link card (/details). Per-link clicks are in Admin → Link card.' },
+  { key: 'linkcard_click', label: 'Link card clicks', hint: 'Clicks on any link on your link card.' },
 ];
 
 export function InsightsTab({ notify }: { notify: Notify }) {

@@ -9,16 +9,16 @@
  * "Users & security" is special: everyone sees it as "My account" (to change their own password), but
  * managing users and API tokens stays admin-only.
  */
-export const TAB_IDS = ['profile', 'experience', 'skills', 'projects', 'copy', 'design', 'resume', 'builder', 'applications', 'progress', 'community', 'insights', 'ai', 'backup'] as const;
+export const TAB_IDS = ['profile', 'links', 'experience', 'skills', 'projects', 'copy', 'design', 'resume', 'builder', 'applications', 'progress', 'community', 'insights', 'ai', 'backup'] as const;
 export type TabId = (typeof TAB_IDS)[number];
 
 export const TAB_LABELS: Record<TabId, string> = {
-  profile: 'Profile', experience: 'Experience', skills: 'Skills', projects: 'Projects', copy: 'Site text',
+  profile: 'Profile', links: 'Link card', experience: 'Experience', skills: 'Skills', projects: 'Projects', copy: 'Site text',
   design: 'Design', resume: 'Resume', builder: 'Resume builder', applications: 'Applications', progress: 'Progress tracker', community: 'Community', insights: 'Insights', ai: 'AI assistant', backup: 'Backup',
 };
 
 /** What an editor gets when no admin has chosen tabs for them (the access editors always had). */
-export const EDITOR_DEFAULT_TABS: TabId[] = ['profile', 'experience', 'skills', 'projects', 'copy', 'resume', 'progress', 'backup'];
+export const EDITOR_DEFAULT_TABS: TabId[] = ['profile', 'links', 'experience', 'skills', 'projects', 'copy', 'resume', 'progress', 'backup'];
 
 type Who = { role: string; permissions?: string | null; readOnly?: boolean | null; siteTabs?: string | null };
 
@@ -77,6 +77,7 @@ const ALWAYS_GATED: [RegExp, TabId][] = [
   [/^\/api\/applications(\/.*)?$/, 'applications'],
   [/^\/api\/community(\/.*)?$/, 'community'],
   [/^\/api\/progress(\/.*)?$/, 'progress'],
+  [/^\/api\/linkcard$/, 'links'],
 ];
 
 /**

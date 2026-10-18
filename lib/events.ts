@@ -1,11 +1,11 @@
 import { prisma } from './prisma';
 
 /** Anonymous activity shown in Admin → Insights. No IPs, cookies or personal data are stored. */
-export const EVENT_TYPES = ['resume_download', 'contact_email', 'contact_copy', 'contact_linkedin', 'ask'] as const;
+export const EVENT_TYPES = ['resume_download', 'contact_email', 'contact_copy', 'contact_linkedin', 'ask', 'linkcard_view', 'linkcard_click'] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
 /** Types a visitor's browser may report through the public /api/track endpoint. */
-export const CLIENT_EVENT_TYPES: EventType[] = ['contact_email', 'contact_copy', 'contact_linkedin'];
+export const CLIENT_EVENT_TYPES: EventType[] = ['contact_email', 'contact_copy', 'contact_linkedin', 'linkcard_view'];
 
 /** Records an event. Never throws: tracking must not break the page or the request it's attached to. */
 export async function recordEvent(type: EventType, detail = '') {
