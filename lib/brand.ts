@@ -11,7 +11,7 @@ export const BRAND = {
   meaning: 'Kriti (कृति) means your work and achievements; path (पथ) is the road ahead. Kritipath is the path your work builds.',
   tagline: 'Your work. Your story. One path forward.',
   description:
-    'Kritipath is a complete career suite: a portfolio website you design yourself, ATS-ready resumes, an AI assistant that answers recruiters, a job application tracker and a community of real interview experiences.',
+    'Kritipath is the operating system for your career, not a job board: one profile powers a portfolio site you own, ATS-ready resumes, an AI assistant that answers recruiters, an application pipeline and a prep plan.',
   founder: { name: 'Vinay Bharti', title: 'Founder & Creator' },
   /** The company page, on the main site. */
   path: '/kritipath',

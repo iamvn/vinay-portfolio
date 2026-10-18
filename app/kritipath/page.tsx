@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { BrandMark, BrandName } from '@/components/brand-mark';
 import { ProductTour } from '@/components/kritipath/product-tour';
 import { RequestForm } from '@/components/kritipath/request-form';
+import { PitchDifferent, PitchFaq, PitchLive, PitchNotIs, PitchOneProfile, PitchProblem, PitchVision, PitchWhyNow } from '@/components/kritipath/pitch';
 import { Icon } from '@/components/icons';
 import { BRAND, brandUrl } from '@/lib/brand';
 import { prisma } from '@/lib/prisma';
@@ -38,12 +39,6 @@ const FEATURES: { icon: string; color: string; title: string; text: string }[] =
   { icon: 'globe', color: '#ffd60a', title: 'Your address, your data', text: 'Your own subdomain or custom domain, a private database for every site, backups and team roles.' },
 ];
 
-const STEPS = [
-  { title: 'Request access', text: 'Tell us a little about you below. It takes under a minute.' },
-  { title: 'We set up your site', text: 'We create your own address and a private database, then send you a sign-in.' },
-  { title: 'Make it yours', text: 'Add your profile, pick a template, and publish. Change anything, anytime.' },
-];
-
 const AUDIENCE = [
   { title: 'Job seekers', text: 'Stand out with a portfolio, a resume and an AI assistant that work together, and keep every application in one place.' },
   { title: 'Engineers & designers', text: 'Show real projects as case studies, design your own look, and let your work speak before the first call.' },
@@ -51,8 +46,8 @@ const AUDIENCE = [
 ];
 
 const STATS: [string, string][] = [
-  ['10 tools', 'portfolio, resume, AI, jobs, prep and more'],
-  ['1 login', 'for your whole career'],
+  ['1 profile', 'powers every tool'],
+  ['10 tools', 'that usually live in 6 apps'],
   ['Any AI', 'Claude, OpenAI, Gemini and others'],
   ['Your domain', 'with a private database per site'],
 ];
@@ -102,7 +97,7 @@ export default async function KritipathPage() {
           <div className="cl-nav-bar cl-glass">
             <a href="#top" className="cl-brand" aria-label={`${BRAND.name} home`}><BrandMark size={26} /><BrandName /></a>
             <nav className="cl-nav-links" aria-label="Page sections">
-              <a href="#tour">Tour</a><a href="#features">Features</a><a href="#templates">Templates</a><a href="#founder">Founder</a><a href="/login">Sign in</a>
+              <a href="#problem">Problem</a><a href="#how-it-works">How it works</a><a href="#tour">Product</a><a href="#why-now">Why now</a><a href="#faq">FAQ</a><a href="/login">Sign in</a>
             </nav>
             <a href="#get-started" className="cl-btn cl-btn-dark">Get started</a>
           </div>
@@ -111,11 +106,11 @@ export default async function KritipathPage() {
 
       <main id="top">
         <section className="cl-hero cl-wrap">
-          <span className="cl-eyebrow cl-glass"><span className="cl-dot" aria-hidden="true" />{BRAND.name} · The complete career suite</span>
-          <h1 className="cl-h1">Your work, your story,<br /><span className="cl-gradient">one path forward.</span></h1>
+          <span className="cl-eyebrow cl-glass"><span className="cl-dot" aria-hidden="true" />{BRAND.name} · Not a job board. Not an auto-apply bot.</span>
+          <h1 className="cl-h1">The operating system<br /><span className="cl-gradient">for your career.</span></h1>
           <p className="cl-lead">
-            {BRAND.name} gives every professional a portfolio website they design themselves, ATS-ready resumes, an AI assistant that answers recruiters,
-            and a tracker for every application. On your own address.
+            Put your work in once. {BRAND.name} turns it into a portfolio site you own, resumes that pass screening, an AI that answers
+            recruiters for you, a pipeline for every application and a plan for your next move.
           </p>
           <div className="cl-hero-ctas">
             <a href="#get-started" className="cl-btn cl-btn-dark cl-btn-lg">Request access</a>
@@ -160,6 +155,10 @@ export default async function KritipathPage() {
           </div>
         </section>
 
+        <PitchProblem />
+        <PitchNotIs />
+        <PitchOneProfile />
+
         <section id="tour" className="cl-section cl-wrap cl-center">
           <p className="cl-kicker">See it in action</p>
           <h2 className="cl-h2">One login. Your whole career.</h2>
@@ -171,7 +170,7 @@ export default async function KritipathPage() {
         <section id="features" className="cl-section cl-wrap cl-center">
           <p className="cl-kicker">Everything in one place</p>
           <h2 className="cl-h2">More than a portfolio.</h2>
-          <p className="cl-lead">Eight tools that usually live in eight different apps, made to work together.</p>
+          <p className="cl-lead">Ten tools that usually live in different apps, made to work together.</p>
           <div className="cl-grid">
             {FEATURES.map((f) => (
               <article key={f.title} className="cl-feature cl-glass">
@@ -209,19 +208,9 @@ export default async function KritipathPage() {
           </div>
         </section>
 
-        <section id="how" className="cl-section cl-wrap cl-center">
-          <p className="cl-kicker">How it works</p>
-          <h2 className="cl-h2">Live in three steps.</h2>
-          <ol className="cl-steps" style={{ listStyle: 'none', padding: 0 }}>
-            {STEPS.map((s, i) => (
-              <li key={s.title} className="cl-step cl-glass">
-                <span className="cl-step-n">{i + 1}</span>
-                <h3>{s.title}</h3>
-                <p>{s.text}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
+        <PitchWhyNow />
+        <PitchDifferent />
+        <PitchLive />
 
         <section className="cl-section cl-wrap cl-center">
           <p className="cl-kicker">Who it’s for</p>
@@ -232,6 +221,8 @@ export default async function KritipathPage() {
             ))}
           </div>
         </section>
+
+        <PitchVision />
 
         <section id="founder" className="cl-section cl-wrap cl-center">
           <p className="cl-kicker">The founder</p>
@@ -255,6 +246,8 @@ export default async function KritipathPage() {
           </div>
         </section>
 
+        <PitchFaq />
+
         <section id="get-started" className="cl-section cl-wrap cl-center">
           <p className="cl-kicker">Get started</p>
           <h2 className="cl-h2">Get your {BRAND.name} site.</h2>
@@ -277,7 +270,7 @@ export default async function KritipathPage() {
         <div className="cl-wrap cl-footer-row">
           <span className="cl-brand" style={{ fontSize: '.95rem' }}><BrandMark size={20} /><BrandName /></span>
           <nav aria-label="Footer">
-            <a href="#features">Features</a><a href="#get-started">Get started</a><a href="/community">Community</a><a href="/login">Sign in</a>
+            <a href="#what">What we’re building</a><a href="#faq">FAQ</a><a href="#get-started">Get started</a><a href="/community">Community</a><a href="/login">Sign in</a>
           </nav>
           <span>© {BRAND.founded} {BRAND.name}. Founded by {BRAND.founder.name}.</span>
         </div>
