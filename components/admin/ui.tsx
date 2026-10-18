@@ -198,14 +198,14 @@ export function Card({ title, actions, children, collapsible = true, defaultOpen
       {(title || actions) && (
         <div className={`flex flex-wrap items-center justify-between gap-3 ${open ? 'mb-4' : ''}`}>
           {title && (foldable ? (
-            <h3 className="min-w-0 flex-1 text-sm font-black uppercase tracking-wider text-cyan-300">
+            <h3 className="min-w-0 flex-1 basis-40 text-sm font-black uppercase tracking-wider text-cyan-300">
               <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls={bodyId}
                 className="-my-2 flex min-h-11 w-full items-center gap-2 text-left uppercase hover:text-cyan-200 sm:min-h-9">
                 <span aria-hidden="true" className={`text-xs text-slate-500 transition ${open ? 'rotate-90' : ''}`}>▸</span>
                 <span className="min-w-0">{title}</span>
               </button>
             </h3>
-          ) : <h3 className="text-sm font-black uppercase tracking-wider text-cyan-300">{title}</h3>)}
+          ) : <h3 className="min-w-0 flex-1 basis-40 text-sm font-black uppercase tracking-wider text-cyan-300">{title}</h3>)}
           {actions && <div className="flex flex-wrap gap-2" onClickCapture={() => { if (!open) setOpen(true); }}>{actions}</div>}
         </div>
       )}
