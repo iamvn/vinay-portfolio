@@ -1,7 +1,7 @@
 import { createClient, type Client } from '@libsql/client';
 import { databaseConfig } from '@/lib/db-config';
 import { listSites, mainSite, siteBySlug, type Site } from './registry';
-import { databaseUsage } from './provision';
+import { databaseUsage, deleteOrgDatabase, listOrgDatabases } from './provision';
 
 /**
  * Platform owner → Database tab: how much of the Turso plan Kritipath uses, which sites and tables take the
@@ -64,21 +64,69 @@ function mainDbName() {
   }
 }
 
-/** Every site (main first) with this month's Turso storage and reads/writes. */
+/** The bytes of every value in a database: its data size, without indexes or free pages. */
+async function dataBytes(site: Site) {
+  const db = open(site);
+  try {
+    const list = await db.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'libsql_%' AND name NOT LIKE '_litestream%' AND name NOT LIKE '_prisma%'");
+    let total = 0;
+    for (const row of list.rows) {
+      const name = String(row.name);
+      const cols = (await db.execute(`PRAGMA table_info(${quote(name)})`)).rows.map((c) => String(c.name));
+      if (!cols.length) continue;
+      const r = await db.execute(`SELECT COALESCE(SUM(${cols.map((c) => `COALESCE(length(CAST(${quote(c)} AS BLOB)), 0)`).join(' + ')}), 0) AS b FROM ${quote(name)}`);
+      total += Number(r.rows[0]?.b ?? 0);
+    }
+    return total;
+  } finally {
+    db.close();
+  }
+}
+
+/** Runs `fn` over the items a few at a time, so many sites don't all hit Turso at once. */
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) { const i = next++; out[i] = await fn(items[i]); }
+  }));
+  return out;
+}
+
+/**
+ * Every site (main first) with its data size, this month's Turso storage and reads/writes, and any databases
+ * in the Turso organization that no site uses any more.
+ */
 export async function databaseOverview() {
   const sites = [mainSite(), ...(await listSites())];
-  const rows = await Promise.all(sites.map(async (site) => {
+  const rows = await mapLimit(sites, 5, async (site) => {
     let usage: Awaited<ReturnType<typeof databaseUsage>> = null;
-    let error: string | undefined;
-    try { usage = await withTimeout(databaseUsage(site.isMain ? mainDbName() : site.dbName), 10_000); } catch (err) { error = err instanceof Error ? err.message : 'unavailable'; }
-    return { slug: site.slug, name: site.isMain ? 'Main site' : site.name, isMain: Boolean(site.isMain), status: site.status, storageBytes: usage?.storageBytes ?? null, rowsRead: usage?.rowsRead ?? null, rowsWritten: usage?.rowsWritten ?? null, error };
-  }));
+    let size: number | null = null;
+    const errors: string[] = [];
+    try { usage = await withTimeout(databaseUsage(site.isMain ? mainDbName() : site.dbName), 10_000); } catch (err) { errors.push(err instanceof Error ? err.message : 'usage unavailable'); }
+    try { size = await withTimeout(dataBytes(site), 20_000); } catch (err) { errors.push(err instanceof Error ? err.message : 'unreadable'); }
+    return { slug: site.slug, name: site.isMain ? 'Main site' : site.name, isMain: Boolean(site.isMain), status: site.status, dbName: site.isMain ? mainDbName() : site.dbName, dataBytes: size, storageBytes: usage?.storageBytes ?? null, rowsRead: usage?.rowsRead ?? null, rowsWritten: usage?.rowsWritten ?? null, error: errors.length ? errors.join('; ') : undefined };
+  });
+  // Databases in Turso that no site points at (e.g. left from before sites were deleted with their database).
+  let orgDatabases: number | null = null;
+  let unused: { name: string }[] = [];
+  try {
+    const all = await withTimeout(listOrgDatabases(), 10_000);
+    if (all) {
+      orgDatabases = all.length;
+      const used = new Set(rows.map((r) => r.dbName).filter(Boolean));
+      const mainHost = (() => { try { return new URL(databaseConfig().url).host; } catch { return ''; } })();
+      unused = all.filter((d) => !used.has(d.name) && d.hostname !== mainHost).map((d) => ({ name: d.name }));
+    }
+  } catch { /* the list is optional */ }
   const sum = (key: 'storageBytes' | 'rowsRead' | 'rowsWritten') => rows.reduce((n, r) => n + (r[key] ?? 0), 0);
   return {
     plan: PLAN,
     usageAvailable: rows.some((r) => r.storageBytes !== null),
-    totals: { storageBytes: sum('storageBytes'), rowsRead: sum('rowsRead'), rowsWritten: sum('rowsWritten'), databases: rows.length },
-    sites: rows.sort((a, b) => Number(b.isMain) - Number(a.isMain) || (b.storageBytes ?? 0) - (a.storageBytes ?? 0)),
+    totals: { storageBytes: sum('storageBytes'), dataBytes: rows.reduce((n, r) => n + (r.dataBytes ?? 0), 0), rowsRead: sum('rowsRead'), rowsWritten: sum('rowsWritten'), databases: orgDatabases ?? rows.length, sites: rows.length - 1 },
+    unused,
+    sites: rows.map(({ dbName: _dbName, ...r }) => { void _dbName; return r; })
+      .sort((a, b) => Number(b.isMain) - Number(a.isMain) || ((b.storageBytes ?? b.dataBytes ?? 0) - (a.storageBytes ?? a.dataBytes ?? 0))),
     cleanup: Object.entries(CLEANUP_KINDS).map(([id, k]) => ({ id, label: k.label, hint: k.hint, mainOnly: k.mainOnly })),
     days: CLEANUP_DAYS,
     generatedAt: new Date().toISOString(),
@@ -155,4 +203,16 @@ export async function cleanup(kind: CleanupKind, days: number, scope: string, dr
     }
   }
   return { kind, days: Math.max(30, days), cutoff, total: results.reduce((n, r) => n + r.rows, 0), sites: results.filter((r) => r.rows > 0 || r.error) };
+}
+
+/** Deletes a Turso database that no site uses. Refuses the main database and any site's database. */
+export async function deleteUnusedDatabase(name: string) {
+  const sites = await listSites();
+  if (name === mainDbName() || sites.some((s) => s.dbName === name)) throw new Error('A site still uses that database.');
+  const all = await listOrgDatabases();
+  const mainHost = (() => { try { return new URL(databaseConfig().url).host; } catch { return ''; } })();
+  const target = all?.find((d) => d.name === name);
+  if (!target) throw new Error('No database with that name.');
+  if (target.hostname === mainHost) throw new Error('That is the main database.');
+  await deleteOrgDatabase(name);
 }

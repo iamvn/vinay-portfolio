@@ -162,3 +162,16 @@ export async function databaseUsage(dbName: string): Promise<{ storageBytes: num
   if (!total) return null;
   return { storageBytes: Number(total.storage_bytes ?? 0), rowsRead: Number(total.rows_read ?? 0), rowsWritten: Number(total.rows_written ?? 0) };
 }
+
+/** Every database in the Turso organization (name and address), or null without the API. */
+export async function listOrgDatabases(): Promise<{ name: string; hostname: string }[] | null> {
+  if (!tursoConfigured()) return null;
+  const body = await turso('/databases');
+  return (body?.databases ?? []).map((d: { Name?: string; Hostname?: string }) => ({ name: d.Name ?? '', hostname: d.Hostname ?? '' })).filter((d: { name: string }) => d.name);
+}
+
+/** Deletes one database in the Turso organization by name (the caller checks no site uses it). */
+export async function deleteOrgDatabase(name: string) {
+  if (!tursoConfigured()) throw new Error('Deleting databases needs TURSO_API_TOKEN and TURSO_ORG.');
+  await turso(`/databases/${encodeURIComponent(name)}`, { method: 'DELETE' });
+}

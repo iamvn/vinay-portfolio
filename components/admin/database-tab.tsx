@@ -9,11 +9,12 @@ import { SiteUsage } from './site-usage';
  * Admin → Database (platform owner only): how much of the Turso plan Kritipath uses, which sites and tables
  * take the space, and deleting old logs after a preview and a typed DELETE.
  */
-type SiteRow = { slug: string; name: string; isMain: boolean; status: string; storageBytes: number | null; rowsRead: number | null; rowsWritten: number | null; error?: string };
+type SiteRow = { slug: string; name: string; isMain: boolean; status: string; dataBytes: number | null; storageBytes: number | null; rowsRead: number | null; rowsWritten: number | null; error?: string };
 type Overview = {
   plan: { name: string; storageBytes: number; rowsRead: number; rowsWritten: number; databases: number };
   usageAvailable: boolean;
-  totals: { storageBytes: number; rowsRead: number; rowsWritten: number; databases: number };
+  totals: { storageBytes: number; dataBytes: number; rowsRead: number; rowsWritten: number; databases: number; sites: number };
+  unused: { name: string }[];
   sites: SiteRow[];
   cleanup: { id: string; label: string; hint: string; mainOnly: boolean }[];
   days: number[];
@@ -38,7 +39,7 @@ const count = (n: number | null | undefined) => {
 const slugKey = (s: SiteRow) => (s.isMain ? 'main' : s.slug);
 
 /** A usage bar: lime under 60%, amber from 60%, red from 80% (with a hint to clean up or upgrade). */
-function Meter({ label, used, limit, format, unknown = false }: { label: string; used: number; limit: number; format: (n: number) => string; unknown?: boolean }) {
+function Meter({ label, used, limit, format, unknown = false, note }: { label: string; used: number; limit: number; format: (n: number) => string; unknown?: boolean; note?: string }) {
   const pct = limit ? Math.min(100, (used / limit) * 100) : 0;
   const tone = pct >= 80 ? 'bg-red-400' : pct >= 60 ? 'bg-amber-300' : 'bg-lime-300';
   return (
@@ -51,6 +52,7 @@ function Meter({ label, used, limit, format, unknown = false }: { label: string;
         <div className={`h-full rounded-full ${tone}`} style={{ width: `${unknown ? 0 : Math.max(pct, used > 0 ? 1 : 0)}%` }} />
       </div>
       <p className="mt-2 text-sm font-black tabular-nums text-white">{unknown ? 'Not available' : format(used)} <span className="text-xs font-normal text-slate-500">of {format(limit)}</span></p>
+      {note && <p className="mt-0.5 text-[11px] text-slate-500">{note}</p>}
       {!unknown && pct >= 80 && <p className="mt-1 text-xs text-red-300">Time to clean up or upgrade the plan.</p>}
     </div>
   );
@@ -103,7 +105,8 @@ function SiteTables({ slug, notify }: { slug: string; notify: Notify }) {
 
 function SitesBySize({ data, notify }: { data: Overview; notify: Notify }) {
   const [open, setOpen] = useState<string | null>(null);
-  const max = Math.max(1, ...data.sites.map((s) => s.storageBytes ?? 0));
+  const size = (s: SiteRow) => s.storageBytes ?? s.dataBytes;
+  const max = Math.max(1, ...data.sites.map((s) => size(s) ?? 0));
   return (
     <ul className="divide-y divide-white/5">
       {data.sites.map((s) => {
@@ -118,8 +121,11 @@ function SitesBySize({ data, notify }: { data: Overview; notify: Notify }) {
                 <span className="block truncate text-sm font-bold text-white">{s.name}{s.status === 'suspended' && <span className="ml-2 rounded bg-slate-400/15 px-1.5 py-0.5 text-[10px] uppercase text-slate-300">Paused</span>}</span>
                 <span className="block truncate text-[11px] text-slate-500">{s.isMain ? 'your main database' : s.slug}{s.error ? ` · couldn't read usage` : ''}</span>
               </span>
-              <span className="col-span-3 col-start-2 h-1.5 overflow-hidden rounded-full bg-white/10 sm:col-span-1 sm:col-start-auto"><span className="block h-full rounded-full bg-lime-300/80" style={{ width: `${((s.storageBytes ?? 0) / max) * 100}%` }} /></span>
-              <span className="row-start-1 col-start-3 text-right text-sm font-black tabular-nums text-white sm:row-start-auto sm:col-start-auto">{bytes(s.storageBytes)}</span>
+              <span className="col-span-3 col-start-2 h-1.5 overflow-hidden rounded-full bg-white/10 sm:col-span-1 sm:col-start-auto"><span className="block h-full rounded-full bg-lime-300/80" style={{ width: `${((size(s) ?? 0) / max) * 100}%` }} /></span>
+              <span className="row-start-1 col-start-3 text-right tabular-nums sm:row-start-auto sm:col-start-auto">
+                <span className="block text-sm font-black text-white">{bytes(size(s))}</span>
+                {s.storageBytes !== null && s.dataBytes !== null && <span className="block text-[10px] text-slate-500">{bytes(s.dataBytes)} data</span>}
+              </span>
               <span className="hidden text-right text-[11px] tabular-nums text-slate-400 sm:block">{count(s.rowsRead)} reads<br />{count(s.rowsWritten)} writes</span>
             </button>
             {expanded && <div className="pl-6"><SiteTables slug={key} notify={notify} /></div>}
@@ -127,6 +133,38 @@ function SitesBySize({ data, notify }: { data: Overview; notify: Notify }) {
         );
       })}
     </ul>
+  );
+}
+
+/** Turso databases no site points at (e.g. left over from an earlier delete): delete one after typing its name. */
+function UnusedDatabases({ names, notify, onDone }: { names: string[]; notify: Notify; onDone: () => void }) {
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState('');
+  const remove = (name: string) => api('DELETE', '/api/platform/database/unused', { name, confirm })
+    .then(() => { notify(`Deleted the database ${name}.`); setDeleting(null); setConfirm(''); onDone(); })
+    .catch((e) => notify(describeError(e), 'error'));
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-slate-400">These databases are in your Turso account, but no site uses them. They still count towards your plan.</p>
+      <ul className="divide-y divide-white/5">
+        {names.map((name) => (
+          <li key={name} className="py-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-mono text-sm text-slate-200">{name}</span>
+              <Button tone="danger" onClick={() => { setDeleting(deleting === name ? null : name); setConfirm(''); }}>Delete…</Button>
+            </div>
+            {deleting === name && (
+              <div className="mt-2 flex flex-wrap items-end gap-2 rounded-xl border border-red-400/30 bg-red-950/30 p-3">
+                <label className="block min-w-0 flex-1 text-xs text-red-200">Type <b>{name}</b> to delete it for good
+                  <input id={`unused-${name}`} className={`${inputClass} mt-1`} value={confirm} autoComplete="off" onChange={(e) => setConfirm(e.target.value.trim())} />
+                </label>
+                <Button tone="danger" disabled={confirm !== name} onClick={() => remove(name)}>Delete forever</Button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -222,7 +260,8 @@ export function DatabaseTab({ notify }: { notify: Notify }) {
           <Meter label="Storage" used={data.totals.storageBytes} limit={data.plan.storageBytes} format={bytes} unknown={unknown} />
           <Meter label="Rows read this month" used={data.totals.rowsRead} limit={data.plan.rowsRead} format={count} unknown={unknown} />
           <Meter label="Rows written this month" used={data.totals.rowsWritten} limit={data.plan.rowsWritten} format={count} unknown={unknown} />
-          <Meter label="Databases" used={data.totals.databases} limit={data.plan.databases} format={(n) => String(n)} />
+          <Meter label="Databases" used={data.totals.databases} limit={data.plan.databases} format={(n) => String(n)}
+            note={`Your main database + ${data.totals.sites} site${data.totals.sites === 1 ? '' : 's'}${data.unused.length ? ` + ${data.unused.length} unused` : ''}`} />
         </div>
         <p className="mt-3 text-[11px] text-slate-500">
           {unknown ? 'Storage and reads/writes need TURSO_API_TOKEN and TURSO_ORG in Vercel. ' : 'Reads and writes reset on the 1st of each month. '}
@@ -236,9 +275,15 @@ export function DatabaseTab({ notify }: { notify: Notify }) {
       </Card>
 
       <Card title="What takes the most space" collapsible={false}>
-        <p className="-mt-1 mb-2 text-sm text-slate-400">Largest first. Open a site to see its tables.</p>
+        <p className="-mt-1 mb-2 text-sm text-slate-400">Each site&apos;s total size, largest first: {bytes(data.usageAvailable ? data.totals.storageBytes : data.totals.dataBytes)} across all {data.totals.sites + 1} databases. Open a site to see it by tab and by table.</p>
         <SitesBySize data={data} notify={notify} />
       </Card>
+
+      {data.unused.length > 0 && (
+        <Card title={`Unused databases (${data.unused.length})`} collapsible={false}>
+          <UnusedDatabases names={data.unused.map((u) => u.name)} notify={notify} onDone={refresh} />
+        </Card>
+      )}
 
       <Card title="Clean up old data" collapsible={false}>
         <CleanupPanel data={data} notify={notify} onDone={refresh} />
