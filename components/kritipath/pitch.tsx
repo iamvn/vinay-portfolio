@@ -236,7 +236,7 @@ const COMMUNITY = [
   { href: '/community', icon: 'users', color: '#5e5ce6', kicker: 'Interview experiences', title: 'Real rounds. Real questions.',
     text: 'People share how their interviews actually went: every round, the questions asked, the outcome and how they prepared. Search by company, role, level or topic.' },
   { href: '/community/resources', icon: 'bulb', color: '#30d158', kicker: 'Free resources', title: 'The links that actually helped.',
-    text: 'YouTube videos, articles, GitHub repos and courses, shared by the people who learned from them and sorted by topic. Free, open to everyone, with each sharer’s name on it.' },
+    text: 'YouTube videos, articles, GitHub repos and courses, shared by the people who learned from them and sorted by topic. Free for anyone to read; added by members, each with their name on it.' },
 ];
 
 export function PitchCommunity() {

@@ -33,7 +33,7 @@ const FEATURES: { icon: string; color: string; title: string; text: string }[] =
   { icon: 'chat', color: '#30d158', title: 'An AI that answers recruiters', text: '“Ask my resume” replies to questions about your experience, using only what’s on your site.' },
   { icon: 'briefcase', color: '#ff375f', title: 'Every application, tracked', text: 'Paste a job link, see how your profile matches what it asks for, and follow each application to the offer.' },
   { icon: 'target', color: '#00c7be', title: 'A plan for your next switch', text: 'Set a goal and a 2–3 month timeline, break it into DSA, system design and daily tasks, and get nudged to stay on it.' },
-  { icon: 'users', color: '#5e5ce6', title: 'An open community', text: 'Real interview experiences, and a free library of resources anyone can add to: videos, articles, repos and courses.' },
+  { icon: 'users', color: '#5e5ce6', title: 'An open community', text: 'Real interview experiences, and a free library of videos, articles, repos and courses that members keep adding to.' },
   { icon: 'chart', color: '#64d2ff', title: 'Know who’s looking', text: 'Private insights on visits, where they came from, and who clicked to contact you.' },
   { icon: 'pulse', color: '#ac8e68', title: 'Activity you can see', text: 'One log of sign-ins, new users, access changes and community posts across every site you run.' },
   { icon: 'globe', color: '#ffd60a', title: 'Your address, your data', text: 'Your own subdomain or custom domain, a private database for every site, backups and team roles.' },

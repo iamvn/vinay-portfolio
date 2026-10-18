@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PlatformBadge } from '@/components/platform-badge';
 import { BoardHeader, postedOn } from '@/components/community/parts';
-import { RemoveResource, ShareLine, ShareResource } from '@/components/community/resource-parts';
+import { RemoveResource, ShareLine, ShareResource, SignInToShare } from '@/components/community/resource-parts';
 import { currentUser } from '@/lib/auth/server';
 import { ownerId } from '@/lib/auth/roles';
 import { postingSite } from '@/lib/community/author';
@@ -75,7 +75,7 @@ function ResourceCard({ r, canRemove, byLink }: { r: Resource; canRemove: boolea
   );
 }
 
-/** Community → Free resources: links anyone can share, by topic. Free and open to everyone. */
+/** Community → Free resources: links shared by signed-in members, by topic. Free for everyone to read. */
 export default async function ResourcesPage({ searchParams }: Props) {
   const params = await searchParams;
   const query = {
@@ -97,14 +97,16 @@ export default async function ResourcesPage({ searchParams }: Props) {
   };
   const filtered = Boolean(query.q || query.topic || query.kind || query.by);
   const pill = (on: boolean) => `inline-flex min-h-9 shrink-0 items-center gap-1 rounded-full border px-3 text-xs font-bold ${on ? 'border-lime-300 bg-lime-300 text-black' : 'border-white/15 text-slate-300 hover:border-lime-300/60 hover:text-white'}`;
-  const share = <ShareResource defaultName={user?.name ?? ''} defaultTopic={query.topic} member={poster ? poster.name || poster.site.name : ''} />;
+  const share = user && poster
+    ? <ShareResource name={user.name?.trim() || poster.name || poster.site.name} defaultTopic={query.topic} member={poster.name || poster.site.name} />
+    : <SignInToShare next="/community/resources" />;
 
   return (
     <main className="community-shell mx-auto min-h-screen max-w-5xl px-4 pb-16 pt-6 sm:px-6">
       <BoardHeader active="resources"><Link href="/" className="text-xs font-bold text-slate-400 hover:text-white">← Home</Link></BoardHeader>
 
       <section className="py-8">
-        <p className="text-[11px] font-black uppercase tracking-[.3em] text-cyan-300">Always free · open to everyone</p>
+        <p className="text-[11px] font-black uppercase tracking-[.3em] text-cyan-300">Always free · open for everyone to read</p>
         <h1 className="mt-2 max-w-3xl text-3xl font-black leading-tight text-white sm:text-5xl">
           {query.by ? <>{firstName(query.by)}’s favourite resources.</> : <>The resources that actually helped.</>}
         </h1>
@@ -112,7 +114,7 @@ export default async function ResourcesPage({ searchParams }: Props) {
           {query.by
             ? <>Links {query.by} found worth sharing. {library ? `${library.total} so far.` : ''}</>
             : <>YouTube videos, articles, GitHub repos and courses, shared by people who learned from them, sorted by topic.
-              {library && library.all > 0 ? ` ${library.all.toLocaleString()} free resource${library.all === 1 ? '' : 's'} and counting.` : ''} Add yours: no account needed.</>}
+              {library && library.all > 0 ? ` ${library.all.toLocaleString()} free resource${library.all === 1 ? '' : 's'} and counting.` : ''} Members of any site here can add theirs.</>}
         </p>
         <div className="mt-5">{share}</div>
       </section>
@@ -198,7 +200,7 @@ export default async function ResourcesPage({ searchParams }: Props) {
       </section>
 
       <p className="mt-8 text-xs leading-6 text-slate-500">
-        Links are shared by the community and go to other websites. “✓ member” means it was shared by someone signed in to their site here.
+        Links are shared by the community and go to other websites. Every link is shared by a signed-in member of a site on this platform, under their own name.
       </p>
       <PlatformBadge source="community" />
     </main>

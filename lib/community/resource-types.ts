@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Community → Free resources: links anyone can share (videos, articles, repos, courses), grouped by topic,
+ * Community → Free resources: links shared by people signed in to a site on the platform (videos, articles, repos, courses), grouped by topic,
  * free and open to read. Shapes and rules shared by the browser and the server.
  */
 
@@ -65,12 +65,9 @@ export const resourceSchema = z.object({
   title: z.string().trim().min(3, 'Give it a short title.').max(140),
   topic: z.enum(TOPICS, 'Pick a topic.'),
   note: z.string().trim().max(280, 'Keep the note under 280 characters.').default(''),
-  name: z.string().trim().min(2, 'Add your name so people know who shared it.').max(60)
-    .refine((name) => !/https?:|www\.|<|>/i.test(name), 'Just your name, please.'),
-  /** Hidden field: people leave it empty, bots fill it in. */
-  website: z.string().max(200).default(''),
 }).strict();
-export type ResourceInput = z.infer<typeof resourceSchema>;
+/** What's stored: the form, plus the sharer's name (always the signed-in account's own). */
+export type ResourceInput = z.infer<typeof resourceSchema> & { name: string };
 
 export type Resource = {
   id: string; url: string; host: string; title: string; topic: Topic; kind: Kind; note: string;

@@ -222,7 +222,7 @@ body:has(.d-root).scanlines::after { display: none; }
 /* "Built on Kritipath" (components/platform-badge.tsx): on every public page of every site; not configurable. */
 .platform-badge {
   display: flex !important; visibility: visible !important; opacity: 1 !important;
-  justify-content: center; padding: 1.1rem 1rem calc(1.1rem + env(safe-area-inset-bottom));
+  flex-wrap: wrap; gap: .5rem; justify-content: center; padding: 1.1rem 1rem calc(1.1rem + env(safe-area-inset-bottom));
   color: var(--d-muted, #64748b); font: 500 12px/1.2 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif; letter-spacing: 0;
 }
 .platform-badge a {

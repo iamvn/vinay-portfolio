@@ -7,7 +7,7 @@ import { SHARE_LINES, TOPICS, kindOf, KIND_STYLE, type Topic } from '@/lib/commu
 const input = 'min-h-12 w-full rounded-xl border border-white/15 bg-black/40 px-3.5 text-base text-white placeholder:text-slate-500 focus:border-lime-300/70 focus:outline-none sm:min-h-11 sm:text-sm';
 
 /** "Share a resource": a sheet from the bottom on phones, a centred dialog on bigger screens. */
-export function ShareResource({ defaultName, defaultTopic, member }: { defaultName: string; defaultTopic?: Topic; member: string }) {
+export function ShareResource({ name, defaultTopic, member }: { name: string; defaultTopic?: Topic; member: string }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -28,7 +28,6 @@ export function ShareResource({ defaultName, defaultTopic, member }: { defaultNa
       const res = await fetch('/api/resources', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || (body.details?.[0]?.message as string) || 'Could not add it. Please try again.');
-      try { localStorage.setItem('resources.name', data.name); } catch { /* private mode */ }
       setDone(data.title);
       form.reset();
       setUrl('');
@@ -40,11 +39,6 @@ export function ShareResource({ defaultName, defaultTopic, member }: { defaultNa
     }
   }
 
-  const [name, setName] = useState(defaultName);
-  useEffect(() => {
-    if (defaultName) return;
-    try { const saved = localStorage.getItem('resources.name'); if (saved) setName(saved); } catch { /* private mode */ } // eslint-disable-line react-hooks/set-state-in-effect
-  }, [defaultName]);
 
   return (
     <>
@@ -96,17 +90,14 @@ export function ShareResource({ defaultName, defaultTopic, member }: { defaultNa
                 <span>Why it helped <span className="font-normal text-slate-500">(optional)</span></span>
                 <textarea name="note" maxLength={280} rows={3} placeholder="Best explanation of recursion I’ve found…" className={`${input} min-h-24 py-3`} />
               </label>
-              <label className="grid gap-1.5 text-sm font-bold text-slate-200">
-                Your name
-                <input name="name" required minLength={2} maxLength={60} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" className={input} />
-                {member && <span className="text-xs font-semibold text-lime-300">✓ Shown as a member of {member}</span>}
-              </label>
-              <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] size-px overflow-hidden" />
+              <p className="rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-slate-300">
+                Shared as <b className="text-white">{name}</b>{member && <span className="text-lime-300"> ✓ member of {member}</span>}
+              </p>
               {error && <p role="alert" className="rounded-xl bg-red-400/10 px-3.5 py-2.5 text-sm text-red-200">{error}</p>}
               <button type="submit" disabled={busy} className="min-h-12 rounded-xl bg-lime-300 text-sm font-black uppercase tracking-wide text-black hover:bg-lime-200 disabled:opacity-60">
                 {busy ? 'Adding…' : 'Add to the library'}
               </button>
-              <p className="text-center text-[11px] leading-5 text-slate-500">Free links only, please: nothing paid-only, no referral links. Shared links are public.</p>
+              <p className="text-center text-[11px] leading-5 text-slate-500">Free links only, please: nothing paid-only, no referral links. Shared links are public, and your name stays on them.</p>
             </form>
           )}
         </div>
@@ -152,5 +143,15 @@ export function ShareLine() {
     <p key={i} aria-live="off" className="animate-[fadein_.8s_ease] text-balance text-lg font-black leading-snug text-white sm:text-2xl">
       “{SHARE_LINES[i]}”
     </p>
+  );
+}
+
+/** Signed out: sharing is for people signed in to a site on the platform. */
+export function SignInToShare({ next }: { next: string }) {
+  return (
+    <a href={`/login?next=${encodeURIComponent(next)}`}
+      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-lime-300/60 px-5 text-sm font-black uppercase tracking-wide text-lime-200 hover:bg-lime-300/10 sm:min-h-11">
+      Sign in to share a resource
+    </a>
   );
 }
