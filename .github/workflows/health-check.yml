@@ -1,7 +1,9 @@
 # Every 15 minutes: is the site up, and does every database answer? (GET /api/health)
-# When it isn't, this opens a GitHub issue titled "Site is down", which GitHub emails to you.
-# When it's healthy again, the issue is closed with a note. Nothing to set up; optionally set a repository
-# variable SITE_URL (Settings → Secrets and variables → Actions → Variables) if the site moves.
+# When it isn't, this opens a GitHub issue titled "Site is down", which GitHub emails to you (and pushes to the
+# GitHub mobile app). When it's healthy again, the issue is closed with a note.
+# Optional Telegram alerts: add secrets TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID (Settings → Secrets and
+# variables → Actions). You get one message when it goes down and one when it's back; nothing while it stays down.
+# Optionally set a repository variable SITE_URL if the site moves.
 # GitHub pauses scheduled workflows after 60 days without any commit; push anything to restart it.
 name: Check health
 
@@ -26,6 +28,8 @@ jobs:
       SITE_URL: ${{ vars.SITE_URL || 'https://vinay-bharti.vercel.app' }}
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
     steps:
       - name: Check the site (3 tries, 30 seconds apart)
         id: check
@@ -46,6 +50,11 @@ jobs:
           if [ -n "$open" ]; then
             gh issue comment "$open" --body "Still down. $details"
           else
+            if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+              curl -sS --max-time 15 "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+                --data-urlencode "text=🔴 Kritipath is down. ${details} Check Vercel and Admin → Database → Health." > /dev/null || echo "Telegram message failed"
+            fi
             gh label create site-down --color B60205 --description "Opened by the health check" 2>/dev/null || true
             gh issue create --label site-down --title "Site is down" --body "$SITE_URL/api/health is not healthy.
 
@@ -57,6 +66,13 @@ jobs:
       - name: Close the issue when it's back
         if: steps.check.outputs.healthy == 'true'
         run: |
+          was_down=""
           for n in $(gh issue list --state open --label site-down --json number --jq '.[].number'); do
             gh issue close "$n" --comment "Healthy again at $(date -u '+%Y-%m-%d %H:%M UTC')."
+            was_down=1
           done
+          if [ -n "$was_down" ] && [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            curl -sS --max-time 15 "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+              --data-urlencode "text=🟢 Kritipath is back up ($(date -u '+%H:%M UTC'))." > /dev/null || echo "Telegram message failed"
+          fi
