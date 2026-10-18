@@ -7,6 +7,7 @@ import { ApplicationDetail } from '@/components/career/application-detail';
 import { QuestionBank } from '@/components/career/prep-notes';
 import { JobFacts, SkillChips } from '@/components/career/job-facts';
 import { STATUS_TONES } from '@/components/career/status';
+import { FollowUps } from '@/components/career/follow-ups';
 import type { JobAnalysis } from '@/lib/career/job';
 import { STATUS_LABELS, type ApplicationStatus, type ApplicationSummary } from '@/lib/career/types';
 
@@ -183,6 +184,8 @@ export function ApplicationsTab({ notify }: { notify: Notify }) {
           )}
         </Card>
       )}
+
+      {!adding && <FollowUps apps={apps} notify={notify} onChanged={() => { void load(); window.dispatchEvent(new Event('followups-changed')); }} />}
 
       {apps.length === 0 && !adding ? (
         <p className="rounded-2xl border border-dashed border-white/15 p-6 text-center text-sm text-slate-400">No applications yet. Start with <b className="text-slate-200">+ New application</b>.</p>

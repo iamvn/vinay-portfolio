@@ -8,6 +8,8 @@ import { EDITOR_DEFAULT_TABS, TAB_IDS, TAB_LABELS, type TabId } from '@/lib/auth
 
 export type AdminUser = {
   id: number; email: string; name: string; role: string; createdAt?: string; owner?: boolean;
+  /** Never changed the password they were given: the admin panel asks them to. */
+  mustChangePassword?: boolean;
   permissions?: TabId[] | null; tabs?: TabId[]; readOnly?: boolean; viewOnly?: boolean;
   /** Tabs this site may use at all (set by the platform owner). */
   siteTabs?: TabId[];
@@ -80,6 +82,7 @@ function ChangePassword({ notify }: { notify: Notify }) {
       await api('POST', '/api/auth/password', { currentPassword: current, newPassword: next });
       setCurrent(''); setNext(''); setRepeat('');
       notify('Password changed. You stay signed in here; other sessions and API tokens were signed out.');
+      window.dispatchEvent(new Event('password-changed'));
     } catch (error) {
       notify(describeError(error), 'error');
     } finally {

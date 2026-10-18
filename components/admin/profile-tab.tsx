@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, describeError } from './api';
 import { IMAGE_ACCEPT, prepareImage } from './image';
 import { Button, Card, ConfirmButton, Field, Loading, SaveBar, TextArea, TextInput, Toggle, inputClass, type Notify } from './ui';
+import { ProfileImport } from './profile-import';
 
 type Profile = {
   name: string; role: string; location: string; available: boolean; summary: string;
@@ -143,11 +144,12 @@ export function ProfileTab({ notify }: { notify: Notify }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
-    api<Profile>('GET', '/api/profile')
+    api<Profile>('GET', '/api/profile', undefined, { fresh: reloadKey > 0 })
       .then((data) => { setSaved(data); setProfile(data); })
       .catch((error) => notify(describeError(error), 'error'));
-  }, [notify]);
+  }, [notify, reloadKey]);
 
   if (!profile || !saved) return <Loading />;
 
@@ -186,6 +188,8 @@ export function ProfileTab({ notify }: { notify: Notify }) {
         onChange={(value) => setPicture(value, value === '' || value.startsWith(UPLOADED_PREFIX))}
         notify={notify}
       />
+
+      <ProfileImport current={saved} notify={notify} onApplied={() => setReloadKey((k) => k + 1)} />
 
       <Card title="Basics">
         <div className="grid gap-4 md:grid-cols-2">

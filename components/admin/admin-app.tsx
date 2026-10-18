@@ -105,6 +105,13 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
   useEffect(() => { api<GuideData>('GET', '/api/guide').then(setGuide).catch(() => setGuide(null)); }, []);
   // Read-only users can look at every tab they have, but not change anything ("My account" stays usable).
   const viewOnly = Boolean(user.viewOnly);
+  // Asked until they change the password they were given (hidden at once when they do, in My account).
+  const [mustChange, setMustChange] = useState(Boolean(user.mustChangePassword));
+  useEffect(() => {
+    const done = () => setMustChange(false);
+    window.addEventListener('password-changed', done);
+    return () => window.removeEventListener('password-changed', done);
+  }, []);
 
   // The selected tab lives in the URL hash, so a refresh stays on the same tab.
   const select = (next: Tab) => {
@@ -143,7 +150,7 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
             </h1>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {can('progress') && <ProgressBell onOpen={() => select('progress')} />}
+            {(can('progress') || can('applications')) && <ProgressBell canProgress={can('progress')} canApplications={can('applications')} onOpen={(t) => select(t)} />}
             <span className="hidden text-xs text-slate-500 md:inline">Signed in as <b className="text-slate-300">{user.email}</b> · {user.owner ? 'Owner' : user.role === 'admin' ? 'Admin' : viewOnly ? 'Editor (read-only)' : 'Editor'}</span>
             <a href="/" target="_blank" rel="noreferrer" className={`${headerButton} hover:border-lime-300/60`}>
               <span className="sm:hidden">Site ↗</span><span className="hidden sm:inline">View site ↗</span>
@@ -175,6 +182,12 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
       </header>
 
       <main key={reloadKey} className="mx-auto max-w-5xl px-4 pb-[max(7rem,env(safe-area-inset-bottom))] pt-4 sm:py-6 sm:pb-24">
+        {mustChange && tab !== 'users' && (
+          <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-300/40 bg-amber-300/[.08] px-4 py-3 text-sm text-amber-100">
+            <span className="min-w-0 flex-1 basis-60"><b>Please change your password.</b> You&apos;re still using the one you were given.</span>
+            <button type="button" onClick={() => select('users')} className="inline-flex min-h-11 items-center rounded-lg bg-amber-300 px-3.5 text-xs font-black uppercase tracking-wide text-black hover:bg-amber-200 sm:min-h-9">Change password</button>
+          </div>
+        )}
         {guide && <AnnouncementBar announcements={guide.announcements} />}
         {database && <DatabaseNotice database={database} />}
         {/* Every titled section folds; these set all of this tab's sections at once. */}

@@ -1,0 +1,62 @@
+# Every 15 minutes: is the site up, and does every database answer? (GET /api/health)
+# When it isn't, this opens a GitHub issue titled "Site is down", which GitHub emails to you.
+# When it's healthy again, the issue is closed with a note. Nothing to set up; optionally set a repository
+# variable SITE_URL (Settings → Secrets and variables → Actions → Variables) if the site moves.
+# GitHub pauses scheduled workflows after 60 days without any commit; push anything to restart it.
+name: Check health
+
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: health-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SITE_URL: ${{ vars.SITE_URL || 'https://vinay-bharti.vercel.app' }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Check the site (3 tries, 30 seconds apart)
+        id: check
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -sS -o body.json -w '%{http_code}' --max-time 25 "$SITE_URL/api/health" || echo 000)
+            echo "Try $i: HTTP $code $(cat body.json 2>/dev/null)"
+            if [ "$code" = "200" ]; then echo "healthy=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+            [ "$i" -lt 3 ] && sleep 30
+          done
+          echo "healthy=false" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+      - name: Open an issue when it's down
+        if: steps.check.outputs.healthy == 'false'
+        run: |
+          open=$(gh issue list --state open --label site-down --json number --jq '.[0].number' || true)
+          details="HTTP ${{ steps.check.outputs.code }} at $(date -u '+%Y-%m-%d %H:%M UTC'): $(cat body.json 2>/dev/null || echo 'no response')"
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body "Still down. $details"
+          else
+            gh label create site-down --color B60205 --description "Opened by the health check" 2>/dev/null || true
+            gh issue create --label site-down --title "Site is down" --body "$SITE_URL/api/health is not healthy.
+
+          $details
+
+          Check Vercel → Deployments and Logs, and Admin → Database → Health. This issue closes by itself when the site is healthy again."
+          fi
+          exit 1
+      - name: Close the issue when it's back
+        if: steps.check.outputs.healthy == 'true'
+        run: |
+          for n in $(gh issue list --state open --label site-down --json number --jq '.[].number'); do
+            gh issue close "$n" --comment "Healthy again at $(date -u '+%Y-%m-%d %H:%M UTC')."
+          done

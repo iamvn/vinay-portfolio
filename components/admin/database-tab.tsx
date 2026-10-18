@@ -235,6 +235,71 @@ function CleanupPanel({ data, notify, onDone }: { data: Overview; notify: Notify
   );
 }
 
+type Run = { status: string; conclusion: string | null; at: string; url: string } | null;
+type Health = {
+  ok: boolean; main: { ok: boolean; ms: number; error?: string };
+  sites: { slug: string; name: string; ok: boolean; ms: number; error?: string }[];
+  checkedAt: string; runs: { backup: Run; health: Run; repo: string } | null;
+};
+/** How long before `now` (the moment of the health check) something happened. */
+const ago = (iso: string, now: number) => {
+  const mins = Math.round((now - new Date(iso).getTime()) / 60_000);
+  return mins < 1 ? 'just now' : mins < 60 ? `${mins} min ago` : mins < 48 * 60 ? `${Math.round(mins / 60)} h ago` : `${Math.round(mins / 1440)} days ago`;
+};
+
+function RunLine({ label, run, every, setup, now }: { label: string; run: Run | undefined; every: number; setup: string; now: number }) {
+  if (!run) return <p className="text-sm text-slate-400"><b className="text-slate-200">{label}:</b> no runs yet. {setup}</p>;
+  const age = now - new Date(run.at).getTime();
+  const stale = age > every * 1.5;
+  const good = run.conclusion === 'success';
+  const tone = run.status !== 'completed' ? 'text-cyan-200' : good && !stale ? 'text-lime-300' : 'text-amber-200';
+  const word = run.status !== 'completed' ? 'running now' : good ? 'OK' : run.conclusion === 'failure' ? 'failed' : run.conclusion ?? run.status;
+  return (
+    <p className="text-sm text-slate-300">
+      <b className="text-slate-200">{label}:</b> <span className={`font-bold ${tone}`}>{word}</span>, {ago(run.at, now)}{stale && run.status === 'completed' ? ' (overdue)' : ''} ·{' '}
+      <a href={run.url} target="_blank" rel="noreferrer" className="text-cyan-300 underline hover:text-cyan-200">see run ↗</a>
+    </p>
+  );
+}
+
+/** Live check of every database, plus the latest nightly backup and 15-minute uptime check. */
+function HealthCard({ notify }: { notify: Notify }) {
+  const [health, setHealth] = useState<Health | null>(null);
+  const [loading, setLoading] = useState(true);
+  const fetchHealth = useCallback(() => api<Health>('GET', '/api/platform/health', undefined, { fresh: true })
+    .then(setHealth).catch((e) => notify(describeError(e), 'error')).finally(() => setLoading(false)), [notify]);
+  useEffect(() => { void fetchHealth(); }, [fetchHealth]);
+  const down = health?.sites.filter((s) => !s.ok) ?? [];
+  const slowest = health ? Math.max(health.main.ms, ...health.sites.map((s) => s.ms)) : 0;
+  return (
+    <Card title="Health" collapsible={false} actions={<Button view disabled={loading} onClick={() => { setLoading(true); void fetchHealth(); }}>{loading ? 'Checking…' : 'Check now'}</Button>}>
+      {!health ? <p className="text-sm text-slate-500">{loading ? 'Checking every database…' : 'Couldn’t check.'}</p> : (
+        <div className="space-y-3">
+          <div className={`flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 ${health.ok ? 'border-lime-300/30 bg-lime-300/[.06]' : 'border-red-400/40 bg-red-950/40'}`}>
+            <span aria-hidden="true" className={`size-3 rounded-full ${health.ok ? 'bg-lime-300' : 'bg-red-400'}`} />
+            <p className="min-w-0 flex-1 basis-60 text-sm">
+              <b className={health.ok ? 'text-lime-100' : 'text-red-100'}>{health.ok ? 'Everything is answering.' : !health.main.ok ? 'Your main database isn’t answering.' : `${down.length} site database${down.length === 1 ? ' isn’t' : 's aren’t'} answering.`}</b>
+              <span className="text-slate-400"> Main {health.main.ok ? `${health.main.ms} ms` : 'down'} · {health.sites.length - down.length} of {health.sites.length} sites OK · slowest {slowest} ms · checked at {new Date(health.checkedAt).toLocaleTimeString()}</span>
+            </p>
+          </div>
+          {!health.main.ok && health.main.error && <p className="text-xs text-red-300">{health.main.error}</p>}
+          {down.length > 0 && (
+            <ul className="space-y-1 text-sm">
+              {down.map((s) => <li key={s.slug} className="text-red-200"><b>{s.name}</b> <span className="text-slate-500">({s.slug})</span>: {s.error}</li>)}
+            </ul>
+          )}
+          <div className="space-y-1 border-t border-white/10 pt-3">
+            <RunLine now={new Date(health.checkedAt).getTime()} label="Nightly backup" run={health.runs?.backup} every={24 * 3600_000} setup="Add the backup secrets in GitHub (see .github/workflows/backup-databases.yml)." />
+            <RunLine now={new Date(health.checkedAt).getTime()} label="Uptime check (every 15 min)" run={health.runs?.health} every={15 * 60_000} setup="It starts once this version is on GitHub." />
+            {!health.runs && <p className="text-[11px] text-slate-500">Backup and uptime-check status appear here on Vercel (they come from GitHub).</p>}
+            <p className="text-[11px] text-slate-500">If the uptime check finds a problem, it opens a GitHub issue “Site is down”, which GitHub emails to you, and closes it when things recover.</p>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function DatabaseTab({ notify }: { notify: Notify }) {
   const [data, setData] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -254,6 +319,8 @@ export function DatabaseTab({ notify }: { notify: Notify }) {
         </div>
         <Button onClick={refresh} disabled={loading} view>{loading ? 'Refreshing…' : 'Refresh'}</Button>
       </div>
+
+      <HealthCard notify={notify} />
 
       <Card title="Space used" collapsible={false}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

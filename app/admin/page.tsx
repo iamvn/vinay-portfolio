@@ -27,11 +27,16 @@ export default async function AdminPage() {
   const current = await currentSite();
   const site = current.isMain ? current : (await siteBySlug(current.slug, true)) ?? current; // fresh security settings
   const admin = user.role === 'admin';
+  const owner = user.id === (await ownerId());
   // Database details only exist on the main site. The Sites tab: the main site's admins, and admins of a site
   // the main admin allowed to create sites. Adding users on other sites also needs the main admin's permission.
   return (
     <AdminApp
-      user={{ ...publicUser(user), owner: user.id === (await ownerId()) }}
+      user={{
+        ...publicUser(user), owner,
+        // Still on the password someone else set (never changed it), except the main site's owner, who chose theirs.
+        mustChangePassword: user.tokenVersion === 0 && !(site.isMain && owner),
+      }}
       database={site.isMain ? { ...describeDatabase(), lastDeploy: read('system.lastDeploy'), seededAt: read('system.seededAt')?.at ?? null } : undefined}
       platform={admin && (site.isMain || site.canAddSites)}
       platformMain={admin && site.isMain}

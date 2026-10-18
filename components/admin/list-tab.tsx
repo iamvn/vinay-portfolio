@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PdfField } from '@/components/design/pdf-field';
 import { api, describeError, fromLines, toLines } from './api';
 import { IMAGE_ACCEPT, prepareImage } from './image';
+import { CoverMaker, type CoverInput } from './cover-maker';
 import { Button, ConfirmButton, Field, Loading, ReadOnlyFieldset, TextArea, TextInput, Toggle, buttonBase, useReadOnly, type Notify } from './ui';
 import { useSectionOpen } from './sections';
 
@@ -23,6 +24,8 @@ export type FieldDef = {
   rows?: number;
   defaultValue?: string;
   showIf?: (draft: Draft) => boolean;       // hide fields that don't apply
+  /** Image fields: offer "Generate cover" built from these draft fields (projects). */
+  cover?: (draft: Draft) => CoverInput;
 };
 
 export type ListConfig = {
@@ -79,13 +82,16 @@ function ChoiceField({ field, value, onChange }: { field: FieldDef; value: strin
   );
 }
 
-function ImageField({ field, value, onChange, uploadUrl, notify, onUploaded, pendingFile, onPendingFile }: {
+function ImageField({ field, value, onChange, uploadUrl, notify, onUploaded, pendingFile, onPendingFile, cover }: {
   field: FieldDef; value: string; onChange: (value: string) => void;
+  /** What a generated cover is made from (projects only). */
+  cover?: CoverInput;
   uploadUrl: string | null; notify: Notify; onUploaded: (url: string) => void;
   /** New items: the image is chosen now and uploaded right after the item is created. */
   pendingFile?: File | null; onPendingFile?: (file: File | null) => void;
 }) {
   const [busy, setBusy] = useState<'' | 'Preparing…' | 'Uploading…' | 'Removing…'>('');
+  const [making, setMaking] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const isUploaded = Boolean(uploadUrl && value.startsWith(uploadUrl));
   const pending = !uploadUrl && onPendingFile;
@@ -176,9 +182,11 @@ function ImageField({ field, value, onChange, uploadUrl, notify, onUploaded, pen
             <summary className="flex min-h-11 cursor-pointer items-center sm:min-h-0">Use an image path/URL instead</summary>
             <div className="mt-2"><TextInput value={value} onChange={onChange} placeholder="/images/my-project.png" /></div>
           </details>
+          {cover && (uploadUrl || pending) && <Button onClick={() => setMaking(true)} disabled={Boolean(busy)} className="w-full sm:w-auto">✦ Generate cover</Button>}
           <p className="text-[11px] text-slate-500">Large photos are shrunk automatically · 16:9 looks best{pending ? '' : ' · uploading saves immediately'}</p>
         </div>
         <input ref={input} type="file" className="hidden" accept={IMAGE_ACCEPT} onChange={(e) => { const file = e.target.files?.[0]; if (file) choose(file); e.target.value = ''; }} />
+        {making && cover && <CoverMaker input={cover} onClose={() => setMaking(false)} onUse={(file) => (pending ? onPendingFile(file) : upload(file))} />}
       </div>
     </Field>
   );
@@ -214,7 +222,7 @@ function FieldsForm({ fields, draft, onChange, uploadUrl, notify, onImageUploade
                 <PdfField dark value={draft[key] as string} onChange={set} label={label} />
               </Field>
             )}
-            {type === 'image' && <ImageField field={field} value={draft[key] as string} onChange={set} uploadUrl={uploadUrl} notify={notify} onUploaded={(url) => onImageUploaded(key, url)} pendingFile={pendingImage} onPendingFile={onPendingImage} />}
+            {type === 'image' && <ImageField field={field} value={draft[key] as string} onChange={set} uploadUrl={uploadUrl} notify={notify} onUploaded={(url) => onImageUploaded(key, url)} pendingFile={pendingImage} onPendingFile={onPendingImage} cover={field.cover?.(draft)} />}
             {(type === 'text' || type === 'textarea' || type === 'lines') && (
               <Field label={label} hint={hint ?? (type === 'lines' ? 'One per line' : undefined)}>
                 {type === 'text'
@@ -520,7 +528,10 @@ export const PROJECTS: ListConfig = {
     { key: 'featured', label: 'Show "★ Featured" badge', type: 'checkbox' },
     { key: 'description', label: 'Short description', type: 'textarea', hint: 'One or two sentences, shown on the card and at the top of the page.' },
     { key: 'stack', label: 'Tech stack tags', type: 'lines' },
-    { key: 'image', label: 'Cover image (optional)', type: 'image', hint: 'Shown on the card and as the page banner. Without one, the card shows the title initials.' },
+    {
+      key: 'image', label: 'Cover image (optional)', type: 'image', hint: 'Shown on the card and as the page banner. Without one, the card shows the title initials. Or generate one from the title and tags.',
+      cover: (d) => ({ title: String(d.title ?? ''), description: String(d.description ?? ''), tags: fromLines(String(d.stack ?? '')), type: String(d.type ?? 'case-study') }),
+    },
 
     { key: 'h-type', label: 'What happens when someone clicks it', type: 'heading' },
     {
