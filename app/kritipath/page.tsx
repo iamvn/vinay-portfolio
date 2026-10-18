@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { BrandMark, BrandName } from '@/components/brand-mark';
 import { ProductTour } from '@/components/kritipath/product-tour';
 import { RequestForm } from '@/components/kritipath/request-form';
-import { PitchDifferent, PitchFaq, PitchLive, PitchNotIs, PitchOneProfile, PitchProblem, PitchVision, PitchWhyNow } from '@/components/kritipath/pitch';
+import { PitchCommunity, PitchDifferent, PitchFaq, PitchLive, PitchNotIs, PitchOneProfile, PitchProblem, PitchVision, PitchWhyNow } from '@/components/kritipath/pitch';
 import { Icon } from '@/components/icons';
 import { BRAND, brandUrl } from '@/lib/brand';
 import { prisma } from '@/lib/prisma';
@@ -33,7 +33,7 @@ const FEATURES: { icon: string; color: string; title: string; text: string }[] =
   { icon: 'chat', color: '#30d158', title: 'An AI that answers recruiters', text: '“Ask my resume” replies to questions about your experience, using only what’s on your site.' },
   { icon: 'briefcase', color: '#ff375f', title: 'Every application, tracked', text: 'Paste a job link, see how your profile matches what it asks for, and follow each application to the offer.' },
   { icon: 'target', color: '#00c7be', title: 'A plan for your next switch', text: 'Set a goal and a 2–3 month timeline, break it into DSA, system design and daily tasks, and get nudged to stay on it.' },
-  { icon: 'users', color: '#5e5ce6', title: 'Real interview stories', text: 'A community of real interview experiences: the rounds, the questions, and how people prepared.' },
+  { icon: 'users', color: '#5e5ce6', title: 'An open community', text: 'Real interview experiences, and a free library of resources anyone can add to: videos, articles, repos and courses.' },
   { icon: 'chart', color: '#64d2ff', title: 'Know who’s looking', text: 'Private insights on visits, where they came from, and who clicked to contact you.' },
   { icon: 'pulse', color: '#ac8e68', title: 'Activity you can see', text: 'One log of sign-ins, new users, access changes and community posts across every site you run.' },
   { icon: 'globe', color: '#ffd60a', title: 'Your address, your data', text: 'Your own subdomain or custom domain, a private database for every site, backups and team roles.' },
@@ -97,7 +97,7 @@ export default async function KritipathPage() {
           <div className="cl-nav-bar cl-glass">
             <a href="#top" className="cl-brand" aria-label={`${BRAND.name} home`}><BrandMark size={26} /><BrandName /></a>
             <nav className="cl-nav-links" aria-label="Page sections">
-              <a href="#problem">Problem</a><a href="#how-it-works">How it works</a><a href="#tour">Product</a><a href="#why-now">Why now</a><a href="#faq">FAQ</a><a href="/login">Sign in</a>
+              <a href="#problem">Problem</a><a href="#how-it-works">How it works</a><a href="#tour">Product</a><a href="#community">Community</a><a href="#why-now">Why now</a><a href="#faq">FAQ</a><a href="/login">Sign in</a>
             </nav>
             <a href="#get-started" className="cl-btn cl-btn-dark">Get started</a>
           </div>
@@ -208,6 +208,7 @@ export default async function KritipathPage() {
           </div>
         </section>
 
+        <PitchCommunity />
         <PitchWhyNow />
         <PitchDifferent />
         <PitchLive />
@@ -270,7 +271,7 @@ export default async function KritipathPage() {
         <div className="cl-wrap cl-footer-row">
           <span className="cl-brand" style={{ fontSize: '.95rem' }}><BrandMark size={20} /><BrandName /></span>
           <nav aria-label="Footer">
-            <a href="#what">What we’re building</a><a href="#faq">FAQ</a><a href="#get-started">Get started</a><a href="/community">Community</a><a href="/login">Sign in</a>
+            <a href="#what">What we’re building</a><a href="#faq">FAQ</a><a href="#get-started">Get started</a><a href="/community">Community</a><a href="/community/resources">Free resources</a><a href="/login">Sign in</a>
           </nav>
           <span>© {BRAND.founded} {BRAND.name}. Founded by {BRAND.founder.name}.</span>
         </div>

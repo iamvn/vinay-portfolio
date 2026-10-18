@@ -84,11 +84,32 @@ export function PostCard({ post }: { post: PublicPost }) {
   );
 }
 
-export function BoardHeader({ children }: { children?: ReactNode }) {
+export function BoardHeader({ children, active = 'interviews' }: { children?: ReactNode; active?: 'interviews' | 'resources' }) {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
-      <Link href="/community" className="text-[11px] font-black uppercase tracking-[.3em] text-lime-300">Community · Interview experiences</Link>
-      {children}
+    <header className="border-b border-white/10 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/community" className="text-[11px] font-black uppercase tracking-[.3em] text-lime-300">Community</Link>
+        {children}
+      </div>
+      <BoardTabs active={active} />
     </header>
+  );
+}
+
+/** Interview experiences | Free resources. */
+export function BoardTabs({ active }: { active: 'interviews' | 'resources' }) {
+  const tabs = [
+    { id: 'interviews', href: '/community', label: 'Interview experiences' },
+    { id: 'resources', href: '/community/resources', label: 'Free resources' },
+  ] as const;
+  return (
+    <nav aria-label="Community sections" className="mt-3 grid grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-slate-950/70 p-1 sm:inline-grid sm:w-auto">
+      {tabs.map((t) => (
+        <Link key={t.id} href={t.href} aria-current={active === t.id ? 'page' : undefined}
+          className={`grid min-h-11 place-items-center rounded-xl px-4 text-center text-sm font-black ${active === t.id ? 'bg-lime-300 text-black' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}>
+          {t.label}
+        </Link>
+      ))}
+    </nav>
   );
 }

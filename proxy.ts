@@ -31,6 +31,7 @@ const PUBLIC_API: { method: string; pattern: RegExp }[] = [
   { method: 'POST', pattern: /^\/api\/collect$/ }, // page views (Admin → Insights)
   { method: 'POST', pattern: /^\/api\/ask$/ },
   { method: 'POST', pattern: /^\/api\/kritipath\/request$/ }, // "Request access" on the Kritipath company page
+  { method: 'POST', pattern: /^\/api\/resources$/ }, // Community → Free resources: anyone can share a link
   { method: 'GET', pattern: /^\/api\/ask$/ },
   { method: 'GET', pattern: /^\/api\/health$/ }, // uptime check (counts only)
   { method: 'GET', pattern: /^\/api\/resume$/ },

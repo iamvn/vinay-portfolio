@@ -62,7 +62,7 @@ const DIFFERENT = [
 
 const LIVE = [
   'Drag-and-drop portfolio designer', 'AI-generated templates from one sentence', 'ATS resume builder with a score', '“Ask my resume” AI assistant',
-  'Job link match and application pipeline', 'Follow-up reminders', 'Goal-based prep tracker', 'Real interview experiences community',
+  'Job link match and application pipeline', 'Follow-up reminders', 'Goal-based prep tracker', 'Community: interview stories and free resources',
   'Resume PDF and LinkedIn import', 'Visitor and contact insights', 'Custom domains, private database per site', 'Team roles, activity log, backups, health alerts',
 ];
 
@@ -226,6 +226,34 @@ export function PitchFaq() {
             <summary>{q}<i className="cl-faq-plus" aria-hidden="true" /></summary>
             <p>{a}</p>
           </details>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const COMMUNITY = [
+  { href: '/community', icon: 'users', color: '#5e5ce6', kicker: 'Interview experiences', title: 'Real rounds. Real questions.',
+    text: 'People share how their interviews actually went: every round, the questions asked, the outcome and how they prepared. Search by company, role, level or topic.' },
+  { href: '/community/resources', icon: 'bulb', color: '#30d158', kicker: 'Free resources', title: 'The links that actually helped.',
+    text: 'YouTube videos, articles, GitHub repos and courses, shared by the people who learned from them and sorted by topic. Free, open to everyone, with each sharer’s name on it.' },
+];
+
+export function PitchCommunity() {
+  return (
+    <section id="community" className="cl-section cl-wrap cl-center">
+      <p className="cl-kicker">Community</p>
+      <h2 className="cl-h2">Nobody gets hired alone.</h2>
+      <p className="cl-lead">A career platform should make everyone better, not just its users. So the community is open to all: read, learn and share, free.</p>
+      <div className="cl-community">
+        {COMMUNITY.map((c) => (
+          <a key={c.href} href={c.href} className="cl-community-card cl-glass">
+            <Tile icon={c.icon} color={c.color} />
+            <span className="cl-community-k">{c.kicker}</span>
+            <b>{c.title}</b>
+            <p>{c.text}</p>
+            <span className="cl-community-go">Open {c.kicker.toLowerCase()} <Icon name="arrowUpRight" size={15} /></span>
+          </a>
         ))}
       </div>
     </section>

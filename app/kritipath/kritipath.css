@@ -462,3 +462,13 @@ textarea.cl-input { min-height: 6.5rem; resize: vertical; }
 .cl-faq-plus::after { transform: translate(-50%, -50%) rotate(90deg); }
 .cl-faq details[open] .cl-faq-plus { transform: rotate(45deg); }
 .cl-faq p { margin: 0 0 1.1rem; color: var(--cl-muted); font-size: .97rem; }
+
+/* Community */
+.cl-community { display: grid; gap: 1rem; margin-top: 2.75rem; text-align: left; }
+@media (min-width: 820px) { .cl-community { grid-template-columns: 1fr 1fr; } }
+.cl-community-card { display: grid; gap: .5rem; align-content: start; border-radius: 28px; padding: clamp(1.25rem, 3vw, 1.9rem); text-decoration: none; transition: transform .35s cubic-bezier(.2, .8, .2, 1); }
+.cl-community-card:hover { transform: translateY(-3px); }
+.cl-community-k { margin-top: .6rem; font-size: .8rem; font-weight: 650; color: var(--cl-muted); text-transform: uppercase; letter-spacing: .08em; }
+.cl-community-card b { font-size: clamp(1.3rem, 2.6vw, 1.7rem); line-height: 1.15; letter-spacing: -.03em; }
+.cl-community-card p { margin: 0; color: var(--cl-muted); font-size: .97rem; }
+.cl-community-go { display: inline-flex; align-items: center; gap: .35rem; margin-top: .6rem; font-size: .92rem; font-weight: 650; color: var(--cl-blue); }
