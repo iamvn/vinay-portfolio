@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { BrandMark, BrandName } from '@/components/brand-mark';
 import { ProductTour } from '@/components/kritipath/product-tour';
 import { RequestForm } from '@/components/kritipath/request-form';
-import { PitchCommunity, PitchDifferent, PitchFaq, PitchLive, PitchNotIs, PitchOneProfile, PitchProblem, PitchVision, PitchWhyNow } from '@/components/kritipath/pitch';
+import { PitchCommunity, PitchLinkCard, PitchDifferent, PitchFaq, PitchLive, PitchNotIs, PitchOneProfile, PitchProblem, PitchVision, PitchWhyNow } from '@/components/kritipath/pitch';
 import { Icon } from '@/components/icons';
 import { BRAND, brandUrl } from '@/lib/brand';
 import { prisma } from '@/lib/prisma';
@@ -36,6 +36,8 @@ const FEATURES: { icon: string; color: string; title: string; text: string }[] =
   { icon: 'users', color: '#5e5ce6', title: 'An open community', text: 'Real interview experiences, and a free library of videos, articles, repos and courses that members keep adding to.' },
   { icon: 'chart', color: '#64d2ff', title: 'Know who’s looking', text: 'Private insights on visits, where they came from, and who clicked to contact you.' },
   { icon: 'pulse', color: '#ac8e68', title: 'Activity you can see', text: 'One log of sign-ins, new users, access changes and community posts across every site you run.' },
+  { icon: 'send', color: '#ff2d92', title: 'One link for every bio', text: 'A link card at yoursite/details with your photo, bio and links. Share it anywhere, print the QR code, see what gets clicked.' },
+  { icon: 'download', color: '#8e8e93', title: 'Set up in minutes', text: 'Import a resume PDF or your LinkedIn export, review what was found, and fill your profile in one go.' },
   { icon: 'globe', color: '#ffd60a', title: 'Your address, your data', text: 'Your own subdomain or custom domain, a private database for every site, backups and team roles.' },
 ];
 
@@ -47,7 +49,7 @@ const AUDIENCE = [
 
 const STATS: [string, string][] = [
   ['1 profile', 'powers every tool'],
-  ['10 tools', 'that usually live in 6 apps'],
+  ['12 tools', 'that usually live in 6 apps'],
   ['Any AI', 'Claude, OpenAI, Gemini and others'],
   ['Your domain', 'with a private database per site'],
 ];
@@ -97,7 +99,7 @@ export default async function KritipathPage() {
           <div className="cl-nav-bar cl-glass">
             <a href="#top" className="cl-brand" aria-label={`${BRAND.name} home`}><BrandMark size={26} /><BrandName /></a>
             <nav className="cl-nav-links" aria-label="Page sections">
-              <a href="#problem">Problem</a><a href="#how-it-works">How it works</a><a href="#tour">Product</a><a href="#community">Community</a><a href="#why-now">Why now</a><a href="#faq">FAQ</a><a href="/login">Sign in</a>
+              <a href="#problem">Problem</a><a href="#how-it-works">How it works</a><a href="#tour">Product</a><a href="#link-card">Link card</a><a href="#community">Community</a><a href="#why-now">Why now</a><a href="#faq">FAQ</a><a href="/login">Sign in</a>
             </nav>
             <a href="#get-started" className="cl-btn cl-btn-dark">Get started</a>
           </div>
@@ -167,10 +169,12 @@ export default async function KritipathPage() {
           <p className="cl-tour-note">Screens are illustrations of the product.</p>
         </section>
 
+        <PitchLinkCard />
+
         <section id="features" className="cl-section cl-wrap cl-center">
           <p className="cl-kicker">Everything in one place</p>
           <h2 className="cl-h2">More than a portfolio.</h2>
-          <p className="cl-lead">Ten tools that usually live in different apps, made to work together.</p>
+          <p className="cl-lead">Twelve tools that usually live in different apps, made to work together.</p>
           <div className="cl-grid">
             {FEATURES.map((f) => (
               <article key={f.title} className="cl-feature cl-glass">

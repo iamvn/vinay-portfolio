@@ -1,4 +1,6 @@
 import { Icon } from '@/components/icons';
+import { LinkCardView } from '@/components/linkcard/card';
+import type { CardProfile, LinkCard, ThemeId } from '@/lib/linkcard/types';
 import { BRAND } from '@/lib/brand';
 
 /**
@@ -37,11 +39,12 @@ const OUTPUTS: { icon: string; color: string; title: string; text: string }[] = 
   { icon: 'briefcase', color: '#ff375f', title: 'Application pipeline', text: 'Match, track, follow up' },
   { icon: 'target', color: '#00c7be', title: 'Prep plan', text: 'Goals, tasks, nudges' },
   { icon: 'chart', color: '#64d2ff', title: 'Insights', text: 'Who looked, from where' },
+  { icon: 'send', color: '#bf5af2', title: 'Link card', text: 'One link for every bio, with a QR code' },
 ];
 
 const LOOP = [
   { n: 'Build', text: 'Import a resume or LinkedIn once. Your profile becomes the source of truth.' },
-  { n: 'Show', text: 'Publish a portfolio that looks like you designed it, because you did.' },
+  { n: 'Show', text: 'Publish a portfolio you designed, and share one link card in every bio.' },
   { n: 'Apply', text: 'Paste a job link, see your match, generate the right resume, track it.' },
   { n: 'Prepare', text: 'Turn the gap into a plan: DSA, system design, daily tasks, reminders.' },
   { n: 'Learn', text: 'See who visited, what recruiters asked your AI, and what real interviews looked like.' },
@@ -62,11 +65,12 @@ const DIFFERENT = [
 
 const LIVE = [
   'Drag-and-drop portfolio designer', 'AI-generated templates from one sentence', 'ATS resume builder with a score', '“Ask my resume” AI assistant',
-  'Job link match and application pipeline', 'Follow-up reminders', 'Goal-based prep tracker', 'Community: interview stories and free resources',
+  'Link card for social bios, with QR code and click counts', 'Job link match and application pipeline', 'Follow-up reminders', 'Goal-based prep tracker', 'Community: interview stories and free resources',
   'Resume PDF and LinkedIn import', 'Visitor and contact insights', 'Custom domains, private database per site', 'Team roles, activity log, backups, health alerts',
 ];
 
 const FAQ: [string, string][] = [
+  ['Do I get a link-in-bio page too?', 'Yes. Every site has a link card at yoursite/details: your photo, a short bio and every link that matters, in the theme you pick. Put it in your Instagram, LinkedIn or X bio, print the QR code, and see which links people click. It’s included, with nothing extra to set up.'],
   ['Is Kritipath an AI job search tool?', 'No. Job search tools find openings. Kritipath is where your career lives: your portfolio, resumes, applications, prep and insights, built from one profile. AI helps along the way, but it’s a tool inside the product, not the product.'],
   ['Do you list jobs or apply for me?', 'Neither. You choose the roles you want. Kritipath shows how well you match, builds the right resume, tracks the application and reminds you to follow up. Nothing is ever sent in your name.'],
   ['Who owns my data?', 'You do. Every site has its own private database and address, with nightly encrypted backups. You decide what’s public.'],
@@ -255,6 +259,61 @@ export function PitchCommunity() {
             <span className="cl-community-go">Open {c.kicker.toLowerCase()} <Icon name="arrowUpRight" size={15} /></span>
           </a>
         ))}
+      </div>
+    </section>
+  );
+}
+
+/** A made-up person for the illustration: the real card uses each site's own profile. */
+const SAMPLE_PROFILE: CardProfile = { name: 'Aanya Rao', role: '', photo: '', socials: [{ kind: 'linkedin', url: '#' }, { kind: 'github', url: '#' }, { kind: 'instagram', url: '#' }, { kind: 'email', url: '#' }] };
+const sampleCard = (theme: ThemeId, shape: LinkCard['shape']): LinkCard => ({
+  enabled: true, theme, shape, showPhoto: true, showSocials: true,
+  headline: 'Product designer · open to work', bio: 'I design calm, useful apps. Currently exploring AI-first interfaces.',
+  links: [
+    { id: 'a1', title: 'See my portfolio', url: '#', featured: true, enabled: true },
+    { id: 'a2', title: 'Download my resume', url: '#', featured: false, enabled: true },
+    { id: 'a3', title: 'Book a 15-min call', url: 'https://cal.com/', featured: false, enabled: true },
+    { id: 'a4', title: 'Read my case studies', url: '#', featured: false, enabled: true },
+  ],
+});
+const LINK_POINTS = [
+  'Your photo, a short bio and every link that matters, on one page',
+  'Seven themes and three button shapes, with a live preview while you edit',
+  'A QR code for your resume, business card or conference badge',
+  'See how many people opened it and which links they clicked',
+  'Its own share preview on WhatsApp, LinkedIn and X',
+  'Built from your profile, so it’s ready before you even open it',
+];
+
+export function PitchLinkCard() {
+  return (
+    <section id="link-card" className="cl-section cl-wrap">
+      <div className="cl-lc">
+        <div className="cl-lc-copy">
+          <p className="cl-kicker">New · Link card</p>
+          <h2 className="cl-h2">One link for every bio.</h2>
+          <p className="cl-lead" style={{ marginInline: 0 }}>
+            Instagram, LinkedIn and X give you one link. Make it count: every {BRAND.name} site comes with a link card at
+            <b style={{ color: 'var(--cl-ink)' }}> yoursite/details</b>, made from your profile and ready to share.
+          </p>
+          <ul className="cl-lc-points">
+            {LINK_POINTS.map((p) => <li key={p}><Icon name="check" size={18} />{p}</li>)}
+          </ul>
+          <div className="cl-lc-ctas">
+            <a href="/details" className="cl-btn cl-btn-dark">See a live link card <Icon name="arrowUpRight" size={15} /></a>
+            <a href="#get-started" className="cl-btn cl-btn-glass">Get yours</a>
+          </div>
+        </div>
+        {/* An illustration of the real card component, with a made-up person. */}
+        <div className="cl-lc-phones" aria-hidden="true" inert>
+          {(['midnight', 'sunset', 'aurora'] as const).map((theme, i) => (
+            <div key={theme} className={`cl-lc-phone cl-lc-phone-${i}`}>
+              <div className="cl-lc-screen">
+                <LinkCardView card={sampleCard(theme, i === 1 ? 'pill' : 'rounded')} profile={SAMPLE_PROFILE} href={() => '#link-card'} nameAs="p" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

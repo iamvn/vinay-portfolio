@@ -472,3 +472,28 @@ textarea.cl-input { min-height: 6.5rem; resize: vertical; }
 .cl-community-card b { font-size: clamp(1.3rem, 2.6vw, 1.7rem); line-height: 1.15; letter-spacing: -.03em; }
 .cl-community-card p { margin: 0; color: var(--cl-muted); font-size: .97rem; }
 .cl-community-go { display: inline-flex; align-items: center; gap: .35rem; margin-top: .6rem; font-size: .92rem; font-weight: 650; color: var(--cl-blue); }
+
+/* Link card showcase */
+.cl-lc { display: grid; gap: 2.5rem; align-items: center; }
+@media (min-width: 960px) { .cl-lc { grid-template-columns: 1fr 1.05fr; gap: 3rem; } }
+.cl-lc-copy { text-align: left; }
+.cl-lc-points { display: grid; gap: .6rem; margin: 1.5rem 0 0; padding: 0; list-style: none; color: #3a3a3c; font-size: 1rem; }
+.cl-lc-points li { display: flex; gap: .55rem; align-items: flex-start; }
+.cl-lc-points svg { flex-shrink: 0; margin-top: .2rem; color: #30d158; }
+.cl-lc-ctas { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.75rem; }
+.cl-lc-phones { position: relative; display: flex; justify-content: center; align-items: center; min-height: 34rem; }
+.cl-lc-phone { width: 230px; border-radius: 34px; padding: 7px; background: #0b0b0d; box-shadow: 0 40px 70px -40px rgba(15, 23, 42, .65), 0 2px 6px rgba(0, 0, 0, .15); }
+.cl-lc-screen { height: 470px; overflow: hidden; border-radius: 28px; }
+.cl-lc-screen .lc-root { zoom: .78; min-height: 100%; height: calc(470px / .78); }
+.cl-lc-screen .lc-inner { padding-top: 2.4rem; }
+.cl-lc-phone-0, .cl-lc-phone-2 { position: absolute; top: 50%; transform-origin: center; }
+.cl-lc-phone-0 { left: 50%; transform: translate(-118%, -50%) rotate(-7deg) scale(.88); }
+.cl-lc-phone-2 { left: 50%; transform: translate(18%, -50%) rotate(7deg) scale(.88); }
+.cl-lc-phone-1 { position: relative; z-index: 2; }
+/* Phones: one card, no fan. */
+@media (max-width: 640px) {
+  .cl-lc-phones { min-height: 0; }
+  .cl-lc-phone-0, .cl-lc-phone-2 { display: none; }
+}
+/* "One profile" outputs: an odd last tile spans both columns. */
+.cl-flow-out li:last-child:nth-child(odd) { grid-column: 1 / -1; }

@@ -12,8 +12,10 @@ const KIND_ICON: Record<ReturnType<typeof linkKind>, string> = {
 };
 const SHAPE = { rounded: '16px', pill: '999px', square: '6px' } as const;
 
-export function LinkCardView({ card, profile, href, top, footer }: {
+export function LinkCardView({ card, profile, href, top, footer, nameAs: Name = 'h1' }: {
   card: LinkCard; profile: CardProfile; href: (id: string, url: string) => string; top?: ReactNode; footer?: ReactNode;
+  /** 'p' when the card is an illustration on another page (that page has its own h1). */
+  nameAs?: 'h1' | 'p';
 }) {
   const t = THEMES[card.theme] ?? THEMES.midnight;
   const radius = SHAPE[card.shape] ?? SHAPE.rounded;
@@ -30,7 +32,7 @@ export function LinkCardView({ card, profile, href, top, footer }: {
             ? <img className="lc-photo" src={profile.photo} alt="" width={96} height={96} />
             : <span className="lc-photo lc-initials" aria-hidden="true">{initials || '★'}</span>
         )}
-        <h1 className="lc-name">{profile.name}</h1>
+        <Name className="lc-name">{profile.name}</Name>
         {card.headline && <p className="lc-headline">{card.headline}</p>}
         {card.bio && <p className="lc-bio">{card.bio}</p>}
         {card.showSocials && profile.socials.length > 0 && (
