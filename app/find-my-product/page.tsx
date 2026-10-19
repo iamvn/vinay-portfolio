@@ -184,7 +184,7 @@ export default async function FindMyProductPage() {
 
       <main id="top">
         <section className="cl-hero cl-wrap">
-          <span className="cl-eyebrow cl-glass"><span className="cl-dot" aria-hidden="true" />{NAME} · Live in Pune · Free pilot</span>
+          <span className="cl-eyebrow cl-glass"><span className="cl-dot" aria-hidden="true" />{NAME} · Live in India · Free pilot</span>
           <h1 className="cl-h1">Need it today?<br /><span className="cl-gradient">Ask the shops near you.</span></h1>
           <p className="cl-lead">
             Tell nearby shops what you need. Their phones ring, they reply with a price and whether it’s on the shelf, and you pick the best
