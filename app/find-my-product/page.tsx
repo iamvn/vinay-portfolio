@@ -18,7 +18,7 @@ const NAME = 'Find My Product';
 const PATH = '/find-my-product';
 const TAGLINE = 'Ask the shops near you. Get prices in minutes.';
 const DESCRIPTION =
-  'Tell nearby shops what you need. They reply with price and stock. Pick one, pick it up or get it delivered. Free during the Pune pilot, in English and Hindi.';
+  'Tell nearby shops what you need. They reply with price and stock. Pick one, pick it up or get it delivered. Free during the India pilot, in English and Hindi.';
 
 const TITLE = `${NAME}: ${TAGLINE}`;
 export const metadata: Metadata = {
@@ -134,12 +134,12 @@ const AUDIENCE = [
 ];
 
 const FAQ: [string, string][] = [
-  ['Is it free?', 'Yes. During the Pune pilot it’s free for customers and for shops. There’s no commission on what you buy.'],
+  ['Is it free?', 'Yes. During the India pilot it’s free for customers and for shops. There’s no commission on what you buy.'],
   ['Do I pay in the app?', 'No. You pay the shop directly, at the counter or on delivery, the way you always have.'],
   ['Do shops see my phone number?', 'Not by default. Shops see your area, never your exact location, and the admin decides whether names, numbers and call buttons are shown. Chat hides numbers typed into messages.'],
   ['Do I need to install anything?', 'No download is needed. Open it in Chrome or Safari, and add it to your home screen if you want alerts like an app. On iPhone, alerts need iOS 16.4 or newer.'],
   ['Is it available in Hindi?', 'Yes. Tap EN | हिं at the top of any page. Everything switches, and your alerts arrive in the language you chose.'],
-  ['I own a shop. How do I join?', 'Scan the Find My Product QR sticker at your counter, or open the app and sign up as a shop. Our team in Pune can also add you.'],
+  ['I own a shop. How do I join?', 'Scan the Find My Product QR sticker at your counter, or open the app and sign up as a shop. Our team in India can also add you.'],
 ];
 
 const LINKEDIN = /^https:\/\/([a-z]{2,3}\.)?linkedin\.com\//i;
@@ -344,7 +344,7 @@ export default async function FindMyProductPage() {
         <section id="live" className="cl-section cl-wrap cl-center">
           <p className="cl-kicker">Not a mockup</p>
           <h2 className="cl-h2">Already built. Already live.</h2>
-          <p className="cl-lead">Everything below is running today in the Pune pilot, with real shops and real customers.</p>
+          <p className="cl-lead">Everything below is running today in the India pilot, with real shops and real customers.</p>
           <ul className="cl-live cl-glass">
             {LIVE.map((l) => <li key={l}><span className="cl-dot" aria-hidden="true" />{l}</li>)}
           </ul>
@@ -363,7 +363,7 @@ export default async function FindMyProductPage() {
             <p className="cl-kicker" style={{ color: '#ffb4a0' }}>Where this goes</p>
             <h2 className="cl-h2">Every shop on the street, one question away.</h2>
             <p>
-              Today it’s chargers, cables and bulbs in Pune. Tomorrow it’s any market in any city: the hardware lane, the medical store, the
+              Today it’s chargers, cables and bulbs in India. Tomorrow it’s any market in any city: the hardware lane, the medical store, the
               stationery shop near the school. The stock is already there. {NAME} is how people find it, and how the shops that keep it
               win against the warehouse two days away.
             </p>
@@ -373,7 +373,7 @@ export default async function FindMyProductPage() {
 
         <section id="founder" className="cl-section cl-wrap cl-center">
           <p className="cl-kicker">The founder</p>
-          <h2 className="cl-h2">Built in Pune, for local shops.</h2>
+          <h2 className="cl-h2">Built in India, for local shops.</h2>
           <div className="cl-founder cl-glass">
             {photo ? <img src={photo} alt={BRAND.founder.name} width={220} height={220} /> : <Mark size={140} />}
             <div>
