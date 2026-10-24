@@ -2,7 +2,7 @@
 
 import type React from 'react';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Icon } from './icons';
 import { track } from '@/lib/track-client';
 
@@ -38,7 +38,7 @@ function subscribeToGameMode(callback: () => void) {
   };
 }
 
-const nav = [
+const NAV = [
   ['home', 'HOME'],
   ['about', 'ABOUT'],
   ['skills', 'SKILLS'],
@@ -56,6 +56,7 @@ type SocialLinks = {
 };
 
 export function InteractionLayer({
+  hidden = [],
   name,
   role,
   location,
@@ -75,7 +76,12 @@ export function InteractionLayer({
   yearsExperience: string;
   available: boolean;
   availability: string;
+  /** Homepage sections switched off (lib/sections.ts): left out of the menu. */
+  hidden?: string[];
 }) {
+  const hiddenKey = hidden.join(',');
+  // "Engineering" is part of the Skills section.
+  const nav = useMemo(() => NAV.filter(([id]) => !hiddenKey.split(',').includes(id === 'engineering' ? 'skills' : id)), [hiddenKey]);
   // "Savi Bharti" → "SB": each site shows its owner's initials.
   const words = name.trim().split(/\s+/).filter(Boolean);
   const initials = (words.length >= 2 ? `${words[0][0]}${words[words.length - 1][0]}` : (words[0] ?? 'P').slice(0, 2)).toUpperCase();
@@ -195,7 +201,7 @@ export function InteractionLayer({
       window.removeEventListener('keydown', onKey);
       observer.disconnect();
     };
-  }, [active, contactHref]);
+  }, [active, contactHref, nav]);
 
   const iconFor = (id: string) =>
     id === 'home'

@@ -157,6 +157,12 @@ export function AdminApp({ user, database, platform = false, platformMain = fals
   return (
     <div className="admin-shell min-h-screen bg-[#030609] text-slate-100">
       <RequestProgress />
+      {user.impersonatedBy && (
+        <div role="status" className="relative z-30 flex flex-wrap items-center gap-x-3 gap-y-2 bg-amber-300 px-4 py-2 pt-[calc(env(safe-area-inset-top)+.5rem)] text-sm text-black">
+          <span className="min-w-0 flex-1 basis-64"><b>Super admin access.</b> You’re in this site’s admin as <b>{user.email}</b>. Changes are saved to their site and logged. Ends after 2 hours.</span>
+          <button type="button" onClick={signOut} className="inline-flex min-h-10 shrink-0 items-center rounded-lg bg-black px-3 text-xs font-black uppercase tracking-wide text-amber-200 hover:bg-slate-900">End session</button>
+        </div>
+      )}
       <header className="sticky top-0 z-20 border-b border-white/10 bg-[#030609]/90 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5 sm:py-4">
           <div className="min-w-0">

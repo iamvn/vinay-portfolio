@@ -11,8 +11,17 @@ export const metadata: Metadata = { title: `Sign in | ${BRAND.name}`, robots: { 
 /** Only lets a same-site path through, so ?next= can't redirect to another website. */
 const safeNext = (next: string | undefined) => (next && next.startsWith('/') && !next.startsWith('//') ? next : '/admin');
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const next = safeNext((await searchParams).next);
+/** Messages for ?notice= (from "Log in as admin" links that didn't work). */
+const NOTICES: Record<string, string> = {
+  expired: 'That super admin sign-in link has expired (they last 60 seconds). Open it again from Sites.',
+  used: 'That super admin sign-in link was already used. Open it again from Sites.',
+  'no-admin': 'This site has no admin account yet.',
+  error: 'Couldn’t open this site’s admin. Try again from Sites.',
+};
+
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; notice?: string }> }) {
+  const params = await searchParams;
+  const next = safeNext(params.next);
   if (await currentUser()) redirect(next);
-  return <LoginForm next={next} />;
+  return <LoginForm next={next} notice={NOTICES[params.notice ?? ''] ?? ''} />;
 }

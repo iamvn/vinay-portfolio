@@ -1,3 +1,4 @@
+import { hiddenSections } from './sections-store';
 import type { PortfolioData } from './portfolio';
 import { copySchema, type PortfolioData as ParsedPortfolio } from './schemas';
 import { prisma } from './prisma';
@@ -65,10 +66,11 @@ export async function getPortfolioFromDatabase({ includeDrafts = false } = {}): 
     prisma.experience.findMany({ orderBy: { order: 'asc' } }),
     prisma.project.findMany({ where: includeDrafts ? {} : { published: true }, orderBy: { id: 'asc' } }),
   ]);
-  const pdfs = await projectPdfs();
+  const [pdfs, hidden] = await Promise.all([projectPdfs(), hiddenSections()]);
 
   if (!profile || !copy) throw new Error('NOT_SEEDED');
   return {
+    hidden,
     profile: toProfile(profile) as PortfolioData['profile'],
     copy: parseCopy(copy.content),
     skills: skills.map(({ name, items }) => ({ group: name, items: parse<string[]>(items) })),

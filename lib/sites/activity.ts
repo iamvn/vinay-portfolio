@@ -7,7 +7,7 @@ import type { Site } from './registry';
  * admin does to sites. Kept in the main site's database (table SiteActivity).
  */
 export const ACTIVITY_KINDS = [
-  'user.login', 'user.added', 'user.updated', 'user.removed', 'site.created', 'site.updated', 'site.deleted',
+  'user.login', 'user.impersonated', 'user.added', 'user.updated', 'user.removed', 'site.created', 'site.updated', 'site.deleted',
   // Community board: only who did what to which post, and when (the post itself lives in CommunityPost).
   'community.posted', 'community.updated', 'community.deleted', 'community.hidden', 'community.shown', 'community.removed',
   // Support & requests: that someone asked, and that it was answered (the request lives in SupportRequest).
@@ -35,7 +35,11 @@ const CREATE = `CREATE TABLE IF NOT EXISTS SiteActivity (id INTEGER PRIMARY KEY 
 let ready: Promise<unknown> | null = null;
 const ensureTable = () => (ready ??= mainClient.$executeRawUnsafe(CREATE).catch((error) => { ready = null; throw error; }));
 
-export const actorLabel = (user: { name?: string | null; email: string }) => (user.name?.trim() ? `${user.name.trim()} <${user.email}>` : user.email);
+export const actorLabel = (user: { name?: string | null; email: string; impersonatedBy?: string }) => {
+  const self = user.name?.trim() ? `${user.name.trim()} <${user.email}>` : user.email;
+  // Changes made through "Log in as admin" show who really made them.
+  return user.impersonatedBy ? `${user.impersonatedBy} (super admin, as ${user.email})` : self;
+};
 
 /**
  * Records something that happened. Never throws: the action itself already happened.

@@ -1,5 +1,6 @@
 'use client';
 
+import { SectionSwitches } from './section-switches';
 import { useEffect, useState } from 'react';
 import { api, describeError, fromLines, toLines } from './api';
 import { Card, Field, Loading, SaveBar, TextArea, TextInput, type Notify } from './ui';
@@ -80,6 +81,7 @@ export function CopyTab({ notify }: { notify: Notify }) {
   const sections = Object.entries(copy);
   return (
     <div className="space-y-4 sm:space-y-5">
+      <SectionSwitches notify={notify} />
       <p className="rounded-xl border border-cyan-300/20 bg-cyan-300/5 px-4 py-3 text-xs leading-6 text-cyan-100">
         Placeholders are filled in from your profile: <code>{'{years}'}</code> <code>{'{level}'}</code> <code>{'{xp}'}</code> <code>{'{xpMax}'}</code>{' '}
         <code>{'{name}'}</code> <code>{'{role}'}</code> <code>{'{location}'}</code>

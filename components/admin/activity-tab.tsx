@@ -5,7 +5,7 @@ import { api, describeError } from './api';
 import { Button, Card, ConfirmButton, Loading, inputClass, type Notify } from './ui';
 import type { Post } from '@/lib/community/types';
 
-type Kind = 'user.login' | 'user.added' | 'user.updated' | 'user.removed' | 'site.created' | 'site.updated' | 'site.deleted'
+type Kind = 'user.login' | 'user.impersonated' | 'user.added' | 'user.updated' | 'user.removed' | 'site.created' | 'site.updated' | 'site.deleted'
   | 'community.posted' | 'community.updated' | 'community.deleted' | 'community.hidden' | 'community.shown' | 'community.removed' | 'support.requested' | 'support.answered' | 'design.shared' | 'design.unshared' | 'data.cleaned' | 'log.cleared';
 type Activity = { id: number; at: string; site: string; siteName: string; actor: string; kind: Kind; details: Record<string, string> };
 type Stats = { count: number; oldest: string | null };
@@ -15,6 +15,7 @@ const PAGE_SIZE = 25;
 
 const KIND_LABELS: Record<Kind, string> = {
   'user.login': 'Signed in',
+  'user.impersonated': 'Super admin sign-in',
   'user.added': 'Added user',
   'user.updated': 'Changed user',
   'user.removed': 'Removed user',
@@ -36,6 +37,7 @@ const KIND_LABELS: Record<Kind, string> = {
 };
 const KIND_TONES: Record<Kind, string> = {
   'user.login': 'border-slate-400/30 bg-slate-400/10 text-slate-200',
+  'user.impersonated': 'border-amber-300/40 bg-amber-300/10 text-amber-100',
   'user.added': 'border-lime-300/30 bg-lime-300/10 text-lime-200',
   'user.updated': 'border-cyan-300/30 bg-cyan-300/10 text-cyan-200',
   'user.removed': 'border-red-400/30 bg-red-400/10 text-red-200',
@@ -60,6 +62,7 @@ const FILTERS: { value: string; label: string }[] = [
   { value: '', label: 'All activity' },
   { value: 'user.', label: 'All user activity' },
   { value: 'user.login', label: '· Sign-ins' },
+  { value: 'user.impersonated', label: '· Super admin sign-ins' },
   { value: 'user.added', label: '· Users added' },
   { value: 'user.updated', label: '· Users changed' },
   { value: 'user.removed', label: '· Users removed' },
@@ -88,6 +91,7 @@ const site = (d: Record<string, string>) => <><b className="text-slate-100">{d.n
 function details(item: Activity): ReactNode {
   const d = item.details;
   switch (item.kind) {
+    case 'user.impersonated': return <span className="text-slate-400">{d.step === 'signed-in' ? `opened the admin as ${d.email}` : 'asked for a sign-in link'}</span>;
     case 'user.login': return <span className="text-slate-400">as {d.role === 'admin' ? 'admin' : 'editor'}</span>;
     case 'user.added': return <>{person(d)} <span className="text-slate-400">as {d.role === 'admin' ? 'admin' : 'editor'}{d.access ? `, ${d.access}` : ''}</span></>;
     case 'user.removed': return <>{person(d)}</>;

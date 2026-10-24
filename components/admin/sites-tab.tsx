@@ -214,8 +214,22 @@ function Security({ site, busy, save }: { site: SiteRow; busy: boolean; save: (c
   );
 }
 
-function SiteItem({ site, isMain, onChanged, notify }: { site: SiteRow; isMain: boolean; onChanged: () => void; notify: Notify }) {
+function SiteItem({ site, isMain, owner, onChanged, notify }: { site: SiteRow; isMain: boolean; owner: boolean; onChanged: () => void; notify: Notify }) {
   const [busy, setBusy] = useState(false);
+  /**
+   * Platform owner: open this site's admin panel signed in as its admin (2 hours, logged in Activity logs).
+   * The tab is opened straight away (so the browser doesn't block it), then sent to the one-time sign-in link.
+   */
+  async function loginAsAdmin() {
+    const tab = window.open('', '_blank');
+    try {
+      const { url } = await api<{ url: string }>('POST', `/api/platform/sites/${site.slug}/impersonate`);
+      if (tab) { tab.opener = null; tab.location.href = url; } else window.location.href = url;
+    } catch (error) {
+      tab?.close();
+      notify(describeError(error), 'error');
+    }
+  }
   const [domain, setDomain] = useState(site.domain ?? '');
   const [confirm, setConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -251,9 +265,12 @@ function SiteItem({ site, isMain, onChanged, notify }: { site: SiteRow; isMain: 
           )}
         </div>
         {site.url && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <a className={link} href={site.url} target="_blank" rel="noreferrer">Site ↗</a>
             <a className={link} href={`${site.url}/admin`} target="_blank" rel="noreferrer">Their admin ↗</a>
+            {owner && site.status === 'active' && (
+              <Button tone="primary" onClick={loginAsAdmin} label={`Log in to ${site.name}'s admin as their admin`}>Log in as admin</Button>
+            )}
           </div>
         )}
       </div>
@@ -379,7 +396,7 @@ export function SitesTab({ notify, owner = false }: { notify: Notify; owner?: bo
 
       <Card title={`All sites (${state.sites.length})`}>
         {state.sites.length === 0 ? <p className="text-sm text-slate-400">No sites yet. Create the first one below.</p> : (
-          <ul className="divide-y divide-white/5">{state.sites.map((site) => <SiteItem key={site.slug} site={site} isMain={isMain} onChanged={load} notify={notify} />)}</ul>
+          <ul className="divide-y divide-white/5">{state.sites.map((site) => <SiteItem key={site.slug} site={site} isMain={isMain} owner={isMain && owner} onChanged={load} notify={notify} />)}</ul>
         )}
       </Card>
 

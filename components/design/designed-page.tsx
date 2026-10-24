@@ -4,6 +4,7 @@ import type { PortfolioData } from '@/lib/portfolio';
 import type { DesignData } from '@/lib/design/templates';
 import type { ProjectView } from '@/lib/design/project-view';
 import { designConfig, type DesignMetadata } from './config';
+import { withoutSections } from '@/lib/sections';
 
 /**
  * The editor config for the publish checklist's audit: every block wrapped in a `display: contents` div
@@ -26,5 +27,7 @@ function withBlockIds(): Config {
 /** A design from Admin → Design, rendered on the server with the live portfolio content (and, on project pages, the project). */
 export function DesignedPage({ data, portfolio, assistant, audit = false, project }: { data: DesignData; portfolio: PortfolioData; assistant: boolean; audit?: boolean; project?: ProjectView }) {
   const metadata: DesignMetadata = { portfolio, assistant, ...(project ? { project } : {}) };
-  return <Render config={audit ? withBlockIds() : designConfig} data={data} metadata={metadata} />;
+  // Sections switched off in Admin (Site text → Sections on your site) are left out, with links that jump to them.
+  const shown = project ? data : withoutSections(data, portfolio.hidden ?? []);
+  return <Render config={audit ? withBlockIds() : designConfig} data={shown} metadata={metadata} />;
 }

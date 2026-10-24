@@ -1,5 +1,7 @@
 'use client';
 
+import { SectionSwitch } from './section-switches';
+import type { SectionKey } from '@/lib/sections';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PdfField } from '@/components/design/pdf-field';
 import { api, describeError, fromLines, toLines } from './api';
@@ -39,6 +41,7 @@ export type ListConfig = {
   intro?: ReactNode;                        // help shown above the list
   previewHref?: (row: Row) => string;       // "Preview ↗" link on saved items
   imageEndpoint?: (row: Row) => string;     // upload/delete URL for "image" fields
+  section?: SectionKey;                     // the homepage section these items fill (show/hide switch on top)
 };
 
 const dataFields = (fields: FieldDef[]) => fields.filter((field) => field.type !== 'heading');
@@ -445,6 +448,7 @@ export function ListTab({ config, notify }: { config: ListConfig; notify: Notify
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      {config.section && <SectionSwitch section={config.section} count={rows.length} notify={notify} />}
       {config.intro}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-400">
@@ -481,6 +485,7 @@ export function ListTab({ config, notify }: { config: ListConfig; notify: Notify
 
 // ---------- The three lists ----------
 export const SKILLS: ListConfig = {
+  section: 'skills',
   endpoint: '/api/skills',
   idKey: 'id',
   reorderEndpoint: '/api/skills/reorder',
@@ -494,6 +499,7 @@ export const SKILLS: ListConfig = {
 };
 
 export const EXPERIENCE: ListConfig = {
+  section: 'experience',
   endpoint: '/api/experience',
   idKey: 'id',
   reorderEndpoint: '/api/experience/reorder',
@@ -512,6 +518,7 @@ export const EXPERIENCE: ListConfig = {
 const isType = (type: string) => (draft: Draft) => draft.type === type;
 
 export const PROJECTS: ListConfig = {
+  section: 'projects',
   endpoint: '/api/projects',
   idKey: 'slug',
   noun: 'project',

@@ -35,7 +35,7 @@ export default async function AdminPage() {
       user={{
         ...publicUser(user), owner,
         // Still on the password someone else set (never changed it), except the main site's owner, who chose theirs.
-        mustChangePassword: user.tokenVersion === 0 && !(site.isMain && owner),
+        mustChangePassword: user.tokenVersion === 0 && !(site.isMain && owner) && !user.impersonatedBy,
       }}
       database={site.isMain ? { ...describeDatabase(), lastDeploy: read('system.lastDeploy'), seededAt: read('system.seededAt')?.at ?? null } : undefined}
       platform={admin && (site.isMain || site.canAddSites)}

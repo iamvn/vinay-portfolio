@@ -175,4 +175,7 @@ export const portfolioSchema = z.object({
 
 export type PortfolioInput = z.input<typeof portfolioSchema>;
 /** Portfolio with all defaults filled in — what the site renders. */
-export type PortfolioData = z.output<typeof portfolioSchema>;
+export type PortfolioData = z.output<typeof portfolioSchema> & {
+  /** Homepage sections switched off (lib/sections.ts). Not part of backups' content schema. */
+  hidden?: import('./sections').SectionKey[];
+};

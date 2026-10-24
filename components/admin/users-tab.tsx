@@ -10,6 +10,8 @@ export type AdminUser = {
   id: number; email: string; name: string; role: string; createdAt?: string; owner?: boolean;
   /** Never changed the password they were given: the admin panel asks them to. */
   mustChangePassword?: boolean;
+  /** Set when the platform owner opened this admin with "Log in as admin": who they are. */
+  impersonatedBy?: string;
   permissions?: TabId[] | null; tabs?: TabId[]; readOnly?: boolean; viewOnly?: boolean;
   /** Tabs this site may use at all (set by the platform owner). */
   siteTabs?: TabId[];

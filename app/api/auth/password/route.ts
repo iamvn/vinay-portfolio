@@ -16,6 +16,8 @@ const schema = z.object({ currentPassword: z.string().min(1), newPassword: z.str
 export async function POST(request: Request) {
   const user = await userFromRequest(request);
   if (!user) return jsonError('Not logged in.', 401);
+  // Super admin access ("Log in as admin") must never lock the real admin out of their own account.
+  if (user.impersonatedBy) return jsonError('You’re in this admin with super admin access, so the password can’t be changed here. Only the admin can change their own password.', 403);
   const { data, error } = await parseBody(request, schema);
   if (error) return error;
   const problem = passwordProblem(data.newPassword);

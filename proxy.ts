@@ -25,6 +25,7 @@ import { TAB_LABELS, blockedForReadOnly, canUseTab, isReadOnly, tabForRequest } 
  */
 const PUBLIC_API: { method: string; pattern: RegExp }[] = [
   { method: 'POST', pattern: /^\/api\/auth\/(login|logout)$/ },
+  { method: 'GET', pattern: /^\/api\/auth\/impersonate$/ }, // "Log in as admin": swaps a one-time pass for a session
   { method: 'POST', pattern: /^\/api\/contact$/ },
   { method: 'POST', pattern: /^\/api\/forms$/ }, // forms built in Admin → Design
   { method: 'POST', pattern: /^\/api\/track$/ },

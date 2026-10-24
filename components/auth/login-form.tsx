@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { BrandMark, BrandName } from '../brand-mark';
 import { useState, type FormEvent } from 'react';
 
-export function LoginForm({ next }: { next: string }) {
+export function LoginForm({ next, notice = '' }: { next: string; notice?: string }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(notice);
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 

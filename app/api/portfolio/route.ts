@@ -5,10 +5,16 @@ import { portfolioSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
+/** The backup format: content only (section switches aren't part of it, and the import is strict). */
+const content = async () => {
+  const { hidden: _hidden, ...data } = await getPortfolioFromDatabase({ includeDrafts: true }); // eslint-disable-line @typescript-eslint/no-unused-vars
+  return data;
+};
+
 /** Full portfolio payload (same shape as data/portfolio.json). */
 export async function GET() {
   try {
-    return NextResponse.json(await getPortfolioFromDatabase({ includeDrafts: true }), { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json(await content(), { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return handleDbError(error);
   }
@@ -24,7 +30,7 @@ export async function PUT(request: Request) {
   if (new Set(groups).size !== groups.length) return NextResponse.json({ error: 'Skill group names must be unique.' }, { status: 400 });
   try {
     await replacePortfolio(data);
-    return NextResponse.json(await getPortfolioFromDatabase({ includeDrafts: true }));
+    return NextResponse.json(await content());
   } catch (err) {
     return handleDbError(err);
   }
