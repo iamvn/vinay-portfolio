@@ -553,7 +553,8 @@ export type ExperienceProps = { layout: 'timeline' | 'cards' | 'compact' | 'jour
 
 export function Experience(props: ExperienceProps & { portfolio: Portfolio }) {
   const { experience, copy } = props.portfolio;
-  const bullets = (items: string[]) => (props.maxBullets > 0 ? items.slice(0, props.maxBullets) : items);
+  // 0 = every highlight, -1 = none (just role, company and dates).
+  const bullets = (items: string[]) => (props.maxBullets < 0 ? [] : props.maxBullets > 0 ? items.slice(0, props.maxBullets) : items);
   const badge = <span className="d-tag d-tag-accent text-[10px] font-bold">{copy.experience.current}</span>;
   let body: ReactNode;
   if (props.layout === 'compact') {

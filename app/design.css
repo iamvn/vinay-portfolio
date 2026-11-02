@@ -552,3 +552,8 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
 .d-feed-blank { background: linear-gradient(140deg, color-mix(in srgb, var(--d-accent2, #22d3ee) 45%, #111), color-mix(in srgb, var(--d-accent3, #a855f7) 55%, #111)); }
 @media (max-width: 767px) { .d-feed { margin-inline: calc(var(--feed-bleed, 0px) * -1); } }
 @media (prefers-reduced-motion: reduce) { .d-box-link, .d-box-link:active { transition: none; transform: none; } }
+/* A centred sideways row: centred while it fits, scrolls from its first item when it doesn't (plain centring
+   would push the first items out of reach on the left). */
+.d-scroll-x[style*="justify-content:center"] { justify-content: flex-start !important; }
+.d-scroll-x[style*="justify-content:center"] > :first-child { margin-inline-start: auto; }
+.d-scroll-x[style*="justify-content:center"] > :last-child { margin-inline-end: auto; }

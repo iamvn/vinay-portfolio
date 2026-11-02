@@ -521,7 +521,6 @@ const PG_LINE = 'rgba(255,255,255,0.1)';
 const PG_RING_FROM = '#22d3ee';
 const PG_RING_VIA = '#6366f1';
 const PG_RING_TO = '#a855f7';
-const PG_BUTTON = '#1f1f23';
 
 /** A gradient ring around something round (the photo, each story circle). */
 const ring = (id: string, sizePx: number, thickness: number, inner: Block) => b('Box', id, {
@@ -552,15 +551,6 @@ const sideRow = (id: string, icon: string, label: string, href: string) => linkB
   look: { radius: 12 },
 }, [b('Icon', `${id}-icon`, { name: icon, size: 22, tone: 'text' }), b('Text', `${id}-label`, { source: 'custom', text: label, size: 'md', weight: 'medium', tone: 'normal' })]);
 
-/** One number in the profile header. */
-const stat = (id: string, source: string, label: string, small = false) => b('Box', id, {
-  layout: { display: 'flex', direction: 'column', gap: 0, align: 'center' }, spacing: none,
-  content: [
-    b('Text', `${id}-value`, { source, ...(small ? { sizePx: 17 } : { size: 'lg' }), weight: 'bold', align: 'center', tone: 'normal' }),
-    b('Text', `${id}-label`, { source: 'custom', text: label, ...(small ? { sizePx: 12 } : { size: 'sm' }), tone: 'muted', align: 'center' }),
-  ],
-});
-
 /** A story circle: the whole thing is a link. Ids start with the section, so switching it off hides the circle. */
 const story = (id: string, icon: string, label: string, href: string) => linkBox(id, href, '', {
   layout: { display: 'flex', direction: 'column', gap: 7, align: 'center' }, spacing: { padding: pad(2) },
@@ -570,45 +560,11 @@ const story = (id: string, icon: string, label: string, href: string) => linkBox
   b('Text', `${id}-label`, { source: 'custom', text: label, sizePx: 12, align: 'center', tone: 'normal' }),
 ]);
 
-/** A desktop tab with its label. */
-const tab = (id: string, icon: string, label: string, href: string, active = false) => linkBox(id, href, '', {
-  layout: { display: 'flex', direction: 'row', gap: 8, align: 'center', wrap: 'nowrap', stackOnMobile: false },
-  spacing: { padding: { top: '14', right: '10', bottom: '14', left: '10' } },
-  look: { radius: 10 },
-}, [b('Icon', `${id}-icon`, { name: icon, size: 18, tone: active ? 'text' : 'muted' }), b('Text', `${id}-label`, { source: 'custom', text: label, size: 'sm', weight: 'bold', tone: active ? 'normal' : 'muted', uppercase: true, tracking: 'wide' })]);
-
-/** A phone tab: just the icon, with a line under the current one. */
-const iconTab = (id: string, icon: string, label: string, href: string, active = false) => linkBox(id, href, label, {
-  layout: { display: 'flex', direction: 'column', gap: 9, align: 'center' },
-  spacing: { padding: { top: '11', right: '0', bottom: '0', left: '0' } },
-  item: { grow: true, basis: '0' },
-}, [
-  b('Icon', `${id}-icon`, { name: icon, size: 24, tone: active ? 'text' : 'muted', align: 'center' }),
-  b('Box', `${id}-bar`, { size: { width: '100%', height: '1px' }, spacing: none, look: { fill: 'custom', fillColor: active ? '#f5f5f7' : 'rgba(0,0,0,0)' } }),
-]);
-
-/** A button-like link on phones (Resume, Let's talk). */
-const phoneButton = (id: string, label: string, href: string) => linkBox(id, href, '', {
-  layout: { display: 'flex', direction: 'row', align: 'center', justify: 'center' },
-  spacing: { padding: { top: '9', right: '10', bottom: '9', left: '10' } },
-  look: { fill: 'custom', fillColor: PG_BUTTON, radius: 10 },
-  item: { grow: true, basis: '0' },
-}, [b('Text', `${id}-label`, { source: 'custom', text: label, sizePx: 14, weight: 'bold', align: 'center', tone: 'normal' })]);
-
 /** An icon in the phone's top bar or bottom tab bar. */
 const barIcon = (id: string, icon: string, label: string, href: string, sizePx = 25) => linkBox(id, href, label, {
   layout: { display: 'flex', direction: 'row', align: 'center', justify: 'center' },
   spacing: { padding: pad(9) }, look: { radius: 12 },
 }, [b('Icon', `${id}-icon`, { name: icon, size: sizePx, tone: 'text', align: 'center' })]);
-
-/** A titled block in the main column. */
-const feedSection = (id: string, anchor: string, content: Block[]) => b('Box', id, {
-  layout: { display: 'flex', direction: 'column', gap: 18 },
-  spacing: { padding: pad(24, 24), paddingMobile: pad(18, 16) },
-  look: { fill: 'custom', fillColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderTone: 'custom', borderColor: PG_LINE, radius: 20 },
-  advanced: { tag: 'section', anchor, fitSections: true },
-  content,
-});
 
 /** Stacked (column) boxes must not wrap: a wrapping column squeezes tall content like the project grid. */
 function noWrapColumns<T>(value: T): T {
@@ -620,6 +576,69 @@ function noWrapColumns<T>(value: T): T {
   if (layout && typeof layout === 'object' && layout.direction === 'column' && layout.wrap === undefined) out.layout = { ...layout, wrap: 'nowrap' };
   return out as T;
 }
+
+/** A text link in the header row ("Projects | Experience …"). */
+const headLink = (id: string, label: string, href: string) => linkBox(id, href, '', {
+  layout: { display: 'flex', direction: 'row', align: 'center' }, spacing: { padding: { top: '4', right: '8', bottom: '4', left: '8' } }, look: { radius: 8 },
+}, [b('Text', `${id}-label`, { source: 'custom', text: label, sizePx: 14, weight: 'medium', tone: 'normal' })]);
+
+/** "● Available for opportunities": a soft green pill (hidden when you're not available). */
+const availablePill = (id: string) => b('Flex', id, {
+  gap: 7, align: 'center', wrap: false,
+  items: [b('Icon', `${id}-dot`, { name: 'dot', size: 11, tone: 'custom', color: '#22c55e' }), b('Text', `${id}-text`, { source: 'availability', sizePx: 13, weight: 'medium', tone: 'normal' })],
+  spacing: { padding: { top: '4', right: '12', bottom: '4', left: '9' } },
+  colors: { background: 'rgba(34,197,94,0.12)' }, border: { borderWidth: 1, borderTone: 'custom', borderColor: 'rgba(34,197,94,0.45)', radius: '999px' },
+});
+
+/** A big button-like link: light (primary) or outlined. */
+const bigButton = (id: string, icon: string, label: string, href: string, light: boolean) => linkBox(id, href, '', {
+  layout: { display: 'flex', direction: 'row', gap: 9, align: 'center', justify: 'center', wrap: 'nowrap', stackOnMobile: false },
+  spacing: { padding: { top: '11', right: '22', bottom: '11', left: '22' }, paddingMobile: { top: '10', right: '12', bottom: '10', left: '12' } },
+  look: light ? { fill: 'custom', fillColor: '#f5f5f7', radius: 10, textTone: 'custom', textColor: '#0a0a0b' } : { borderWidth: 1, borderTone: 'custom', borderColor: 'rgba(255,255,255,0.55)', radius: 10 },
+  item: { grow: true, basis: '0' },
+}, [b('Icon', `${id}-icon`, { name: icon, size: 17, tone: light ? 'custom' : 'text', ...(light ? { color: '#0a0a0b' } : {}) }), b('Text', `${id}-label`, { source: 'custom', text: label, sizePx: 15, weight: 'bold', tone: 'normal' })]);
+
+/** A "What I do" card. */
+const skillCard = (id: string, icon: string, color: string, title: string, text: string) => b('Box', id, {
+  layout: { display: 'flex', direction: 'column', gap: 8 },
+  spacing: { padding: pad(18) },
+  look: { fill: 'custom', fillColor: 'rgba(255,255,255,0.035)', borderWidth: 1, borderTone: 'custom', borderColor: PG_LINE, radius: 16 },
+  content: [
+    b('Flex', `${id}-head`, { gap: 12, align: 'center', wrap: false, items: [
+      b('Icon', `${id}-icon`, { name: icon, size: 22, tone: 'custom', color }),
+      b('Heading', `${id}-title`, { source: 'custom', text: title, level: 'h3', sizePx: 15, weight: 'bold' }),
+    ] }),
+    b('Text', `${id}-text`, { source: 'custom', text, sizePx: 13, tone: 'muted' }),
+  ],
+});
+
+/** A titled section of the feed. */
+const pgSection = (id: string, anchor: string, title: string, content: Block[]) => b('Box', id, {
+  layout: { display: 'flex', direction: 'column', gap: 14 },
+  spacing: { padding: pad(0), paddingMobile: { top: '0', right: '14', bottom: '0', left: '14' } },
+  advanced: { tag: 'section', anchor, fitSections: true },
+  content: [b('Heading', `${id}-title`, { ...words(title), level: 'h2', sizePx: 22, weight: 'bold', tracking: 'tight' }), ...content],
+});
+
+/** A tab with an underline under the current one (label on big screens, icon only on phones). */
+const lineTab = (id: string, icon: string, label: string, href: string, active: boolean, withLabel: boolean) => linkBox(id, href, withLabel ? '' : label, {
+  layout: { display: 'flex', direction: 'column', gap: 10, align: 'center' },
+  spacing: { padding: { top: '12', right: withLabel ? '18' : '0', bottom: '0', left: withLabel ? '18' : '0' } },
+  item: withLabel ? {} : { grow: true, basis: '0' },
+}, [
+  b('Flex', `${id}-row`, { gap: 9, align: 'center', wrap: false, items: [
+    b('Icon', `${id}-icon`, { name: icon, size: withLabel ? 19 : 24, tone: active ? 'text' : 'muted' }),
+    ...(withLabel ? [b('Text', `${id}-label`, { source: 'custom', text: label, sizePx: 15, weight: 'bold', tone: active ? 'normal' : 'muted' })] : []),
+  ] }),
+  b('Box', `${id}-bar`, { size: { width: '100%', height: '2px' }, spacing: none, look: { fill: 'custom', fillColor: active ? '#f5f5f7' : 'rgba(0,0,0,0)', radius: 2 } }),
+]);
+
+const PG_SERVICES = [
+  ['code', '#a78bfa', 'Full-Stack Development', 'Build end-to-end, scalable web applications.'],
+  ['cpu', '#c084fc', 'AI & Automation', 'Build AI tools, agents and automate engineering workflows.'],
+  ['layers', '#fb923c', 'Product Thinking', 'Turn ideas into usable and valuable products.'],
+  ['bolt', '#facc15', 'Performance', 'Improve speed, Core Web Vitals and the overall user experience.'],
+] as const;
 
 const profileGrid: DesignData = noWrapColumns({
   root: {
@@ -650,40 +669,57 @@ const profileGrid: DesignData = noWrapColumns({
       layout: { display: 'grid', columns: '260px 1fr', columnsTablet: '1fr', columnsMobile: '1fr', gap: 0, rowGap: 0 },
       spacing: none,
       content: [
-        // Big screens: a sticky sidebar with your name, the menu, the resume button and you at the bottom.
+        // Big screens: a sticky sidebar.
         b('Box', 'pg-sidebar', {
           size: { height: '100vh' },
-          layout: { display: 'flex', direction: 'column', justify: 'space-between', gap: 24 },
-          spacing: { padding: { top: '30', right: '18', bottom: '24', left: '18' } },
+          layout: { display: 'flex', direction: 'column', justify: 'space-between', gap: 20 },
+          spacing: { padding: { top: '28', right: '16', bottom: '22', left: '16' } },
+          look: { borderWidth: 0 },
           item: { alignSelf: 'flex-start' },
-          advanced: { tag: 'aside', visibility: 'desktop', sticky: true },
+          advanced: { tag: 'aside', visibility: 'desktop', sticky: true, overflow: 'auto' },
           content: [
             b('Box', 'pg-side-top', {
               layout: { display: 'flex', direction: 'column', gap: 2 }, spacing: none,
               content: [
-                b('Heading', 'pg-brand', { source: 'name', level: 'h4', sizePx: 22, weight: 'bold', tracking: 'tight' }),
+                b('Flex', 'pg-brand-row', { gap: 10, align: 'center', wrap: false, spacing: { padding: { top: '0', right: '0', bottom: '0', left: '10' } }, items: [
+                  b('Icon', 'pg-brand-icon', { name: 'sparkle', size: 22, tone: 'custom', color: PG_RING_TO }),
+                  b('Heading', 'pg-brand', { source: 'name', level: 'h4', sizePx: 21, weight: 'bold', tracking: 'tight' }),
+                ] }),
                 b('Spacer', 'pg-brand-gap', { size: 'sm', height: 18 }),
                 sideRow('pg-side-home', 'home', 'Home', '#home'),
-                sideRow('about-side', 'user', 'About', '#about'),
+                sideRow('pg-side-about', 'user', 'About', '#profile'),
                 sideRow('projects-side', 'grid', 'Projects', '#projects'),
+                sideRow('pg-side-what', 'layers', 'What I Do', '#what-i-do'),
+                sideRow('skills-side', 'sparkle', 'Tech Stack', '#skills'),
                 sideRow('experience-side', 'briefcase', 'Experience', '#experience'),
-                sideRow('skills-side', 'chart', 'Skills', '#skills'),
-                sideRow('contact-side', 'mail', 'Contact', '#contact'),
-                b('Spacer', 'pg-side-gap', { size: 'sm', height: 14 }),
-                b('Button', 'pg-side-resume', { action: 'resume', label: 'Download resume', style: 'secondary', size: 'md', icon: 'download', fullWidthMobile: true }),
+                sideRow('contact-side', 'send', 'Contact', '#contact'),
               ],
             }),
-            linkBox('pg-side-me', '#home', '', {
-              layout: { display: 'flex', direction: 'row', gap: 12, align: 'center', wrap: 'nowrap', stackOnMobile: false },
-              spacing: { padding: pad(8) }, look: { radius: 12 },
-            }, [
-              b('Box', 'pg-side-photo', { size: { width: '40px', height: '40px', minWidth: '40px' }, spacing: none, look: { radius: 999 }, advanced: { overflow: 'hidden' },
-                content: [b('Image', 'pg-side-photo-img', { source: 'profilePhoto', alt: '', aspect: 'circle', rounded: true, maxWidth: 'full', align: 'left' })] }),
-              b('Box', 'pg-side-who', { layout: { display: 'flex', direction: 'column', gap: 0 }, spacing: none, content: [
-                b('Text', 'pg-side-name', { source: 'name', size: 'sm', weight: 'bold', tone: 'normal' }),
-                b('Text', 'pg-side-tag', { source: 'custom', text: 'Portfolio', size: 'xs', tone: 'muted' }),
-              ] }),
-            ]),
+            b('Box', 'pg-side-bottom', {
+              layout: { display: 'flex', direction: 'column', gap: 14 }, spacing: none,
+              content: [
+                // View resume, in a gradient frame.
+                b('Box', 'pg-side-resume-ring', {
+                  spacing: { padding: pad(2) },
+                  look: { fill: 'custom', fillColor: '#f59e0b', gradientVia: '#ec4899', gradientTo: PG_RING_TO, gradientAngle: 90, radius: 14 },
+                  content: [linkBox('pg-side-resume', '/api/resume', '', {
+                    layout: { display: 'flex', direction: 'row', gap: 9, align: 'center', justify: 'center', wrap: 'nowrap', stackOnMobile: false },
+                    spacing: { padding: pad(12) }, look: { fill: 'custom', fillColor: '#111114', radius: 12 },
+                  }, [b('Icon', 'pg-side-resume-icon', { name: 'download', size: 17, tone: 'text' }), b('Text', 'pg-side-resume-label', { source: 'custom', text: 'View Resume', sizePx: 15, weight: 'bold', tone: 'normal' })])],
+                }),
+                // Availability and where.
+                b('Box', 'pg-side-card', {
+                  layout: { display: 'flex', direction: 'column', gap: 10 },
+                  spacing: { padding: pad(14) },
+                  look: { fill: 'custom', fillColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderTone: 'custom', borderColor: PG_LINE, radius: 14 },
+                  content: [
+                    b('Flex', 'pg-side-open', { gap: 10, align: 'start', wrap: false, items: [b('Icon', 'pg-side-open-icon', { name: 'bolt', size: 17, tone: 'custom', color: '#facc15', spacing: { margin: { top: '2' } } }), b('Text', 'pg-side-open-text', { source: 'availability', sizePx: 13, weight: 'medium', tone: 'normal' })] }),
+                    b('Flex', 'pg-side-where', { gap: 10, align: 'center', wrap: false, items: [b('Icon', 'pg-side-where-icon', { name: 'pin', size: 17, tone: 'muted' }), b('Text', 'pg-side-where-text', { source: 'location', sizePx: 13, tone: 'normal' })] }),
+                  ],
+                }),
+                b('SocialLinks', 'pg-side-social', { align: 'left', labels: false }),
+              ],
+            }),
           ],
         }),
 
@@ -691,133 +727,120 @@ const profileGrid: DesignData = noWrapColumns({
         b('Box', 'pg-main', {
           size: { maxWidth: '1180px' },
           layout: { display: 'flex', direction: 'column', gap: 26 },
-          spacing: { padding: { top: '34', right: '40', bottom: '28', left: '40' }, paddingMobile: { top: '10', right: '0', bottom: '16', left: '0' } },
+          spacing: { padding: { top: '30', right: '40', bottom: '28', left: '40' }, paddingMobile: { top: '10', right: '0', bottom: '16', left: '0' } },
           advanced: { tag: 'main', anchor: 'home' },
           content: [
-            // Big screens: ringed photo, then name, numbers, bio and actions.
-            b('Flex', 'pg-profile', {
-              gap: 48, align: 'center', stackOnMobile: true, more: { visibility: 'desktop' },
-              items: [
-                ring('pg-photo-ring', 176, 4, b('Image', 'pg-photo', { source: 'profilePhoto', alt: 'Profile photo', aspect: 'circle', rounded: true, maxWidth: 'full', align: 'center' })),
-                b('Box', 'pg-info', {
-                  layout: { display: 'flex', direction: 'column', gap: 14 }, spacing: none, item: { grow: true, basis: '60%' },
-                  content: [
-                    b('Flex', 'pg-name-row', {
-                      gap: 14, align: 'center', justify: 'between', stackOnMobile: false,
-                      items: [
-                        b('Heading', 'pg-name', { source: 'name', level: 'h1', sizePx: 28, weight: 'bold', tracking: 'tight' }),
-                        b('Button', 'pg-talk', { action: 'contact', labelSource: 'own', label: 'Let’s talk', style: 'primary', size: 'md', icon: 'arrow', fullWidthMobile: false }),
-                      ],
-                    }),
-                    b('Flex', 'pg-stats', {
-                      gap: 36, align: 'center', wrap: true,
-                      items: [stat('pg-stat-years', 'years', 'Years exp'), stat('pg-stat-products', 'products', 'Products shipped'), stat('pg-stat-users', 'users', 'Users reached')],
-                    }),
-                    b('Box', 'pg-bio', {
-                      layout: { display: 'flex', direction: 'column', gap: 4 }, spacing: none,
-                      content: [
-                        b('Text', 'pg-role', { source: 'role', size: 'md', weight: 'medium', tone: 'normal' }),
-                        b('Text', 'pg-summary', { source: 'summary', size: 'md', tone: 'normal' }),
-                        b('Text', 'pg-current', { source: 'currentRole', size: 'sm', tone: 'muted' }),
-                        b('Flex', 'pg-where', { gap: 6, align: 'center', wrap: false, items: [
-                          b('Icon', 'pg-where-icon', { name: 'pin', size: 15, tone: 'accent2' }),
-                          b('Text', 'pg-where-text', { source: 'location', size: 'sm', tone: 'accent2' }),
-                        ] }),
-                      ],
-                    }),
-                    b('Flex', 'pg-actions', {
-                      gap: 10, align: 'center', wrap: true, stackOnMobile: false,
-                      items: [
-                        b('Button', 'pg-resume', { action: 'resume', label: 'Resume', style: 'primary', size: 'sm', icon: 'none', fullWidthMobile: false }),
-                        b('Button', 'pg-email', { action: 'email', label: 'Message', style: 'secondary', size: 'sm', icon: 'none', fullWidthMobile: false }),
-                        b('Button', 'pg-linkedin', { action: 'linkedin', label: 'LinkedIn', style: 'secondary', size: 'sm', icon: 'linkedin', fullWidthMobile: false }),
-                        b('Button', 'pg-github', { action: 'github', label: 'GitHub', style: 'secondary', size: 'sm', icon: 'github', fullWidthMobile: false }),
-                      ],
-                    }),
-                  ],
-                }),
-              ],
-            }),
-
-            // Phones: photo beside the numbers, then name, bio and two big buttons.
-            b('Box', 'pg-m-profile', {
+            // The profile: photo, links, who you are, availability, bio and two buttons.
+            b('Box', 'pg-profile', {
               layout: { display: 'flex', direction: 'column', gap: 12 },
-              spacing: { padding: { top: '6', right: '16', bottom: '0', left: '16' } },
-              advanced: { visibility: 'mobile' },
+              spacing: { padding: pad(0), paddingMobile: { top: '6', right: '16', bottom: '0', left: '16' } },
+              advanced: { anchor: 'profile' },
               content: [
-                b('Box', 'pg-m-top', {
-                  layout: { display: 'flex', direction: 'row', gap: 16, align: 'center', wrap: 'nowrap', stackOnMobile: false }, spacing: none,
+                b('Box', 'pg-profile-row', {
+                  layout: { display: 'flex', direction: 'row', gap: 36, align: 'center', wrap: 'nowrap', stackOnMobile: false }, spacing: none,
                   content: [
-                    ring('pg-m-photo-ring', 92, 3, b('Image', 'pg-m-photo', { source: 'profilePhoto', alt: 'Profile photo', aspect: 'circle', rounded: true, maxWidth: 'full', align: 'center' })),
-                    b('Box', 'pg-m-stats', {
-                      layout: { display: 'flex', direction: 'row', gap: 4, align: 'center', justify: 'space-around', wrap: 'nowrap', stackOnMobile: false },
-                      spacing: none, item: { grow: true },
-                      content: [stat('pg-m-years', 'years', 'Years', true), stat('pg-m-products', 'products', 'Products', true), stat('pg-m-users', 'users', 'Users', true)],
+                    b('Box', 'pg-photo-big', { spacing: none, advanced: { visibility: 'desktop' }, content: [
+                      ring('pg-photo-ring', 168, 4, b('Image', 'pg-photo', { source: 'profilePhoto', alt: 'Profile photo', aspect: 'circle', rounded: true, maxWidth: 'full', align: 'center' })),
+                    ] }),
+                    b('Box', 'pg-photo-small', { spacing: none, advanced: { visibility: 'mobile' }, content: [
+                      ring('pg-m-photo-ring', 92, 3, b('Image', 'pg-m-photo', { source: 'profilePhoto', alt: 'Profile photo', aspect: 'circle', rounded: true, maxWidth: 'full', align: 'center' })),
+                    ] }),
+                    b('Box', 'pg-profile-side', {
+                      layout: { display: 'flex', direction: 'column', gap: 10 }, spacing: none, item: { grow: true, basis: '0' },
+                      content: [
+                        b('Heading', 'pg-name', { source: 'name', level: 'h1', sizePx: 26, weight: 'bold', tracking: 'tight', more: { visibility: 'desktop' } }),
+                        b('Flex', 'pg-head-links', { gap: 4, align: 'center', wrap: true, items: [
+                          headLink('projects-head-link', 'Projects', '#projects'),
+                          headLink('pg-head-what', 'What I Do', '#what-i-do'),
+                          headLink('experience-head-link', 'Experience', '#experience'),
+                          headLink('skills-head-link', 'Tech Stack', '#skills'),
+                        ] }),
+                        // Big screens: the rest beside the photo.
+                        b('Box', 'pg-bio', {
+                          layout: { display: 'flex', direction: 'column', gap: 6 }, spacing: none, advanced: { visibility: 'desktop' },
+                          content: [
+                            b('Flex', 'pg-who', { gap: 14, align: 'center', wrap: true, items: [
+                              b('Heading', 'pg-full-name', { source: 'name', level: 'h2', sizePx: 18, weight: 'bold' }),
+                              availablePill('pg-open'),
+                            ] }),
+                            b('Flex', 'pg-where', { gap: 8, align: 'center', wrap: true, items: [
+                              b('Text', 'pg-current', { source: 'currentRole', sizePx: 14, tone: 'normal' }),
+                              b('Text', 'pg-dot', { source: 'custom', text: '·', sizePx: 14, tone: 'muted' }),
+                              b('Icon', 'pg-where-icon', { name: 'pin', size: 14, tone: 'muted' }),
+                              b('Text', 'pg-where-text', { source: 'location', sizePx: 14, tone: 'normal' }),
+                            ] }),
+                            b('Text', 'pg-summary', { source: 'summary', sizePx: 15, tone: 'muted', maxWidth: 'prose' }),
+                            b('Box', 'pg-buttons', {
+                              layout: { display: 'flex', direction: 'row', gap: 12, align: 'center', wrap: 'nowrap', stackOnMobile: false },
+                              size: { maxWidth: '360px' }, spacing: { padding: { top: '8', right: '0', bottom: '0', left: '0' } },
+                              content: [bigButton('pg-resume', 'download', 'View Resume', '/api/resume', true), bigButton('contact-button-top', 'send', 'Contact', '#contact', false)],
+                            }),
+                          ],
+                        }),
+                      ],
                     }),
                   ],
                 }),
+                // Phones: the rest under the photo.
                 b('Box', 'pg-m-bio', {
-                  layout: { display: 'flex', direction: 'column', gap: 2 }, spacing: none,
+                  layout: { display: 'flex', direction: 'column', gap: 6 }, spacing: none, advanced: { visibility: 'mobile' },
                   content: [
-                    b('Text', 'pg-m-name', { source: 'name', sizePx: 15, weight: 'bold', tone: 'normal' }),
-                    b('Text', 'pg-m-role', { source: 'role', sizePx: 14, tone: 'muted' }),
-                    b('Text', 'pg-m-summary', { source: 'summary', sizePx: 14, tone: 'normal' }),
+                    b('Text', 'pg-m-name', { source: 'name', sizePx: 17, weight: 'bold', tone: 'normal' }),
                     b('Text', 'pg-m-current', { source: 'currentRole', sizePx: 14, tone: 'normal' }),
-                    b('Flex', 'pg-m-where', { gap: 5, align: 'center', wrap: false, items: [
-                      b('Icon', 'pg-m-where-icon', { name: 'pin', size: 14, tone: 'accent2' }),
-                      b('Text', 'pg-m-where-text', { source: 'location', sizePx: 14, tone: 'accent2' }),
+                    b('Flex', 'pg-m-where', { gap: 10, align: 'center', wrap: true, items: [
+                      b('Flex', 'pg-m-place', { gap: 5, align: 'center', wrap: false, items: [b('Icon', 'pg-m-where-icon', { name: 'pin', size: 15, tone: 'text' }), b('Text', 'pg-m-where-text', { source: 'location', sizePx: 14, tone: 'normal' })] }),
+                      availablePill('pg-m-open'),
                     ] }),
+                    b('Text', 'pg-m-summary', { source: 'summary', sizePx: 14, tone: 'normal' }),
+                    b('Box', 'pg-m-buttons', {
+                      layout: { display: 'flex', direction: 'row', gap: 10, align: 'stretch', wrap: 'nowrap', stackOnMobile: false }, spacing: { padding: { top: '6', right: '0', bottom: '0', left: '0' } },
+                      content: [bigButton('pg-m-resume', 'download', 'View Resume', '/api/resume', true), bigButton('contact-m-button', 'send', 'Contact', '#contact', false)],
+                    }),
                   ],
-                }),
-                b('Box', 'pg-m-buttons', {
-                  layout: { display: 'flex', direction: 'row', gap: 8, align: 'stretch', wrap: 'nowrap', stackOnMobile: false }, spacing: none,
-                  content: [phoneButton('pg-m-resume', 'Resume', '/api/resume'), phoneButton('contact-m-talk', 'Let’s talk', '#contact')],
                 }),
               ],
             }),
 
             // Story circles: one row; on phones it scrolls sideways.
             b('Box', 'pg-stories', {
-              layout: { display: 'flex', direction: 'row', gap: 14, align: 'flex-start', wrap: 'nowrap', stackOnMobile: false },
+              layout: { display: 'flex', direction: 'row', gap: 22, align: 'flex-start', justify: 'center', wrap: 'nowrap', stackOnMobile: false },
               spacing: { padding: { top: '2', right: '2', bottom: '6', left: '2' }, paddingMobile: { top: '4', right: '12', bottom: '4', left: '12' } },
               advanced: { overflow: 'auto' },
               content: [
-                story('about-story', 'user', 'About me', '#about'),
-                story('skills-story', 'layers', 'Tech stack', '#skills'),
+                story('pg-story-about', 'user', 'About', '#profile'),
+                story('pg-story-what', 'layers', 'What I Do', '#what-i-do'),
                 story('projects-story', 'code', 'Projects', '#projects'),
-                story('experience-story', 'briefcase', 'Work', '#experience'),
-                story('pg-story-resume', 'notes', 'Resume', '/api/resume'),
-                story('contact-story', 'chat', 'Say hi', '#contact'),
+                story('skills-story', 'sparkle', 'Tech Stack', '#skills'),
+                story('experience-story', 'briefcase', 'Experience', '#experience'),
+                story('contact-story', 'mail', 'Contact', '#contact'),
               ],
             }),
 
-            // Big screens: labelled tabs under a thin line.
+            // Tabs over the feed: labels on big screens, icons on phones.
             b('Box', 'pg-tabs', {
-              layout: { display: 'flex', direction: 'row', gap: 28, justify: 'center', wrap: 'wrap', stackOnMobile: false },
-              spacing: { padding: { top: '4', right: '0', bottom: '0', left: '0' } },
-              look: { borderWidth: 0 },
-              advanced: { visibility: 'desktop' },
+              layout: { display: 'flex', direction: 'row', gap: 18, justify: 'center', wrap: 'wrap', stackOnMobile: false },
+              spacing: none, advanced: { visibility: 'desktop' },
               content: [
-                tab('projects-tab', 'grid', 'Posts', '#projects', true),
-                tab('experience-tab', 'briefcase', 'Journey', '#experience'),
-                tab('skills-tab', 'layers', 'Stack', '#skills'),
+                lineTab('projects-tab', 'grid', 'Projects', '#projects', true, true),
+                lineTab('pg-tab-what', 'bolt', 'What I Do', '#what-i-do', false, true),
+                lineTab('skills-tab', 'layers', 'Tech Stack', '#skills', false, true),
+                lineTab('experience-tab', 'briefcase', 'Experience', '#experience', false, true),
               ],
             }),
-            // Phones: icon tabs.
             b('Box', 'pg-m-tabs', {
               layout: { display: 'flex', direction: 'row', gap: 0, align: 'stretch', wrap: 'nowrap', stackOnMobile: false },
-              spacing: none,
-              advanced: { visibility: 'mobile' },
+              spacing: none, advanced: { visibility: 'mobile' },
               content: [
-                iconTab('projects-mtab', 'grid', 'Projects', '#projects', true),
-                iconTab('experience-mtab', 'briefcase', 'Experience', '#experience'),
-                iconTab('skills-mtab', 'layers', 'Tech stack', '#skills'),
+                lineTab('projects-mtab', 'grid', 'Projects', '#projects', true, false),
+                lineTab('pg-mtab-what', 'bolt', 'What I Do', '#what-i-do', false, false),
+                lineTab('skills-mtab', 'layers', 'Tech Stack', '#skills', false, false),
+                lineTab('experience-mtab', 'briefcase', 'Experience', '#experience', false, false),
               ],
             }),
 
             // The feed: projects, three across (edge to edge on phones).
             b('Box', 'projects', {
-              layout: { display: 'flex', direction: 'column', gap: 0 }, spacing: none,
+              layout: { display: 'flex', direction: 'column', gap: 0 }, spacing: { padding: pad(0), margin: { top: '-14' } },
               advanced: { tag: 'section', anchor: 'projects', fitSections: true },
               content: [
                 b('Projects', 'pg-projects', {
@@ -828,46 +851,42 @@ const profileGrid: DesignData = noWrapColumns({
               ],
             }),
 
-            // The rest, with side room on phones.
-            b('Box', 'pg-more', {
-              layout: { display: 'flex', direction: 'column', gap: 18 },
-              spacing: { padding: pad(0), paddingMobile: { top: '14', right: '12', bottom: '0', left: '12' } },
-              content: [
-                feedSection('about', 'about', [
-                  b('Heading', 'about-title', { source: 'custom', text: 'At a glance', level: 'h2', size: 'sm', weight: 'bold' }),
-                  b('HiringSnapshot', 'about-hiring', { title: '' }),
-                  b('Stats', 'about-stats', { style: 'inline' }),
-                ]),
-                feedSection('experience-wrap', 'experience', [
-                  b('Heading', 'experience-title', { source: 'experienceTitle', level: 'h2', size: 'sm', weight: 'bold' }),
-                  b('Experience', 'experience-list', { layout: 'timeline', maxBullets: 3, eyebrow: '-', title: '-', description: '-' }),
-                ]),
-                feedSection('skills-wrap', 'skills', [
-                  b('Heading', 'skills-title', { source: 'skillsTitle', level: 'h2', size: 'sm', weight: 'bold' }),
-                  b('Skills', 'skills-list', { layout: 'tabs', align: 'left', eyebrow: '-', title: '-', description: '-' }),
-                ]),
-                b('Box', 'contact', {
-                  layout: { display: 'flex', direction: 'row', gap: 20, align: 'center', justify: 'space-between', wrap: 'wrap', stackOnMobile: true },
-                  spacing: { padding: pad(28, 30), paddingMobile: pad(22, 18) },
-                  look: { fill: 'custom', fillColor: '#0e7490', gradientVia: '#4338ca', gradientTo: '#7e22ce', gradientAngle: 120, radius: 22, textTone: 'custom', textColor: '#ffffff' },
-                  advanced: { tag: 'section', anchor: 'contact' },
-                  content: [
-                    b('Box', 'contact-copy', {
-                      layout: { display: 'flex', direction: 'column', gap: 6 }, spacing: none, item: { grow: true, basis: '55%' },
-                      content: [
-                        b('Heading', 'contact-title', { source: 'contactTitle', level: 'h2', size: 'md', weight: 'bold', tracking: 'tight' }),
-                        b('Text', 'contact-text', { source: 'contactDescription', size: 'sm', tone: 'normal' }),
-                      ],
-                    }),
-                    b('Flex', 'contact-actions', {
-                      gap: 12, align: 'center', wrap: true,
-                      items: [b('Button', 'contact-button', { action: 'contact', labelSource: 'contactAction', label: 'Get in touch', style: 'primary', size: 'md', icon: 'arrow' }), b('SocialLinks', 'contact-social', { align: 'left', labels: false })],
-                    }),
-                  ],
-                }),
-                b('Footer', 'pg-footer', { showSocial: false }),
-              ],
+            pgSection('pg-what', 'what-i-do', 'What I Do', [
+              b('Grid', 'pg-what-grid', { columns: '4', columnsTablet: '2', columnsMobile: '1', gap: 12,
+                items: PG_SERVICES.map(([icon, color, title, text], i) => skillCard(`pg-what-${i}`, icon, color, title, text)) }),
+            ]),
+
+            pgSection('skills-wrap', 'skills', 'Tech Stack', [
+              b('Skills', 'skills-list', { layout: 'tags', align: 'left', eyebrow: '-', title: '-', description: '-' }),
+            ]),
+
+            pgSection('experience-wrap', 'experience', 'Career Timeline', [
+              b('Experience', 'experience-list', { layout: 'journey', maxBullets: -1, eyebrow: '-', title: '-', description: '-' }),
+            ]),
+
+            b('Box', 'pg-contact-wrap', {
+              spacing: { padding: pad(0), paddingMobile: { top: '0', right: '12', bottom: '0', left: '12' } },
+              content: [b('Box', 'contact', {
+                layout: { display: 'flex', direction: 'row', gap: 20, align: 'center', justify: 'space-between', wrap: 'wrap', stackOnMobile: true },
+                spacing: { padding: pad(28, 30), paddingMobile: pad(22, 18) },
+                look: { fill: 'custom', fillColor: '#0e7490', gradientVia: '#4338ca', gradientTo: '#7e22ce', gradientAngle: 120, radius: 22, textTone: 'custom', textColor: '#ffffff' },
+                advanced: { tag: 'section', anchor: 'contact' },
+                content: [
+                  b('Box', 'contact-copy', {
+                    layout: { display: 'flex', direction: 'column', gap: 6 }, spacing: none, item: { grow: true, basis: '55%' },
+                    content: [
+                      b('Heading', 'contact-title', { source: 'contactTitle', level: 'h2', size: 'md', weight: 'bold', tracking: 'tight' }),
+                      b('Text', 'contact-text', { source: 'contactDescription', size: 'sm', tone: 'normal' }),
+                    ],
+                  }),
+                  b('Flex', 'contact-actions', {
+                    gap: 12, align: 'center', wrap: true,
+                    items: [b('Button', 'contact-button', { action: 'contact', labelSource: 'contactAction', label: 'Get in touch', style: 'primary', size: 'md', icon: 'arrow' }), b('SocialLinks', 'contact-social', { align: 'left', labels: false })],
+                  }),
+                ],
+              })],
             }),
+            b('Footer', 'pg-footer', { showSocial: false }),
           ],
         }),
       ],
@@ -882,9 +901,9 @@ const profileGrid: DesignData = noWrapColumns({
       content: [
         barIcon('pg-dock-home', 'home', 'Home', '#home'),
         barIcon('projects-dock', 'grid', 'Projects', '#projects'),
+        barIcon('pg-dock-what', 'bolt', 'What I Do', '#what-i-do'),
         barIcon('experience-dock', 'briefcase', 'Experience', '#experience'),
-        barIcon('skills-dock', 'layers', 'Tech stack', '#skills'),
-        barIcon('contact-dock', 'chat', 'Contact', '#contact'),
+        barIcon('contact-dock', 'mail', 'Contact', '#contact'),
       ],
     }),
   ],
@@ -911,9 +930,9 @@ export const OWNER_TEMPLATES: { key: string; version: number; name: string; desc
   },
   {
     key: 'profile-grid',
-    version: 2,
+    version: 3,
     name: 'Profile Grid',
-    description: 'A dark social-profile page. Big screens: a sticky sidebar menu, your photo in a gradient ring with your numbers and bio, story circles and Posts / Journey / Stack tabs over a grid of project tiles. Phones: an app layout with a top bar, photo beside your numbers, swipeable story circles, icon tabs, an edge-to-edge 3-across grid and a tab bar at the bottom. Everything scrolls smoothly to its section.',
+    description: 'A dark social-profile page. Big screens: a sticky sidebar (menu, View Resume, availability, socials), your photo in a gradient ring with quick links, an availability pill, bio and two buttons, story circles and tabs over a grid of project tiles, then What I Do, Tech Stack and a Career Timeline. Phones: an app layout with a top bar, swipeable story circles, icon tabs, an edge-to-edge 3-across grid and a tab bar at the bottom. Everything scrolls smoothly to its section.',
     data: profileGrid,
   },
 ];

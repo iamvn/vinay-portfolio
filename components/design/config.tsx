@@ -380,7 +380,7 @@ export const designConfig: Config<Components, RootProps> = {
       label: 'Experience',
       fields: {
         layout: { type: 'radio', label: 'Layout', options: [{ label: 'Timeline', value: 'timeline' }, { label: 'Journey (side by side)', value: 'journey' }, { label: 'Cards', value: 'cards' }, { label: 'Compact', value: 'compact' }] },
-        maxBullets: { type: 'number', label: 'Highlights per job (0 = all)', min: 0, max: 20 },
+        maxBullets: { type: 'number', label: 'Highlights per job (0 = all, -1 = none)', min: -1, max: 20 },
         align: align2Field,
         eyebrow: fromSiteText('Small label'), title: fromSiteText('Title'), description: fromSiteText('Description'),
       },
