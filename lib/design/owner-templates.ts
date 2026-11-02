@@ -729,8 +729,8 @@ const profileGrid: DesignData = noWrapColumns({
         // The profile and its feed.
         b('Box', 'pg-main', {
           size: { maxWidth: '1180px' },
-          layout: { display: 'flex', direction: 'column', gap: 26 },
-          spacing: { padding: { top: '30', right: '40', bottom: '28', left: '40' }, paddingMobile: { top: '10', right: '0', bottom: '16', left: '0' } },
+          layout: { display: 'flex', direction: 'column', gap: 22 },
+          spacing: { padding: { top: '30', right: '40', bottom: '20', left: '40' }, paddingMobile: { top: '10', right: '0', bottom: '6', left: '0' } },
           advanced: { tag: 'main', anchor: 'home' },
           content: [
             // The profile: photo, links, who you are, availability, bio and two buttons.
@@ -828,13 +828,14 @@ const profileGrid: DesignData = noWrapColumns({
                 { label: 'Tech Stack', icon: 'layers', href: '#skills', panel: 'panel3' },
                 { label: 'Experience', icon: 'briefcase', href: '#experience', panel: 'panel4' },
               ],
-              panel1: [
-                b('Projects', 'pg-projects', {
+              panel1: [b('Box', 'projects-area', {
+                layout: { display: 'flex', direction: 'column', gap: 0 }, spacing: none, advanced: { fitSections: true },
+                content: [b('Projects', 'pg-projects', {
                   layout: 'feed', columns: '3', columnsMobile: '2', filter: 'all', sort: 'featured', limit: 0, image: 'video', hover: 'zoom',
                   frame: 'none', linkStyle: 'arrow', tabs: false, tagStyle: 'chips', showDescription: true, showStack: true, showLinks: false, showType: false,
                   cardStyle: 'plain', cardAlign: 'left', eyebrow: '-', title: '-',
-                }),
-              ],
+                })],
+              })],
               panel2: [tabArea('pg-what', [
                 b('Grid', 'pg-what-grid', { columns: '2', columnsTablet: '2', columnsMobile: '1', gap: 16,
                   items: PG_SERVICES.map(([icon, color, title, text], i) => postCard(`pg-what-${i}`, icon, color, title, text)) }),
@@ -847,24 +848,28 @@ const profileGrid: DesignData = noWrapColumns({
               ])],
             }),
 
+            // Contact: a small, quiet card (the header and the bottom bar link here).
             b('Box', 'pg-contact-wrap', {
               spacing: { padding: pad(0), paddingMobile: { top: '0', right: '12', bottom: '0', left: '12' } },
               content: [b('Box', 'contact', {
-                layout: { display: 'flex', direction: 'row', gap: 20, align: 'center', justify: 'space-between', wrap: 'wrap', stackOnMobile: true },
-                spacing: { padding: pad(28, 30), paddingMobile: pad(22, 18) },
-                look: { fill: 'custom', fillColor: '#0e7490', gradientVia: '#4338ca', gradientTo: '#7e22ce', gradientAngle: 120, radius: 22, textTone: 'custom', textColor: '#ffffff' },
+                layout: { display: 'flex', direction: 'row', gap: 16, align: 'center', justify: 'space-between', wrap: 'wrap', stackOnMobile: true },
+                spacing: { padding: pad(20, 22), paddingMobile: pad(16, 16) },
+                look: { fill: 'custom', fillColor: 'rgba(255,255,255,0.035)', borderWidth: 1, borderTone: 'custom', borderColor: PG_LINE, radius: 18 },
                 advanced: { tag: 'section', anchor: 'contact' },
                 content: [
                   b('Box', 'contact-copy', {
-                    layout: { display: 'flex', direction: 'column', gap: 6 }, spacing: none, item: { grow: true, basis: '55%' },
+                    layout: { display: 'flex', direction: 'column', gap: 3 }, spacing: none, item: { grow: true, basis: '50%' },
                     content: [
-                      b('Heading', 'contact-title', { source: 'contactTitle', level: 'h2', size: 'md', weight: 'bold', tracking: 'tight' }),
-                      b('Text', 'contact-text', { source: 'contactDescription', size: 'sm', tone: 'normal' }),
+                      b('Heading', 'contact-title', { source: 'custom', text: 'Let’s work together', level: 'h2', sizePx: 18, weight: 'bold', tracking: 'tight' }),
+                      b('Text', 'contact-text', { source: 'contactDescription', sizePx: 14, tone: 'muted' }),
                     ],
                   }),
                   b('Flex', 'contact-actions', {
-                    gap: 12, align: 'center', wrap: true,
-                    items: [b('Button', 'contact-button', { action: 'contact', labelSource: 'contactAction', label: 'Get in touch', style: 'primary', size: 'md', icon: 'arrow' }), b('SocialLinks', 'contact-social', { align: 'left', labels: false })],
+                    gap: 10, align: 'center', wrap: true, stackOnMobile: false,
+                    items: [
+                      b('Button', 'contact-button', { action: 'email', label: 'Email me', style: 'primary', size: 'sm', icon: 'mail', fullWidthMobile: false }),
+                      b('SocialLinks', 'contact-social', { align: 'left', labels: false }),
+                    ],
                   }),
                 ],
               })],
@@ -913,7 +918,7 @@ export const OWNER_TEMPLATES: { key: string; version: number; name: string; desc
   },
   {
     key: 'profile-grid',
-    version: 4,
+    version: 5,
     name: 'Profile Grid',
     description: 'A dark social-profile page. Big screens: a sticky sidebar (menu, View Resume, availability, socials), your photo in a gradient ring with quick links, an availability pill, bio and two buttons, story circles and tabs over a grid of project tiles, with tabs that show one area at a time: Projects, What I Do (as post cards), Tech Stack and Experience. Phones: an app layout with a top bar, swipeable story circles, icon tabs, an edge-to-edge 3-across grid and a tab bar at the bottom. Everything scrolls smoothly to its section.',
     data: profileGrid,

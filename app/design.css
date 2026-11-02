@@ -577,6 +577,10 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
 .d-ptab-panel-on { animation: d-ptab-in .32s cubic-bezier(.2, .8, .2, 1); }
 @keyframes d-ptab-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .d-ptab-panel-on { animation: none; } .d-ptab::after { transition: none; } }
-/* A short tab (a few cards) still lets the bar reach the top, so switching tabs never jumps around. */
-.d-ptabs > .d-ptabs-bar + div { min-height: calc(100dvh - 48px - var(--ptabs-top-m, 0px) - 70px); }
-@media (min-width: 768px) { .d-ptabs > .d-ptabs-bar + div { min-height: calc(100dvh - 66px - var(--ptabs-top-d, 0px)); } }
+
+/* With the phone tab bar, the footer and the "Built on" badges don't need their own big bottom room (that was
+   for the floating Ask button, which now sits above the bar): keep the end of the page tight. */
+@media (max-width: 767px) {
+  body:has(.d-dock) .d-root footer { padding-top: 1rem !important; padding-bottom: .5rem !important; }
+  body:has(.d-dock) .platform-badge { padding-top: .5rem !important; padding-bottom: .75rem !important; }
+}
