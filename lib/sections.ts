@@ -50,6 +50,8 @@ export function withoutSections<T>(data: T, hidden: readonly SectionKey[]): T {
     const id = anchorOf(p.id);
     if ([...off].some((key) => id === key || id.startsWith(`${key}-`))) return false;
     if (block.type === 'Button' && (off.has(String(p.action ?? '')) || dropLink(p.href))) return false;
+    if (block.type === 'Link' && dropLink(p.href)) return false;
+    if (dropLink((p.advanced as { link?: unknown } | undefined)?.link)) return false; // a box that links there
     return true;
   };
 

@@ -511,70 +511,102 @@ const geekLab: DesignData = {
   ],
 } as unknown as DesignData;
 
-// ---------------------------------------------------------------- Profile Grid (a social-profile page, from the owner's mockup)
-// An original take on a social profile: no real app's name, logo, verified badge or colours.
+// ---------------------------------------------------------------- Profile Grid (a social-profile page, from the owner's mockups)
+// An original take on a social profile: no real app's name, logo, verified badge or colours. On big screens a
+// sticky sidebar; on phones an app layout (top bar, photo beside the numbers, story circles, icon tabs, an
+// edge-to-edge grid and a tab bar at the bottom). Every circle, row and tab is a link that scrolls smoothly.
 
 const PG_BG = '#09090b';
-const PG_LINE = 'rgba(255,255,255,0.09)';
+const PG_LINE = 'rgba(255,255,255,0.1)';
 const PG_RING_FROM = '#22d3ee';
 const PG_RING_VIA = '#6366f1';
 const PG_RING_TO = '#a855f7';
+const PG_BUTTON = '#1f1f23';
 
-/** A gradient ring around something round (the photo, each highlight). */
+/** A gradient ring around something round (the photo, each story circle). */
 const ring = (id: string, sizePx: number, thickness: number, inner: Block) => b('Box', id, {
   size: { width: `${sizePx}px`, height: `${sizePx}px`, minWidth: `${sizePx}px` },
   layout: { display: 'flex', direction: 'column', align: 'stretch', justify: 'center' },
   spacing: { padding: pad(thickness) },
   look: { fill: 'custom', fillColor: PG_RING_FROM, gradientVia: PG_RING_VIA, gradientTo: PG_RING_TO, gradientAngle: 45, radius: 999 },
+  item: { shrink: false },
   content: [b('Box', `${id}-gap`, {
     size: { width: '100%', height: '100%' },
     layout: { display: 'flex', direction: 'column', align: 'center', justify: 'center' },
-    spacing: { padding: pad(Math.max(3, Math.round(sizePx / 24))) },
+    spacing: { padding: pad(Math.max(3, Math.round(sizePx / 26))) },
     look: { fill: 'custom', fillColor: PG_BG, radius: 999 },
     advanced: { overflow: 'hidden' },
     content: [inner],
   })],
 });
 
-/** A sidebar menu row: icon + link. */
-const sideLink = (id: string, icon: string, label: string, href: string) => b('Flex', id, {
-  gap: 14, align: 'center', wrap: false,
-  spacing: { padding: { top: '10', right: '12', bottom: '10', left: '12' } },
-  items: [b('Icon', `${id}-icon`, { name: icon, size: 22, tone: 'text' }), b('Link', `${id}-link`, { label, href, style: 'plain', size: 'md', icon: 'none', newTab: false })],
+/** A box that is a link (whole area tappable). */
+const linkBox = (id: string, href: string, label: string, props: Record<string, unknown>, content: Block[]) => b('Box', id, {
+  ...props, advanced: { ...(props.advanced as object ?? {}), link: href, linkLabel: label }, content,
 });
+
+/** A sidebar menu row (desktop). */
+const sideRow = (id: string, icon: string, label: string, href: string) => linkBox(id, href, '', {
+  layout: { display: 'flex', direction: 'row', gap: 14, align: 'center', wrap: 'nowrap', stackOnMobile: false },
+  spacing: { padding: { top: '11', right: '12', bottom: '11', left: '12' } },
+  look: { radius: 12 },
+}, [b('Icon', `${id}-icon`, { name: icon, size: 22, tone: 'text' }), b('Text', `${id}-label`, { source: 'custom', text: label, size: 'md', weight: 'medium', tone: 'normal' })]);
 
 /** One number in the profile header. */
-const stat = (id: string, source: string, label: string) => b('Box', id, {
-  layout: { display: 'flex', direction: 'column', gap: 2, align: 'center' }, spacing: none,
+const stat = (id: string, source: string, label: string, small = false) => b('Box', id, {
+  layout: { display: 'flex', direction: 'column', gap: 0, align: 'center' }, spacing: none,
   content: [
-    b('Text', `${id}-value`, { source, size: 'lg', weight: 'bold', align: 'center', tone: 'normal' }),
-    b('Text', `${id}-label`, { source: 'custom', text: label, size: 'sm', tone: 'muted', align: 'center' }),
+    b('Text', `${id}-value`, { source, ...(small ? { sizePx: 17 } : { size: 'lg' }), weight: 'bold', align: 'center', tone: 'normal' }),
+    b('Text', `${id}-label`, { source: 'custom', text: label, ...(small ? { sizePx: 12 } : { size: 'sm' }), tone: 'muted', align: 'center' }),
   ],
 });
 
-/** A round "highlight": gradient ring with an icon, and its label. Ids start with the section, so switching that section off hides it. */
-const highlight = (id: string, icon: string, label: string, href: string) => b('Box', id, {
-  layout: { display: 'flex', direction: 'column', gap: 8, align: 'center' }, spacing: none,
-  size: { width: '86px', minWidth: '86px' }, item: { shrink: false },
-  content: [
-    ring(`${id}-ring`, 76, 3, b('Icon', `${id}-icon`, { name: icon, size: 26, tone: 'text', align: 'center' })),
-    b('Link', `${id}-link`, { label, href, style: 'plain', size: 'sm', icon: 'none', newTab: false, align: 'center' }),
-  ],
-});
+/** A story circle: the whole thing is a link. Ids start with the section, so switching it off hides the circle. */
+const story = (id: string, icon: string, label: string, href: string) => linkBox(id, href, '', {
+  layout: { display: 'flex', direction: 'column', gap: 7, align: 'center' }, spacing: { padding: pad(2) },
+  size: { width: '84px', minWidth: '84px' }, item: { shrink: false }, look: { radius: 14 },
+}, [
+  ring(`${id}-ring`, 72, 3, b('Icon', `${id}-icon`, { name: icon, size: 24, tone: 'text', align: 'center' })),
+  b('Text', `${id}-label`, { source: 'custom', text: label, sizePx: 12, align: 'center', tone: 'normal' }),
+]);
 
-/** A tab in the row above the grid. */
-const feedTab = (id: string, icon: string, label: string, href: string, active = false) => b('Flex', id, {
-  gap: 8, align: 'center', wrap: false,
-  spacing: { padding: { top: '14', right: '6', bottom: '14', left: '6' } },
-  items: [b('Icon', `${id}-icon`, { name: icon, size: 18, tone: active ? 'text' : 'muted' }), b('Link', `${id}-link`, { label, href, style: active ? 'plain' : 'muted', size: 'md', icon: 'none', newTab: false })],
-});
+/** A desktop tab with its label. */
+const tab = (id: string, icon: string, label: string, href: string, active = false) => linkBox(id, href, '', {
+  layout: { display: 'flex', direction: 'row', gap: 8, align: 'center', wrap: 'nowrap', stackOnMobile: false },
+  spacing: { padding: { top: '14', right: '10', bottom: '14', left: '10' } },
+  look: { radius: 10 },
+}, [b('Icon', `${id}-icon`, { name: icon, size: 18, tone: active ? 'text' : 'muted' }), b('Text', `${id}-label`, { source: 'custom', text: label, size: 'sm', weight: 'bold', tone: active ? 'normal' : 'muted', uppercase: true, tracking: 'wide' })]);
+
+/** A phone tab: just the icon, with a line under the current one. */
+const iconTab = (id: string, icon: string, label: string, href: string, active = false) => linkBox(id, href, label, {
+  layout: { display: 'flex', direction: 'column', gap: 9, align: 'center' },
+  spacing: { padding: { top: '11', right: '0', bottom: '0', left: '0' } },
+  item: { grow: true, basis: '0' },
+}, [
+  b('Icon', `${id}-icon`, { name: icon, size: 24, tone: active ? 'text' : 'muted', align: 'center' }),
+  b('Box', `${id}-bar`, { size: { width: '100%', height: '1px' }, spacing: none, look: { fill: 'custom', fillColor: active ? '#f5f5f7' : 'rgba(0,0,0,0)' } }),
+]);
+
+/** A button-like link on phones (Resume, Let's talk). */
+const phoneButton = (id: string, label: string, href: string) => linkBox(id, href, '', {
+  layout: { display: 'flex', direction: 'row', align: 'center', justify: 'center' },
+  spacing: { padding: { top: '9', right: '10', bottom: '9', left: '10' } },
+  look: { fill: 'custom', fillColor: PG_BUTTON, radius: 10 },
+  item: { grow: true, basis: '0' },
+}, [b('Text', `${id}-label`, { source: 'custom', text: label, sizePx: 14, weight: 'bold', align: 'center', tone: 'normal' })]);
+
+/** An icon in the phone's top bar or bottom tab bar. */
+const barIcon = (id: string, icon: string, label: string, href: string, sizePx = 25) => linkBox(id, href, label, {
+  layout: { display: 'flex', direction: 'row', align: 'center', justify: 'center' },
+  spacing: { padding: pad(9) }, look: { radius: 12 },
+}, [b('Icon', `${id}-icon`, { name: icon, size: sizePx, tone: 'text', align: 'center' })]);
 
 /** A titled block in the main column. */
 const feedSection = (id: string, anchor: string, content: Block[]) => b('Box', id, {
   layout: { display: 'flex', direction: 'column', gap: 18 },
-  spacing: { padding: pad(24, 24), paddingMobile: pad(18, 14) },
+  spacing: { padding: pad(24, 24), paddingMobile: pad(18, 16) },
   look: { fill: 'custom', fillColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderTone: 'custom', borderColor: PG_LINE, radius: 20 },
-  advanced: { tag: 'section', anchor },
+  advanced: { tag: 'section', anchor, fitSections: true },
   content,
 });
 
@@ -599,74 +631,76 @@ const profileGrid: DesignData = noWrapColumns({
     },
   },
   content: [
-    // Phones and tablets: a plain top bar (the sidebar is for big screens).
+    // Phones: a top bar with your name, resume and contact.
     b('Box', 'pg-topbar', {
-      spacing: { padding: { top: '0', right: '14', bottom: '0', left: '14' } }, look: { fill: 'custom', fillColor: 'rgba(9,9,11,0.92)', borderWidth: 0 },
+      layout: { display: 'flex', direction: 'row', align: 'center', justify: 'space-between', wrap: 'nowrap', stackOnMobile: false },
+      spacing: { padding: { top: '6', right: '6', bottom: '6', left: '16' } },
+      look: { fill: 'custom', fillColor: 'rgba(9,9,11,0.88)', blur: 16 },
       advanced: { visibility: 'mobile', sticky: true },
-      content: [b('NavBar', 'pg-nav', {
-        style: 'bar', overlay: false, showResume: true, sticky: false,
-        links: [{ label: 'Projects', href: '#projects' }, { label: 'About', href: '#about' }, { label: 'Experience', href: '#experience' }, { label: 'Skills', href: '#skills' }, { label: 'Contact', href: '#contact' }],
-      })],
+      content: [
+        b('Heading', 'pg-top-name', { source: 'name', level: 'h4', sizePx: 21, weight: 'bold', tracking: 'tight' }),
+        b('Flex', 'pg-top-icons', { gap: 2, align: 'center', wrap: false, items: [
+          barIcon('pg-top-resume', 'download', 'Download resume', '/api/resume', 24),
+          barIcon('contact-top', 'mail', 'Contact', '#contact', 24),
+        ] }),
+      ],
     }),
 
     b('Box', 'pg-shell', {
       layout: { display: 'grid', columns: '260px 1fr', columnsTablet: '1fr', columnsMobile: '1fr', gap: 0, rowGap: 0 },
       spacing: none,
       content: [
-        // Left: a sticky sidebar with your name, the menu, the resume button and you at the bottom.
+        // Big screens: a sticky sidebar with your name, the menu, the resume button and you at the bottom.
         b('Box', 'pg-sidebar', {
           size: { height: '100vh' },
           layout: { display: 'flex', direction: 'column', justify: 'space-between', gap: 24 },
           spacing: { padding: { top: '30', right: '18', bottom: '24', left: '18' } },
-          look: { borderWidth: 0, fill: 'none' },
           item: { alignSelf: 'flex-start' },
           advanced: { tag: 'aside', visibility: 'desktop', sticky: true },
           content: [
             b('Box', 'pg-side-top', {
-              layout: { display: 'flex', direction: 'column', gap: 4 }, spacing: none,
+              layout: { display: 'flex', direction: 'column', gap: 2 }, spacing: none,
               content: [
                 b('Heading', 'pg-brand', { source: 'name', level: 'h4', sizePx: 22, weight: 'bold', tracking: 'tight' }),
                 b('Spacer', 'pg-brand-gap', { size: 'sm', height: 18 }),
-                sideLink('pg-side-home', 'home', 'Home', '#home'),
-                sideLink('about-side', 'user', 'About', '#about'),
-                sideLink('projects-side', 'grid', 'Projects', '#projects'),
-                sideLink('experience-side', 'briefcase', 'Experience', '#experience'),
-                sideLink('skills-side', 'chart', 'Skills', '#skills'),
-                sideLink('contact-side', 'mail', 'Contact', '#contact'),
+                sideRow('pg-side-home', 'home', 'Home', '#home'),
+                sideRow('about-side', 'user', 'About', '#about'),
+                sideRow('projects-side', 'grid', 'Projects', '#projects'),
+                sideRow('experience-side', 'briefcase', 'Experience', '#experience'),
+                sideRow('skills-side', 'chart', 'Skills', '#skills'),
+                sideRow('contact-side', 'mail', 'Contact', '#contact'),
                 b('Spacer', 'pg-side-gap', { size: 'sm', height: 14 }),
                 b('Button', 'pg-side-resume', { action: 'resume', label: 'Download resume', style: 'secondary', size: 'md', icon: 'download', fullWidthMobile: true }),
               ],
             }),
-            b('Flex', 'pg-side-me', {
-              gap: 12, align: 'center', wrap: false,
-              items: [
-                b('Box', 'pg-side-photo', { size: { width: '40px', height: '40px', minWidth: '40px' }, spacing: none, look: { radius: 999 }, advanced: { overflow: 'hidden' },
-                  content: [b('Image', 'pg-side-photo-img', { source: 'profilePhoto', alt: '', aspect: 'circle', rounded: true, maxWidth: 'full', align: 'left' })] }),
-                b('Box', 'pg-side-who', { layout: { display: 'flex', direction: 'column', gap: 0 }, spacing: none, content: [
-                  b('Text', 'pg-side-name', { source: 'name', size: 'sm', weight: 'bold', tone: 'normal' }),
-                  b('Text', 'pg-side-tag', { source: 'custom', text: 'Portfolio', size: 'xs', tone: 'muted' }),
-                ] }),
-              ],
-            }),
+            linkBox('pg-side-me', '#home', '', {
+              layout: { display: 'flex', direction: 'row', gap: 12, align: 'center', wrap: 'nowrap', stackOnMobile: false },
+              spacing: { padding: pad(8) }, look: { radius: 12 },
+            }, [
+              b('Box', 'pg-side-photo', { size: { width: '40px', height: '40px', minWidth: '40px' }, spacing: none, look: { radius: 999 }, advanced: { overflow: 'hidden' },
+                content: [b('Image', 'pg-side-photo-img', { source: 'profilePhoto', alt: '', aspect: 'circle', rounded: true, maxWidth: 'full', align: 'left' })] }),
+              b('Box', 'pg-side-who', { layout: { display: 'flex', direction: 'column', gap: 0 }, spacing: none, content: [
+                b('Text', 'pg-side-name', { source: 'name', size: 'sm', weight: 'bold', tone: 'normal' }),
+                b('Text', 'pg-side-tag', { source: 'custom', text: 'Portfolio', size: 'xs', tone: 'muted' }),
+              ] }),
+            ]),
           ],
         }),
 
-        // Right: the profile and its feed.
+        // The profile and its feed.
         b('Box', 'pg-main', {
           size: { maxWidth: '1180px' },
           layout: { display: 'flex', direction: 'column', gap: 26 },
-          spacing: { padding: { top: '34', right: '40', bottom: '28', left: '40' }, paddingMobile: { top: '20', right: '14', bottom: '20', left: '14' } },
-          look: { borderWidth: 0 },
-          advanced: { tag: 'main' },
+          spacing: { padding: { top: '34', right: '40', bottom: '28', left: '40' }, paddingMobile: { top: '10', right: '0', bottom: '16', left: '0' } },
+          advanced: { tag: 'main', anchor: 'home' },
           content: [
-            // Profile header: ringed photo, then name, numbers, bio and actions.
+            // Big screens: ringed photo, then name, numbers, bio and actions.
             b('Flex', 'pg-profile', {
-              gap: 48, align: 'center', stackOnMobile: true,
+              gap: 48, align: 'center', stackOnMobile: true, more: { visibility: 'desktop' },
               items: [
                 ring('pg-photo-ring', 176, 4, b('Image', 'pg-photo', { source: 'profilePhoto', alt: 'Profile photo', aspect: 'circle', rounded: true, maxWidth: 'full', align: 'center' })),
                 b('Box', 'pg-info', {
                   layout: { display: 'flex', direction: 'column', gap: 14 }, spacing: none, item: { grow: true, basis: '60%' },
-                  advanced: { anchor: 'home' },
                   content: [
                     b('Flex', 'pg-name-row', {
                       gap: 14, align: 'center', justify: 'between', stackOnMobile: false,
@@ -705,87 +739,152 @@ const profileGrid: DesignData = noWrapColumns({
               ],
             }),
 
-            // Highlights: round shortcuts to each part of the page.
-            // One row; on small screens it scrolls sideways.
-            b('Box', 'pg-highlights', {
-              layout: { display: 'flex', direction: 'row', gap: 22, align: 'flex-start', wrap: 'nowrap', stackOnMobile: false },
-              spacing: { padding: { top: '2', right: '2', bottom: '6', left: '2' } },
+            // Phones: photo beside the numbers, then name, bio and two big buttons.
+            b('Box', 'pg-m-profile', {
+              layout: { display: 'flex', direction: 'column', gap: 12 },
+              spacing: { padding: { top: '6', right: '16', bottom: '0', left: '16' } },
+              advanced: { visibility: 'mobile' },
+              content: [
+                b('Box', 'pg-m-top', {
+                  layout: { display: 'flex', direction: 'row', gap: 16, align: 'center', wrap: 'nowrap', stackOnMobile: false }, spacing: none,
+                  content: [
+                    ring('pg-m-photo-ring', 92, 3, b('Image', 'pg-m-photo', { source: 'profilePhoto', alt: 'Profile photo', aspect: 'circle', rounded: true, maxWidth: 'full', align: 'center' })),
+                    b('Box', 'pg-m-stats', {
+                      layout: { display: 'flex', direction: 'row', gap: 4, align: 'center', justify: 'space-around', wrap: 'nowrap', stackOnMobile: false },
+                      spacing: none, item: { grow: true },
+                      content: [stat('pg-m-years', 'years', 'Years', true), stat('pg-m-products', 'products', 'Products', true), stat('pg-m-users', 'users', 'Users', true)],
+                    }),
+                  ],
+                }),
+                b('Box', 'pg-m-bio', {
+                  layout: { display: 'flex', direction: 'column', gap: 2 }, spacing: none,
+                  content: [
+                    b('Text', 'pg-m-name', { source: 'name', sizePx: 15, weight: 'bold', tone: 'normal' }),
+                    b('Text', 'pg-m-role', { source: 'role', sizePx: 14, tone: 'muted' }),
+                    b('Text', 'pg-m-summary', { source: 'summary', sizePx: 14, tone: 'normal' }),
+                    b('Text', 'pg-m-current', { source: 'currentRole', sizePx: 14, tone: 'normal' }),
+                    b('Flex', 'pg-m-where', { gap: 5, align: 'center', wrap: false, items: [
+                      b('Icon', 'pg-m-where-icon', { name: 'pin', size: 14, tone: 'accent2' }),
+                      b('Text', 'pg-m-where-text', { source: 'location', sizePx: 14, tone: 'accent2' }),
+                    ] }),
+                  ],
+                }),
+                b('Box', 'pg-m-buttons', {
+                  layout: { display: 'flex', direction: 'row', gap: 8, align: 'stretch', wrap: 'nowrap', stackOnMobile: false }, spacing: none,
+                  content: [phoneButton('pg-m-resume', 'Resume', '/api/resume'), phoneButton('contact-m-talk', 'Let’s talk', '#contact')],
+                }),
+              ],
+            }),
+
+            // Story circles: one row; on phones it scrolls sideways.
+            b('Box', 'pg-stories', {
+              layout: { display: 'flex', direction: 'row', gap: 14, align: 'flex-start', wrap: 'nowrap', stackOnMobile: false },
+              spacing: { padding: { top: '2', right: '2', bottom: '6', left: '2' }, paddingMobile: { top: '4', right: '12', bottom: '4', left: '12' } },
               advanced: { overflow: 'auto' },
               content: [
-                highlight('about-hl', 'user', 'About me', '#about'),
-                highlight('skills-hl', 'layers', 'Tech stack', '#skills'),
-                highlight('projects-hl', 'code', 'Projects', '#projects'),
-                highlight('experience-hl', 'briefcase', 'Work', '#experience'),
-                highlight('pg-hl-resume', 'notes', 'Resume', '/api/resume'),
-                highlight('contact-hl', 'chat', 'Say hi', '#contact'),
+                story('about-story', 'user', 'About me', '#about'),
+                story('skills-story', 'layers', 'Tech stack', '#skills'),
+                story('projects-story', 'code', 'Projects', '#projects'),
+                story('experience-story', 'briefcase', 'Work', '#experience'),
+                story('pg-story-resume', 'notes', 'Resume', '/api/resume'),
+                story('contact-story', 'chat', 'Say hi', '#contact'),
               ],
             }),
 
-            // Tabs over the feed, under a thin line.
-            b('Divider', 'pg-tabs-rule', { style: 'line' }),
+            // Big screens: labelled tabs under a thin line.
             b('Box', 'pg-tabs', {
-              layout: { display: 'flex', direction: 'row', gap: 40, justify: 'center', wrap: 'wrap', stackOnMobile: false },
-              spacing: { padding: { top: '0', right: '0', bottom: '4', left: '0' }, margin: { top: '-18' } },
+              layout: { display: 'flex', direction: 'row', gap: 28, justify: 'center', wrap: 'wrap', stackOnMobile: false },
+              spacing: { padding: { top: '4', right: '0', bottom: '0', left: '0' } },
+              look: { borderWidth: 0 },
+              advanced: { visibility: 'desktop' },
               content: [
-                feedTab('projects-tab', 'grid', 'Posts', '#projects', true),
-                feedTab('experience-tab', 'briefcase', 'Journey', '#experience'),
-                feedTab('skills-tab', 'layers', 'Stack', '#skills'),
+                tab('projects-tab', 'grid', 'Posts', '#projects', true),
+                tab('experience-tab', 'briefcase', 'Journey', '#experience'),
+                tab('skills-tab', 'layers', 'Stack', '#skills'),
+              ],
+            }),
+            // Phones: icon tabs.
+            b('Box', 'pg-m-tabs', {
+              layout: { display: 'flex', direction: 'row', gap: 0, align: 'stretch', wrap: 'nowrap', stackOnMobile: false },
+              spacing: none,
+              advanced: { visibility: 'mobile' },
+              content: [
+                iconTab('projects-mtab', 'grid', 'Projects', '#projects', true),
+                iconTab('experience-mtab', 'briefcase', 'Experience', '#experience'),
+                iconTab('skills-mtab', 'layers', 'Tech stack', '#skills'),
               ],
             }),
 
-            // The feed: projects as image tiles, three across.
+            // The feed: projects, three across (edge to edge on phones).
             b('Box', 'projects', {
-              layout: { display: 'flex', direction: 'column', gap: 12 }, spacing: none,
-              advanced: { tag: 'section', anchor: 'projects' },
+              layout: { display: 'flex', direction: 'column', gap: 0 }, spacing: none,
+              advanced: { tag: 'section', anchor: 'projects', fitSections: true },
               content: [
                 b('Projects', 'pg-projects', {
-                  layout: 'gallery', columns: '3', columnsMobile: '1', filter: 'all', sort: 'featured', limit: 0, image: 'video', hover: 'zoom',
+                  layout: 'feed', columns: '3', columnsMobile: '2', filter: 'all', sort: 'featured', limit: 0, image: 'video', hover: 'zoom',
                   frame: 'none', linkStyle: 'arrow', tabs: false, tagStyle: 'chips', showDescription: true, showStack: true, showLinks: false, showType: false,
                   cardStyle: 'plain', cardAlign: 'left', eyebrow: '-', title: '-',
                 }),
               ],
             }),
 
-            feedSection('about', 'about', [
-              b('Heading', 'about-title', { source: 'custom', text: 'At a glance', level: 'h2', size: 'sm', weight: 'bold' }),
-              b('HiringSnapshot', 'about-hiring', { title: '' }),
-              b('Stats', 'about-stats', { style: 'inline' }),
-            ]),
-
-            feedSection('experience-wrap', 'experience', [
-              b('Heading', 'experience-title', { source: 'experienceTitle', level: 'h2', size: 'sm', weight: 'bold' }),
-              b('Experience', 'experience-list', { layout: 'timeline', maxBullets: 3, eyebrow: '-', title: '-', description: '-' }),
-            ]),
-
-            feedSection('skills-wrap', 'skills', [
-              b('Heading', 'skills-title', { source: 'skillsTitle', level: 'h2', size: 'sm', weight: 'bold' }),
-              b('Skills', 'skills-list', { layout: 'tabs', align: 'left', eyebrow: '-', title: '-', description: '-' }),
-            ]),
-
-            // Contact: a gradient strip.
-            b('Box', 'contact', {
-              layout: { display: 'flex', direction: 'row', gap: 20, align: 'center', justify: 'space-between', wrap: 'wrap', stackOnMobile: true },
-              spacing: { padding: pad(28, 30), paddingMobile: pad(22, 18) },
-              look: { fill: 'custom', fillColor: '#0e7490', gradientVia: '#4338ca', gradientTo: '#7e22ce', gradientAngle: 120, radius: 22, textTone: 'custom', textColor: '#ffffff' },
-              advanced: { tag: 'section', anchor: 'contact' },
+            // The rest, with side room on phones.
+            b('Box', 'pg-more', {
+              layout: { display: 'flex', direction: 'column', gap: 18 },
+              spacing: { padding: pad(0), paddingMobile: { top: '14', right: '12', bottom: '0', left: '12' } },
               content: [
-                b('Box', 'contact-copy', {
-                  layout: { display: 'flex', direction: 'column', gap: 6 }, spacing: none, item: { grow: true, basis: '55%' },
+                feedSection('about', 'about', [
+                  b('Heading', 'about-title', { source: 'custom', text: 'At a glance', level: 'h2', size: 'sm', weight: 'bold' }),
+                  b('HiringSnapshot', 'about-hiring', { title: '' }),
+                  b('Stats', 'about-stats', { style: 'inline' }),
+                ]),
+                feedSection('experience-wrap', 'experience', [
+                  b('Heading', 'experience-title', { source: 'experienceTitle', level: 'h2', size: 'sm', weight: 'bold' }),
+                  b('Experience', 'experience-list', { layout: 'timeline', maxBullets: 3, eyebrow: '-', title: '-', description: '-' }),
+                ]),
+                feedSection('skills-wrap', 'skills', [
+                  b('Heading', 'skills-title', { source: 'skillsTitle', level: 'h2', size: 'sm', weight: 'bold' }),
+                  b('Skills', 'skills-list', { layout: 'tabs', align: 'left', eyebrow: '-', title: '-', description: '-' }),
+                ]),
+                b('Box', 'contact', {
+                  layout: { display: 'flex', direction: 'row', gap: 20, align: 'center', justify: 'space-between', wrap: 'wrap', stackOnMobile: true },
+                  spacing: { padding: pad(28, 30), paddingMobile: pad(22, 18) },
+                  look: { fill: 'custom', fillColor: '#0e7490', gradientVia: '#4338ca', gradientTo: '#7e22ce', gradientAngle: 120, radius: 22, textTone: 'custom', textColor: '#ffffff' },
+                  advanced: { tag: 'section', anchor: 'contact' },
                   content: [
-                    b('Heading', 'contact-title', { source: 'contactTitle', level: 'h2', size: 'md', weight: 'bold', tracking: 'tight' }),
-                    b('Text', 'contact-text', { source: 'contactDescription', size: 'sm', tone: 'normal' }),
+                    b('Box', 'contact-copy', {
+                      layout: { display: 'flex', direction: 'column', gap: 6 }, spacing: none, item: { grow: true, basis: '55%' },
+                      content: [
+                        b('Heading', 'contact-title', { source: 'contactTitle', level: 'h2', size: 'md', weight: 'bold', tracking: 'tight' }),
+                        b('Text', 'contact-text', { source: 'contactDescription', size: 'sm', tone: 'normal' }),
+                      ],
+                    }),
+                    b('Flex', 'contact-actions', {
+                      gap: 12, align: 'center', wrap: true,
+                      items: [b('Button', 'contact-button', { action: 'contact', labelSource: 'contactAction', label: 'Get in touch', style: 'primary', size: 'md', icon: 'arrow' }), b('SocialLinks', 'contact-social', { align: 'left', labels: false })],
+                    }),
                   ],
                 }),
-                b('Flex', 'contact-actions', {
-                  gap: 12, align: 'center', wrap: true,
-                  items: [b('Button', 'contact-button', { action: 'contact', labelSource: 'contactAction', label: 'Get in touch', style: 'primary', size: 'md', icon: 'arrow' }), b('SocialLinks', 'contact-social', { align: 'left', labels: false })],
-                }),
+                b('Footer', 'pg-footer', { showSocial: false }),
               ],
             }),
-
-            b('Footer', 'pg-footer', { showSocial: false }),
           ],
         }),
+      ],
+    }),
+
+    // Phones: an app tab bar pinned to the bottom.
+    b('Box', 'pg-dock', {
+      layout: { display: 'flex', direction: 'row', align: 'center', justify: 'space-around', wrap: 'nowrap', stackOnMobile: false },
+      spacing: { padding: { top: '4', right: '8', bottom: '4', left: '8' } },
+      look: { fill: 'custom', fillColor: 'rgba(9,9,11,0.9)', borderWidth: 0 },
+      advanced: { visibility: 'mobile', dock: true, tag: 'nav' },
+      content: [
+        barIcon('pg-dock-home', 'home', 'Home', '#home'),
+        barIcon('projects-dock', 'grid', 'Projects', '#projects'),
+        barIcon('experience-dock', 'briefcase', 'Experience', '#experience'),
+        barIcon('skills-dock', 'layers', 'Tech stack', '#skills'),
+        barIcon('contact-dock', 'chat', 'Contact', '#contact'),
       ],
     }),
   ],
@@ -812,9 +911,9 @@ export const OWNER_TEMPLATES: { key: string; version: number; name: string; desc
   },
   {
     key: 'profile-grid',
-    version: 1,
+    version: 2,
     name: 'Profile Grid',
-    description: 'A dark social-profile page: a sticky sidebar menu, your photo in a gradient ring with your numbers and bio, round highlight shortcuts, Posts / Journey / Stack tabs, projects as a grid of image tiles, then about, experience, skills and a gradient contact strip.',
+    description: 'A dark social-profile page. Big screens: a sticky sidebar menu, your photo in a gradient ring with your numbers and bio, story circles and Posts / Journey / Stack tabs over a grid of project tiles. Phones: an app layout with a top bar, photo beside your numbers, swipeable story circles, icon tabs, an edge-to-edge 3-across grid and a tab bar at the bottom. Everything scrolls smoothly to its section.',
     data: profileGrid,
   },
 ];

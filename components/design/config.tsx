@@ -331,7 +331,7 @@ export const designConfig: Config<Components, RootProps> = {
     Projects: {
       label: 'Projects',
       fields: {
-        layout: { type: 'select', label: 'Projects layout', options: [{ label: 'Grid of cards', value: 'grid' }, { label: 'Gallery (image tiles)', value: 'gallery' }, { label: 'List (image beside text)', value: 'list' }, { label: 'Alternating rows (big images)', value: 'zigzag' }, { label: 'Carousel (swipe sideways)', value: 'carousel' }, { label: 'Compact index (one line each)', value: 'compact' }] },
+        layout: { type: 'select', label: 'Projects layout', options: [{ label: 'Grid of cards', value: 'grid' }, { label: 'Gallery (image tiles)', value: 'gallery' }, { label: 'Feed (social profile grid, 3 across)', value: 'feed' }, { label: 'List (image beside text)', value: 'list' }, { label: 'Alternating rows (big images)', value: 'zigzag' }, { label: 'Carousel (swipe sideways)', value: 'carousel' }, { label: 'Compact index (one line each)', value: 'compact' }] },
         columns: { type: 'radio', label: 'Cards per row (desktop)', options: [{ label: '1', value: '1' }, { label: '2', value: '2' }, { label: '3', value: '3' }, { label: '4', value: '4' }] },
         columnsMobile: { type: 'radio', label: 'Cards per row (phones)', options: [{ label: '1', value: '1' }, { label: '2', value: '2' }] },
         filter: { type: 'select', label: 'Which projects', options: [{ label: 'All published', value: 'all' }, { label: 'Featured only', value: 'featured' }, { label: 'One type only', value: 'type' }, { label: 'With a tag', value: 'tag' }, { label: 'Ones I pick', value: 'pick' }] },
@@ -364,6 +364,7 @@ export const designConfig: Config<Components, RootProps> = {
         if (p.filter !== 'tag') hide.add('tag');
         if (p.filter !== 'pick') hide.add('pick'); else hide.add('sort');
         if (!['grid', 'gallery'].includes(p.layout)) { hide.add('columns'); hide.add('columnsMobile'); }
+        if (p.layout === 'feed') ['cardStyle', 'cardAlign', 'showLinks', 'frame', 'linkStyle', 'showType'].forEach((k) => hide.add(k));
         if (p.layout === 'compact') ['image', 'cardStyle', 'cardAlign', 'showStack', 'showLinks', 'hover'].forEach((k) => hide.add(k));
         if (p.layout === 'gallery') ['cardStyle', 'cardAlign', 'showStack', 'showLinks'].forEach((k) => hide.add(k));
         const projects = ((metadata as unknown as DesignMetadata | undefined)?.portfolio?.projects ?? []).map((project) => ({ label: project.title, value: project.slug }));

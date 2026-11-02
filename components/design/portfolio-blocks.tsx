@@ -289,7 +289,7 @@ export function Skills(props: SkillsProps & { portfolio: Portfolio }) {
 /* ---------- Projects ---------- */
 
 export type ProjectsProps = {
-  layout: 'grid' | 'gallery' | 'list' | 'zigzag' | 'carousel' | 'compact';
+  layout: 'grid' | 'gallery' | 'feed' | 'list' | 'zigzag' | 'carousel' | 'compact';
   columns: '1' | '2' | '3' | '4';
   columnsMobile: '1' | '2';
   filter: 'all' | 'featured' | 'type' | 'tag' | 'pick';
@@ -437,6 +437,39 @@ export function Projects(input: ProjectsProps & { portfolio: Portfolio }) {
             </div>
           </article>
         ))}
+      </div>
+    );
+  } else if (props.layout === 'feed') {
+    // A social-profile grid: three across on every screen, tight gaps, square tiles on phones; the title and
+    // tags always sit on the picture (no hover needed on phones), a pin on featured ones.
+    const desktopAspect = ({ video: 'md:aspect-video', wide: 'md:aspect-[21/9]', square: 'md:aspect-square', portrait: 'md:aspect-[4/5]' } as Record<string, string>)[props.image] ?? 'md:aspect-video';
+    body = (
+      <div className="d-feed grid grid-cols-3 gap-[3px] md:gap-3">
+        {list.map((project) => {
+          const src = safeSrc(project.image);
+          return (
+            <ProjectLink key={project.slug} project={project} label={project.title} className={`d-feed-tile group relative block aspect-square overflow-hidden md:rounded-[var(--d-radius)] ${desktopAspect}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {src ? <img src={src} alt="" loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${props.hover !== 'none' ? 'transition duration-500 group-hover:scale-105' : ''}`} />
+                : <span aria-hidden="true" className="d-feed-blank absolute inset-0" />}
+              <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" aria-hidden="true" />
+              {project.featured && (
+                <span className="absolute right-1.5 top-1.5 md:right-3 md:top-3" aria-label={labels.featured} title={labels.featured} style={{ color: '#fff' }}>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M15 3l6 6-3 1-4 4 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 4-4 1-3z" /></svg>
+                </span>
+              )}
+              <span className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 p-2 text-left md:gap-1.5 md:p-4" style={{ color: '#fff' }}>
+                <span className="line-clamp-3 text-[11px] font-bold leading-tight md:text-lg md:font-black">{project.title}</span>
+                {props.showDescription && <span className="hidden text-xs leading-snug opacity-85 md:line-clamp-2">{project.description}</span>}
+                {props.showStack && project.stack.length > 0 && (
+                  <span className="mt-1 hidden flex-wrap gap-1.5 md:flex">
+                    {project.stack.slice(0, 3).map((tag) => <span key={tag} className="rounded-md border border-white/20 bg-black/40 px-2 py-0.5 text-[11px] font-semibold backdrop-blur">{tag}</span>)}
+                  </span>
+                )}
+              </span>
+            </ProjectLink>
+          );
+        })}
       </div>
     );
   } else if (props.layout === 'gallery') {

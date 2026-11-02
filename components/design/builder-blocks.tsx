@@ -96,7 +96,11 @@ export type BoxProps = {
     tilt?: number;
   };
   item: { grow: boolean; shrink: boolean; basis: string; alignSelf: 'auto' | 'stretch' | 'flex-start' | 'center' | 'flex-end'; order: number };
-  advanced: { tag: (typeof TAGS)[number]; anchor: string; visibility: 'all' | 'desktop' | 'mobile'; overflow: 'visible' | 'hidden' | 'auto'; sticky: boolean; fitSections: boolean };
+  advanced: { tag: (typeof TAGS)[number]; anchor: string; visibility: 'all' | 'desktop' | 'mobile'; overflow: 'visible' | 'hidden' | 'auto'; sticky: boolean; fitSections: boolean;
+    /** The whole box is a link (a story circle, a menu row, a tab), with a name for screen readers. */
+    link?: string; linkLabel?: string;
+    /** Pinned to the bottom of the screen on phones (a tab bar). */
+    dock?: boolean };
 };
 
 const BOX_DEFAULTS: Omit<BoxProps, 'content'> = {
@@ -109,7 +113,7 @@ const BOX_DEFAULTS: Omit<BoxProps, 'content'> = {
     radius: 0, shadow: 'none', opacity: 100, texture: 'none', edge: 'none', tilt: 0,
   },
   item: { grow: false, shrink: true, basis: '', alignSelf: 'auto', order: 0 },
-  advanced: { tag: 'div', anchor: '', visibility: 'all', overflow: 'visible', sticky: false, fitSections: false },
+  advanced: { tag: 'div', anchor: '', visibility: 'all', overflow: 'visible', sticky: false, fitSections: false, link: '', linkLabel: '', dock: false },
 };
 
 const layoutFields = {
@@ -197,6 +201,9 @@ const boxFields: Fields<Omit<BoxProps, 'content'> & { content: Slot }> = {
       overflow: radio('Overflow', opt(['visible', 'Visible'], ['hidden', 'Hidden'], ['auto', 'Scroll'])),
       sticky: radio('Stick to top when scrolling', [{ value: true, label: 'Yes' }, { value: false, label: 'No' }]),
       fitSections: radio('Ready-made sections inside (Projects, Skills…)', [{ value: false, label: 'Keep their own spacing' }, { value: true, label: 'Fit this box (no extra spacing)' }]),
+      link: text('Make the whole box a link', '#projects, /path, https://…, mailto:…'),
+      linkLabel: text('Link name for screen readers (if the box has no text)'),
+      dock: radio('Pin to the bottom of the screen (phones, like an app tab bar)', [{ value: false, label: 'No' }, { value: true, label: 'Yes' }]),
     },
   },
 };
@@ -302,6 +309,9 @@ export function boxStyle(props: Partial<Omit<BoxProps, 'content'>>, editing: boo
   // advanced
   if (advanced.overflow !== 'visible') style.overflow = advanced.overflow;
   if (advanced.sticky) { style.position = 'sticky'; style.top = '0'; style.zIndex = 20; }
+  if (advanced.dock && !editing) { style.position = 'fixed'; style.left = '0'; style.right = '0'; style.bottom = '0'; style.zIndex = 40; classes.push('d-dock'); }
+  // A sideways-scrolling row (story circles…): snaps gently, no scrollbar.
+  if (advanced.overflow === 'auto' && layout.display === 'flex' && layout.direction === 'row' && layout.wrap === 'nowrap') classes.push('d-scroll-x');
   if (advanced.fitSections) classes.push('d-box-fit');
   // Liquid glass: a translucent, blurred, light-catching material (app/design.css .d-glass).
   if (look.glass && look.glass !== 'none') classes.push('d-glass', `d-glass-${look.glass}`);
@@ -316,10 +326,43 @@ export function boxStyle(props: Partial<Omit<BoxProps, 'content'>>, editing: boo
   if (editing && safeLength(size.height)) classes.push('d-box-sized');
 
   const tag: ElementType = (TAGS as readonly string[]).includes(advanced.tag) ? advanced.tag : 'div';
-  return { style: style as CSSProperties, className: classes.join(' '), tag, id: anchorId(advanced.anchor), layout };
+  // In the editor a click selects the box, so the link only works on the site.
+  const link = !editing && advanced.link ? safeHref(advanced.link) ?? null : null;
+  if (link) classes.push('d-box-link');
+  return { style: style as CSSProperties, className: classes.join(' '), tag, id: anchorId(advanced.anchor), layout, link, linkLabel: (advanced.linkLabel ?? '').slice(0, 80) };
 }
 
 const show = (field: object, visible: boolean) => ({ ...field, visible });
+
+/** A box that is a link: an <a> with its address (and id, name), made once each so React keeps the element. */
+const linkedTags = new Map<string, ElementType>();
+function linked(href: string, label: string, id: string | undefined): ElementType {
+  const key = `${href}|${label}|${id ?? ''}`;
+  let found = linkedTags.get(key);
+  if (!found) {
+    const external = /^https?:\/\//i.test(href);
+    const Linked = (props: Record<string, unknown>) => (
+      <a {...props} href={href} id={id} aria-label={label || undefined} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} />
+    );
+    if (linkedTags.size > 500) linkedTags.clear();
+    linkedTags.set(key, (found = Linked as ElementType));
+  }
+  return found;
+}
+
+/** A tag that also sets an id, made once per tag + id so React keeps the same element between renders. */
+const anchoredTags = new Map<string, ElementType>();
+function anchored(tag: ElementType, id: string): ElementType {
+  const key = `${String(tag)}#${id}`;
+  let found = anchoredTags.get(key);
+  if (!found) {
+    const Tag = tag;
+    // React 19: `ref` arrives as a normal prop.
+    const Anchored = (props: Record<string, unknown>) => <Tag {...props} id={id} />;
+    anchoredTags.set(key, (found = Anchored as ElementType));
+  }
+  return found;
+}
 
 export const Box: ComponentConfig<BoxProps> = {
   label: 'Box (div)',
@@ -353,16 +396,14 @@ export const Box: ComponentConfig<BoxProps> = {
     } as typeof fields;
   },
   render: ({ content: Content, puck, ...props }) => {
-    const { style, className, tag, id, layout } = boxStyle(props, puck.isEditing);
+    const { style, className, tag, id, layout, link, linkLabel } = boxStyle(props, puck.isEditing);
     const axis = layout.display === 'flex' ? (layout.direction.startsWith('row') ? 'x' : 'y') : layout.display === 'grid' ? 'dynamic' : 'y';
-    // Anchor: a marker that takes no space (a slot can't carry an id itself), so #id links scroll here.
+    // Anchor: the box itself carries the id (through a tag that adds it, as a slot can't take an id), so #id links
+    // scroll to the box. (A separate marker element ended up at the top of the page, so links went nowhere.)
     return (
-      <>
-        {id && <span id={id} aria-hidden="true" className="pointer-events-none absolute scroll-mt-20" />}
-        {/* An empty box with a set height is a shape (a dot, a bar, a swatch): keep its size in the editor too,
-            instead of stretching it to the usual drop-area height. */}
-        <Content as={tag} ref={puck.dragRef} className={className} style={style} minEmptyHeight={safeLength(props.size?.height) ? 1 : 64} collisionAxis={axis} />
-      </>
+      // An empty box with a set height is a shape (a dot, a bar, a swatch): keep its size in the editor too,
+      // instead of stretching it to the usual drop-area height.
+      <Content as={link ? linked(link, linkLabel, id) : id ? anchored(tag, id) : tag} ref={puck.dragRef} className={id ? `${className} scroll-mt-20` : className} style={style} minEmptyHeight={safeLength(props.size?.height) ? 1 : 64} collisionAxis={axis} />
     );
   },
 };

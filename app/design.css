@@ -530,3 +530,25 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
     .d-note, .d-tilt, .d-card-paper { transition: none; }
   }
 }
+
+/* ---------- Box links, sideways rows, the phone tab bar, and the feed grid ---------- */
+/* A box that is a link (a story circle, a menu row, a tab): looks like the box, answers to touch. */
+.d-box-link { color: inherit; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform .18s cubic-bezier(.2, .8, .2, 1), background-color .18s, opacity .18s; }
+.d-box-link:hover { background-color: color-mix(in srgb, var(--d-text) 6%, transparent); }
+.d-box-link:active { transform: scale(.96); }
+.d-box-link:focus-visible { outline: 2px solid var(--d-accent2, var(--d-accent)); outline-offset: 3px; }
+/* A row that scrolls sideways: momentum on iPhone, gentle snapping, no scrollbar. */
+.d-scroll-x { -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; scrollbar-width: none; overscroll-behavior-x: contain; }
+.d-scroll-x::-webkit-scrollbar { display: none; }
+.d-scroll-x > * { scroll-snap-align: start; }
+/* The phone tab bar: frosted, clear of the home indicator; the page leaves room for it. */
+.d-dock { padding-bottom: env(safe-area-inset-bottom) !important; -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); }
+@media (max-width: 767px) {
+  .d-root:has(.d-dock) { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  body:has(.d-dock) .ask-launcher { bottom: calc(env(safe-area-inset-bottom) + 76px) !important; }
+}
+@media (min-width: 768px) { .d-dock { display: none !important; } }
+/* Feed tiles without a picture: a soft gradient instead of a grey box. */
+.d-feed-blank { background: linear-gradient(140deg, color-mix(in srgb, var(--d-accent2, #22d3ee) 45%, #111), color-mix(in srgb, var(--d-accent3, #a855f7) 55%, #111)); }
+@media (max-width: 767px) { .d-feed { margin-inline: calc(var(--feed-bleed, 0px) * -1); } }
+@media (prefers-reduced-motion: reduce) { .d-box-link, .d-box-link:active { transition: none; transform: none; } }
