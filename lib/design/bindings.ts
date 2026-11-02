@@ -21,6 +21,7 @@ export const TEXT_SOURCES: { value: string; label: string; get?: (p: P) => strin
   { value: 'performance', label: 'Stat · Performance', get: (p) => p.profile.performanceMetric },
   { value: 'lighthouse', label: 'Stat · Lighthouse', get: (p) => p.profile.lighthouse },
   { value: 'users', label: 'Stat · Users impacted', get: (p) => p.profile.usersImpacted },
+  { value: 'projectCount', label: 'Stat · Number of projects', get: (p) => String(p.projects.length) },
   { value: 'targetRoles', label: 'Hiring · Looking for', get: (p) => p.profile.targetRoles },
   { value: 'workPreference', label: 'Hiring · Location & work mode', get: (p) => p.profile.workPreference },
   { value: 'availabilityNote', label: 'Hiring · Availability', get: (p) => p.profile.availability },

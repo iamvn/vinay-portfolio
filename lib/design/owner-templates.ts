@@ -636,6 +636,15 @@ const tabArea = (id: string, content: Block[]) => b('Box', id, {
   content,
 });
 
+/** A tappable count beside the photo on phones: the number, and what it counts. */
+const count = (id: string, source: string, label: string, href: string) => linkBox(id, href, '', {
+  layout: { display: 'flex', direction: 'column', gap: 1, align: 'center' },
+  spacing: { padding: { top: '6', right: '12', bottom: '6', left: '12' } }, look: { radius: 12 },
+}, [
+  b('Text', `${id}-value`, { source, sizePx: 20, weight: 'bold', align: 'center', tone: 'normal' }),
+  b('Text', `${id}-label`, { source: 'custom', text: label, sizePx: 13, align: 'center', tone: 'muted' }),
+]);
+
 const PG_SERVICES = [
   ['code', '#a78bfa', 'Full-Stack Development', 'Build end-to-end, scalable web applications.'],
   ['cpu', '#c084fc', 'AI & Automation', 'Build AI tools, agents and automate engineering workflows.'],
@@ -752,7 +761,13 @@ const profileGrid: DesignData = noWrapColumns({
                       layout: { display: 'flex', direction: 'column', gap: 10 }, spacing: none, item: { grow: true, basis: '0' },
                       content: [
                         b('Heading', 'pg-name', { source: 'name', level: 'h1', sizePx: 26, weight: 'bold', tracking: 'tight', more: { visibility: 'desktop' } }),
-                        b('Flex', 'pg-head-links', { gap: 4, align: 'center', wrap: true, items: [
+                        // Phones: two counts beside the photo, like a social profile (tap to open that tab).
+                        b('Box', 'pg-m-counts', {
+                          layout: { display: 'flex', direction: 'row', gap: 8, align: 'center', justify: 'space-around', wrap: 'nowrap', stackOnMobile: false },
+                          spacing: none, advanced: { visibility: 'mobile' },
+                          content: [count('experience-count', 'years', 'Experience', '#experience'), count('projects-count', 'projectCount', 'Projects', '#projects')],
+                        }),
+                        b('Flex', 'pg-head-links', { gap: 4, align: 'center', wrap: true, more: { visibility: 'desktop' }, items: [
                           headLink('projects-head-link', 'Projects', '#projects'),
                           headLink('pg-head-what', 'What I Do', '#what-i-do'),
                           headLink('experience-head-link', 'Experience', '#experience'),
@@ -918,7 +933,7 @@ export const OWNER_TEMPLATES: { key: string; version: number; name: string; desc
   },
   {
     key: 'profile-grid',
-    version: 5,
+    version: 6,
     name: 'Profile Grid',
     description: 'A dark social-profile page. Big screens: a sticky sidebar (menu, View Resume, availability, socials), your photo in a gradient ring with quick links, an availability pill, bio and two buttons, story circles and tabs over a grid of project tiles, with tabs that show one area at a time: Projects, What I Do (as post cards), Tech Stack and Experience. Phones: an app layout with a top bar, swipeable story circles, icon tabs, an edge-to-edge 3-across grid and a tab bar at the bottom. Everything scrolls smoothly to its section.',
     data: profileGrid,

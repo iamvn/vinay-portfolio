@@ -452,13 +452,15 @@ export function Projects(input: ProjectsProps & { portfolio: Portfolio }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {src ? <img src={src} alt="" loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${props.hover !== 'none' ? 'transition duration-500 group-hover:scale-105' : ''}`} />
                 : <span aria-hidden="true" className="d-feed-blank absolute inset-0" />}
-              <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" aria-hidden="true" />
+              {/* Phones: just the picture, like a photo grid (covers often carry their own title). The title shows on
+                  bigger screens, and always on a tile without a picture. */}
+              <span className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10 ${src ? 'hidden md:block' : ''}`} aria-hidden="true" />
               {project.featured && (
-                <span className="absolute right-1.5 top-1.5 md:right-3 md:top-3" aria-label={labels.featured} title={labels.featured} style={{ color: '#fff' }}>
+                <span className="absolute right-1.5 top-1.5 drop-shadow-[0_1px_2px_rgba(0,0,0,.7)] md:right-3 md:top-3" aria-label={labels.featured} title={labels.featured} style={{ color: '#fff' }}>
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M15 3l6 6-3 1-4 4 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 4-4 1-3z" /></svg>
                 </span>
               )}
-              <span className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 p-2 text-left md:gap-1.5 md:p-4" style={{ color: '#fff' }}>
+              <span className={`absolute inset-x-0 bottom-0 flex-col gap-0.5 p-2 text-left md:flex md:gap-1.5 md:p-4 ${src ? 'hidden' : 'flex'}`} style={{ color: '#fff' }}>
                 <span className="line-clamp-3 text-[11px] font-bold leading-tight md:text-lg md:font-black">{project.title}</span>
                 {props.showDescription && <span className="hidden text-xs leading-snug opacity-85 md:line-clamp-2">{project.description}</span>}
                 {props.showStack && project.stack.length > 0 && (
