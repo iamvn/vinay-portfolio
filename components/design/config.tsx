@@ -2,6 +2,7 @@
  * Puck configuration for Admin → Design: every block a design can use, its settings, and the site-wide theme.
  * Used by both the editor (client) and the live homepage (server), so render functions must stay hook-free.
  */
+import { ProfileTabsView } from './profile-tabs';
 import type { ComponentConfig, Config, Slot } from '@puckeditor/core';
 import { PlatformBadge } from '../platform-badge';
 import type { PortfolioData } from '@/lib/portfolio';
@@ -84,6 +85,7 @@ type Components = ProjectComponents & {
   // Playful & interactive
   Terminal: { title: string; lines: { text: string; source: string }[]; speed: number; align: Align };
   StickyNotes: { notes: { label: string; icon: string; href: string; color: string }[]; layout: 'column' | 'row'; size: 'sm' | 'md'; look?: 'sticky' | 'card' };
+  ProfileTabs: { tabs: { label: string; icon: string; href: string; panel: 'panel1' | 'panel2' | 'panel3' | 'panel4' }[]; panel1: Slot; panel2: Slot; panel3: Slot; panel4: Slot; stickyTopMobile: number; stickyTopDesktop: number };
   QuoteRotator: { quotes: { quote: string; author: string }[]; interval: number; look: 'navy' | 'paper' | 'plain'; icon: string; font?: 'hand' | 'serif' };
   Faq: FaqProps;
   Form: FormProps;
@@ -144,7 +146,7 @@ export const designConfig: Config<Components, RootProps> = {
   categories: {
     quick: { title: 'Quick add: ready-made layouts', components: ['QuickBanner', 'QuickTextImage', 'QuickFeatures', 'QuickStats', 'QuickContact', 'QuickFaq', 'QuickTestimonials'], defaultExpanded: true },
     layout: { title: 'Layout: boxes & containers', components: ['Box', 'Section', 'Flex', 'Grid', 'Columns', 'Card', 'Spacer', 'Divider'], defaultExpanded: true },
-    playful: { title: 'Playful & interactive', components: ['Terminal', 'StickyNotes', 'QuoteRotator'], defaultExpanded: true },
+    playful: { title: 'Playful & interactive', components: ['Terminal', 'StickyNotes', 'QuoteRotator', 'ProfileTabs'], defaultExpanded: true },
     basic: { title: 'Basic elements', components: ['Heading', 'Text', 'Button', 'Link', 'Image', 'Icon', 'Video', 'Pdf', 'List', 'Quote', 'Faq', 'Tags', 'Badge'], defaultExpanded: true },
     forms: { title: 'Forms', components: ['Form', 'InputField', 'TextAreaField', 'SelectField', 'ChoicesField'], defaultExpanded: true },
     yourData: { title: 'Your details (live)', components: ['ContactButtons', 'SocialLinks', 'ResumeButton'], defaultExpanded: true },
@@ -835,6 +837,35 @@ export const designConfig: Config<Components, RootProps> = {
         </nav>
       ),
     },
+    ProfileTabs: {
+      label: 'Profile tabs (one area at a time)',
+      fields: {
+        tabs: {
+          type: 'array', label: 'Tabs',
+          arrayFields: {
+            label: { type: 'text', label: 'Label' },
+            icon: { type: 'text', label: 'Icon (grid, bolt, layers, briefcase, code, user…)' },
+            href: { type: 'text', label: 'Its #id (links to it open this tab), e.g. #skills' },
+            panel: { type: 'select', label: 'Shows area', options: [{ label: 'Area 1', value: 'panel1' }, { label: 'Area 2', value: 'panel2' }, { label: 'Area 3', value: 'panel3' }, { label: 'Area 4', value: 'panel4' }] },
+          },
+          defaultItemProps: { label: 'Tab', icon: 'grid', href: '#tab', panel: 'panel1' },
+          getItemSummary: (item) => item.label || 'Tab',
+        },
+        panel1: { type: 'slot', label: 'Area 1' }, panel2: { type: 'slot', label: 'Area 2' }, panel3: { type: 'slot', label: 'Area 3' }, panel4: { type: 'slot', label: 'Area 4' },
+        stickyTopMobile: { type: 'number', label: 'Tab bar sticks this far from the top on phones (px, under a top bar)', min: 0, max: 200 },
+        stickyTopDesktop: { type: 'number', label: 'Tab bar sticks this far from the top on bigger screens (px)', min: 0, max: 200 },
+      },
+      defaultProps: {
+        tabs: [{ label: 'Projects', icon: 'grid', href: '#projects', panel: 'panel1' }, { label: 'Tech stack', icon: 'layers', href: '#skills', panel: 'panel2' }],
+        panel1: [], panel2: [], panel3: [], panel4: [], stickyTopMobile: 0, stickyTopDesktop: 0,
+      },
+      render: ({ tabs, panel1: P1, panel2: P2, panel3: P3, panel4: P4, stickyTopMobile, stickyTopDesktop, puck }) => {
+        const area = (Slot: typeof P1) => <Slot className="d-ptab-area grid gap-4" minEmptyHeight={80} />;
+        const panels: Record<string, React.ReactNode> = { panel1: area(P1), panel2: area(P2), panel3: area(P3), panel4: area(P4) };
+        return <ProfileTabsView tabs={tabs ?? []} panels={panels} editing={puck.isEditing} stickyTopMobile={stickyTopMobile} stickyTopDesktop={stickyTopDesktop} />;
+      },
+    },
+
     QuoteRotator: {
       label: 'Rotating quotes',
       fields: {

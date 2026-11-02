@@ -598,40 +598,43 @@ const bigButton = (id: string, icon: string, label: string, href: string, light:
   item: { grow: true, basis: '0' },
 }, [b('Icon', `${id}-icon`, { name: icon, size: 17, tone: light ? 'custom' : 'text', ...(light ? { color: '#0a0a0b' } : {}) }), b('Text', `${id}-label`, { source: 'custom', text: label, sizePx: 15, weight: 'bold', tone: 'normal' })]);
 
-/** A "What I do" card. */
-const skillCard = (id: string, icon: string, color: string, title: string, text: string) => b('Box', id, {
-  layout: { display: 'flex', direction: 'column', gap: 8 },
-  spacing: { padding: pad(18) },
-  look: { fill: 'custom', fillColor: 'rgba(255,255,255,0.035)', borderWidth: 1, borderTone: 'custom', borderColor: PG_LINE, radius: 16 },
+/** A "post": your photo and name on top, a big picture (icon and title on a colour), the caption below. */
+const postCard = (id: string, icon: string, color: string, title: string, text: string) => b('Box', id, {
+  layout: { display: 'flex', direction: 'column', gap: 0 }, spacing: none,
+  look: { fill: 'custom', fillColor: '#111114', borderWidth: 1, borderTone: 'custom', borderColor: PG_LINE, radius: 18 },
+  advanced: { overflow: 'hidden', tag: 'article' },
   content: [
-    b('Flex', `${id}-head`, { gap: 12, align: 'center', wrap: false, items: [
-      b('Icon', `${id}-icon`, { name: icon, size: 22, tone: 'custom', color }),
-      b('Heading', `${id}-title`, { source: 'custom', text: title, level: 'h3', sizePx: 15, weight: 'bold' }),
+    b('Flex', `${id}-head`, { gap: 10, align: 'center', wrap: false, spacing: { padding: { top: '10', right: '14', bottom: '10', left: '12' } }, items: [
+      ring(`${id}-avatar`, 34, 2, b('Image', `${id}-avatar-img`, { source: 'profilePhoto', alt: '', aspect: 'circle', rounded: true, maxWidth: 'full', align: 'center' })),
+      b('Text', `${id}-who`, { source: 'name', sizePx: 14, weight: 'bold', tone: 'normal' }),
     ] }),
-    b('Text', `${id}-text`, { source: 'custom', text, sizePx: 13, tone: 'muted' }),
+    b('Box', `${id}-visual`, {
+      size: { minHeight: '230px' },
+      layout: { display: 'flex', direction: 'column', gap: 14, align: 'center', justify: 'center' },
+      spacing: { padding: pad(28) },
+      look: { fill: 'custom', fillColor: color, gradientVia: '#1e1b4b', gradientTo: PG_BG, gradientAngle: 160, textTone: 'custom', textColor: '#ffffff', textAlign: 'center' },
+      content: [
+        b('Icon', `${id}-icon`, { name: icon, size: 54, tone: 'custom', color: '#ffffff', align: 'center' }),
+        b('Heading', `${id}-title`, { source: 'custom', text: title, level: 'h3', sizePx: 24, weight: 'bold', tracking: 'tight', align: 'center' }),
+      ],
+    }),
+    b('Box', `${id}-caption`, {
+      layout: { display: 'flex', direction: 'column', gap: 4 }, spacing: { padding: { top: '12', right: '14', bottom: '16', left: '14' } },
+      content: [
+        b('Text', `${id}-cap-title`, { source: 'custom', text: title, sizePx: 14, weight: 'bold', tone: 'normal' }),
+        b('Text', `${id}-cap-text`, { source: 'custom', text, sizePx: 14, tone: 'muted' }),
+      ],
+    }),
   ],
 });
 
-/** A titled section of the feed. */
-const pgSection = (id: string, anchor: string, title: string, content: Block[]) => b('Box', id, {
+/** A tab's area, with side room on phones. */
+const tabArea = (id: string, content: Block[]) => b('Box', id, {
   layout: { display: 'flex', direction: 'column', gap: 14 },
-  spacing: { padding: pad(0), paddingMobile: { top: '0', right: '14', bottom: '0', left: '14' } },
-  advanced: { tag: 'section', anchor, fitSections: true },
-  content: [b('Heading', `${id}-title`, { ...words(title), level: 'h2', sizePx: 22, weight: 'bold', tracking: 'tight' }), ...content],
+  spacing: { padding: pad(0), paddingMobile: { top: '4', right: '12', bottom: '4', left: '12' } },
+  advanced: { fitSections: true },
+  content,
 });
-
-/** A tab with an underline under the current one (label on big screens, icon only on phones). */
-const lineTab = (id: string, icon: string, label: string, href: string, active: boolean, withLabel: boolean) => linkBox(id, href, withLabel ? '' : label, {
-  layout: { display: 'flex', direction: 'column', gap: 10, align: 'center' },
-  spacing: { padding: { top: '12', right: withLabel ? '18' : '0', bottom: '0', left: withLabel ? '18' : '0' } },
-  item: withLabel ? {} : { grow: true, basis: '0' },
-}, [
-  b('Flex', `${id}-row`, { gap: 9, align: 'center', wrap: false, items: [
-    b('Icon', `${id}-icon`, { name: icon, size: withLabel ? 19 : 24, tone: active ? 'text' : 'muted' }),
-    ...(withLabel ? [b('Text', `${id}-label`, { source: 'custom', text: label, sizePx: 15, weight: 'bold', tone: active ? 'normal' : 'muted' })] : []),
-  ] }),
-  b('Box', `${id}-bar`, { size: { width: '100%', height: '2px' }, spacing: none, look: { fill: 'custom', fillColor: active ? '#f5f5f7' : 'rgba(0,0,0,0)', radius: 2 } }),
-]);
 
 const PG_SERVICES = [
   ['code', '#a78bfa', 'Full-Stack Development', 'Build end-to-end, scalable web applications.'],
@@ -816,53 +819,33 @@ const profileGrid: DesignData = noWrapColumns({
               ],
             }),
 
-            // Tabs over the feed: labels on big screens, icons on phones.
-            b('Box', 'pg-tabs', {
-              layout: { display: 'flex', direction: 'row', gap: 18, justify: 'center', wrap: 'wrap', stackOnMobile: false },
-              spacing: none, advanced: { visibility: 'desktop' },
-              content: [
-                lineTab('projects-tab', 'grid', 'Projects', '#projects', true, true),
-                lineTab('pg-tab-what', 'bolt', 'What I Do', '#what-i-do', false, true),
-                lineTab('skills-tab', 'layers', 'Tech Stack', '#skills', false, true),
-                lineTab('experience-tab', 'briefcase', 'Experience', '#experience', false, true),
+            // Tabs like a social profile: one area at a time. Menu rows, story circles and the bottom bar open them too.
+            b('ProfileTabs', 'pg-tabs', {
+              stickyTopMobile: 54, stickyTopDesktop: 0,
+              tabs: [
+                { label: 'Projects', icon: 'grid', href: '#projects', panel: 'panel1' },
+                { label: 'What I Do', icon: 'bolt', href: '#what-i-do', panel: 'panel2' },
+                { label: 'Tech Stack', icon: 'layers', href: '#skills', panel: 'panel3' },
+                { label: 'Experience', icon: 'briefcase', href: '#experience', panel: 'panel4' },
               ],
-            }),
-            b('Box', 'pg-m-tabs', {
-              layout: { display: 'flex', direction: 'row', gap: 0, align: 'stretch', wrap: 'nowrap', stackOnMobile: false },
-              spacing: none, advanced: { visibility: 'mobile' },
-              content: [
-                lineTab('projects-mtab', 'grid', 'Projects', '#projects', true, false),
-                lineTab('pg-mtab-what', 'bolt', 'What I Do', '#what-i-do', false, false),
-                lineTab('skills-mtab', 'layers', 'Tech Stack', '#skills', false, false),
-                lineTab('experience-mtab', 'briefcase', 'Experience', '#experience', false, false),
-              ],
-            }),
-
-            // The feed: projects, three across (edge to edge on phones).
-            b('Box', 'projects', {
-              layout: { display: 'flex', direction: 'column', gap: 0 }, spacing: { padding: pad(0), margin: { top: '-14' } },
-              advanced: { tag: 'section', anchor: 'projects', fitSections: true },
-              content: [
+              panel1: [
                 b('Projects', 'pg-projects', {
                   layout: 'feed', columns: '3', columnsMobile: '2', filter: 'all', sort: 'featured', limit: 0, image: 'video', hover: 'zoom',
                   frame: 'none', linkStyle: 'arrow', tabs: false, tagStyle: 'chips', showDescription: true, showStack: true, showLinks: false, showType: false,
                   cardStyle: 'plain', cardAlign: 'left', eyebrow: '-', title: '-',
                 }),
               ],
+              panel2: [tabArea('pg-what', [
+                b('Grid', 'pg-what-grid', { columns: '2', columnsTablet: '2', columnsMobile: '1', gap: 16,
+                  items: PG_SERVICES.map(([icon, color, title, text], i) => postCard(`pg-what-${i}`, icon, color, title, text)) }),
+              ])],
+              panel3: [tabArea('skills-area', [
+                b('Skills', 'skills-list', { layout: 'cards', align: 'left', eyebrow: '-', title: '-', description: '-' }),
+              ])],
+              panel4: [tabArea('experience-area', [
+                b('Experience', 'experience-list', { layout: 'cards', maxBullets: 3, eyebrow: '-', title: '-', description: '-' }),
+              ])],
             }),
-
-            pgSection('pg-what', 'what-i-do', 'What I Do', [
-              b('Grid', 'pg-what-grid', { columns: '4', columnsTablet: '2', columnsMobile: '1', gap: 12,
-                items: PG_SERVICES.map(([icon, color, title, text], i) => skillCard(`pg-what-${i}`, icon, color, title, text)) }),
-            ]),
-
-            pgSection('skills-wrap', 'skills', 'Tech Stack', [
-              b('Skills', 'skills-list', { layout: 'tags', align: 'left', eyebrow: '-', title: '-', description: '-' }),
-            ]),
-
-            pgSection('experience-wrap', 'experience', 'Career Timeline', [
-              b('Experience', 'experience-list', { layout: 'journey', maxBullets: -1, eyebrow: '-', title: '-', description: '-' }),
-            ]),
 
             b('Box', 'pg-contact-wrap', {
               spacing: { padding: pad(0), paddingMobile: { top: '0', right: '12', bottom: '0', left: '12' } },
@@ -930,9 +913,9 @@ export const OWNER_TEMPLATES: { key: string; version: number; name: string; desc
   },
   {
     key: 'profile-grid',
-    version: 3,
+    version: 4,
     name: 'Profile Grid',
-    description: 'A dark social-profile page. Big screens: a sticky sidebar (menu, View Resume, availability, socials), your photo in a gradient ring with quick links, an availability pill, bio and two buttons, story circles and tabs over a grid of project tiles, then What I Do, Tech Stack and a Career Timeline. Phones: an app layout with a top bar, swipeable story circles, icon tabs, an edge-to-edge 3-across grid and a tab bar at the bottom. Everything scrolls smoothly to its section.',
+    description: 'A dark social-profile page. Big screens: a sticky sidebar (menu, View Resume, availability, socials), your photo in a gradient ring with quick links, an availability pill, bio and two buttons, story circles and tabs over a grid of project tiles, with tabs that show one area at a time: Projects, What I Do (as post cards), Tech Stack and Experience. Phones: an app layout with a top bar, swipeable story circles, icon tabs, an edge-to-edge 3-across grid and a tab bar at the bottom. Everything scrolls smoothly to its section.',
     data: profileGrid,
   },
 ];

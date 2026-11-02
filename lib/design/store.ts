@@ -31,7 +31,7 @@ export const BLOCK_TYPES = [
   'NavBar', 'Hero', 'HiringSnapshot', 'Stats', 'Skills', 'Projects', 'Experience', 'Contact', 'SocialLinks', 'ResumeButton', 'Footer',
   'Section', 'Flex', 'Grid', 'Columns', 'Card', 'Spacer', 'Divider', 'Heading', 'Text', 'Button', 'Image', 'List', 'Tags', 'Badge', 'ContactButtons',
   'Box', 'Link', 'Icon', 'Video', 'Pdf', 'Quote', 'Faq', 'Form', 'InputField', 'TextAreaField', 'SelectField', 'ChoicesField',
-  'Terminal', 'StickyNotes', 'QuoteRotator',
+  'Terminal', 'StickyNotes', 'QuoteRotator', 'ProfileTabs',
   'QuickBanner', 'QuickTextImage', 'QuickFeatures', 'QuickStats', 'QuickContact', 'QuickFaq', 'QuickTestimonials',
   ...PROJECT_ONLY,
 ] as const;
@@ -41,7 +41,7 @@ export const BLOCK_LIST_COMPLETE: [Missing] extends [never] ? true : Missing = t
 
 const SLOT_FIELDS: Record<string, string[]> = {
   ClassicShell: ['content'], ClassicHero: ['extra'], ClassicContact: ['extra'], Hero: ['extra'], Contact: ['extra'], Flex: ['items'], Grid: ['items'], Section: ['content'], Card: ['content'], Box: ['content'], Form: ['fields'],
-  QuickBanner: ['content'], QuickTextImage: ['content'], QuickFeatures: ['content'], QuickStats: ['content'], QuickContact: ['content'], QuickFaq: ['content'], QuickTestimonials: ['content'], Columns: ['column1', 'column2', 'column3', 'column4'] };
+  QuickBanner: ['content'], QuickTextImage: ['content'], QuickFeatures: ['content'], QuickStats: ['content'], QuickContact: ['content'], QuickFaq: ['content'], QuickTestimonials: ['content'], Columns: ['column1', 'column2', 'column3', 'column4'], ProfileTabs: ['panel1', 'panel2', 'panel3', 'panel4'] };
 
 export type StoredDesign = { data: DesignData; savedAt: string; savedBy: string; template?: string };
 

@@ -119,6 +119,8 @@
   :is(.d-flex, .d-grid) .d-prim { width: auto; }
   /* A row of icons + live text whose text is empty (say, no availability note) hides itself, so no icon floats alone. */
   .d-prim:has(> .d-flex > .d-text-empty):not(:has(> .d-flex > :not(.d-text-empty, .d-icon, .d-styled))) { display: none; }
+  /* …and when that row has its own look (a pill with a fill or border), the whole pill goes, not just its inside. */
+  .d-styled:has(> .d-prim > .d-flex > .d-text-empty):not(:has(> .d-prim > .d-flex > :not(.d-text-empty, .d-icon, .d-styled))) { display: none; }
   :is(.d-section-inner, .d-col, .d-cardbox, .d-flex, .d-grid, .d-slot-extra) .d-container { max-width: none; padding-inline: 0; }
   :is(.d-section-inner, .d-col, .d-cardbox, .d-flex, .d-grid, .d-slot-extra) .d-block { padding-block: 1rem; }
 
@@ -557,3 +559,24 @@ select.d-input[multiple] option { padding: .35rem .5rem; border-radius: 4px; }
 .d-scroll-x[style*="justify-content:center"] { justify-content: flex-start !important; }
 .d-scroll-x[style*="justify-content:center"] > :first-child { margin-inline-start: auto; }
 .d-scroll-x[style*="justify-content:center"] > :last-child { margin-inline-end: auto; }
+
+/* ---------- Profile tabs (components/design/profile-tabs.tsx) ---------- */
+.d-ptabs-bar { position: sticky; top: var(--ptabs-top-m, 0px); z-index: 15; display: flex; justify-content: center; gap: 4px; margin-bottom: 14px;
+  background: color-mix(in srgb, var(--d-bg) 88%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid var(--d-line); }
+@media (min-width: 768px) { .d-ptabs-bar { top: var(--ptabs-top-d, 0px); gap: 26px; margin-bottom: 18px; } }
+.d-ptab { position: relative; display: inline-flex; flex: 1 1 0; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 0 6px;
+  color: var(--d-muted); font-weight: 700; font-size: 15px; text-decoration: none; -webkit-tap-highlight-color: transparent; transition: color .2s; }
+@media (min-width: 768px) { .d-ptab { flex: 0 0 auto; padding: 0 12px; } }
+.d-ptab::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; border-radius: 2px; background: var(--d-text); transform: scaleX(0); transition: transform .25s cubic-bezier(.2, .8, .2, 1); }
+.d-ptab:hover { color: var(--d-text); }
+.d-ptab-on { color: var(--d-text); }
+.d-ptab-on::after { transform: scaleX(1); }
+.d-ptab:focus-visible { outline: 2px solid var(--d-accent2, var(--d-accent)); outline-offset: -2px; border-radius: 8px; }
+/* Phones: icons only (the label stays for screen readers). */
+@media (max-width: 767px) { .d-ptab-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
+.d-ptab-panel-on { animation: d-ptab-in .32s cubic-bezier(.2, .8, .2, 1); }
+@keyframes d-ptab-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .d-ptab-panel-on { animation: none; } .d-ptab::after { transition: none; } }
+/* A short tab (a few cards) still lets the bar reach the top, so switching tabs never jumps around. */
+.d-ptabs > .d-ptabs-bar + div { min-height: calc(100dvh - 48px - var(--ptabs-top-m, 0px) - 70px); }
+@media (min-width: 768px) { .d-ptabs > .d-ptabs-bar + div { min-height: calc(100dvh - 66px - var(--ptabs-top-d, 0px)); } }
